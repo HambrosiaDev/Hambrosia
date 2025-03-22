@@ -1,24 +1,14 @@
 import * as admin from 'firebase-admin';
-import dotenv from 'dotenv';
+import * as fb from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-dotenv.config();
+// Initialize Firebase
+admin.initializeApp({
+  credential: fb.applicationDefault(),
+});
 
-// Inicializa Firebase Admin con las credenciales de servicio
-const firebaseConfig = {
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  }),
-};
-
-// Inicializa la app solo si no se ha hecho ya
-if (!admin.apps.length) {
-  admin.initializeApp(firebaseConfig);
-}
-
-// Exporta las instancias de Firestore, Auth, etc.
-export const db = admin.firestore();
+// Export Firebase services
+export const db = getFirestore();
 export const auth = admin.auth();
 export const storage = admin.storage();
 
