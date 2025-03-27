@@ -1,8 +1,10 @@
 import { Image, StyleSheet, View, TextInput, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import React from 'react';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
+  const router = useRouter();
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -48,7 +50,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           {/* Botón Registrarme */}
-          <TouchableOpacity style={[styles.button, styles.registerButton]}>
+          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={()=>router.navigate("/(tabs)/register")}>
             <Text style={styles.buttonText}>Registrarme</Text>
           </TouchableOpacity>
 
