@@ -11,13 +11,30 @@ export enum TipoReporte {
   // Add other report types as needed
 }
 
+export enum Alergeno {
+  GLUTEN = 'GLUTEN',
+  LACTOSA = 'LACTOSA',
+  FRUTOS_SECOS = 'FRUTOS_SECOS',
+  MARISCOS = 'MARISCOS',
+  HUEVO = 'HUEVO',
+  SOJA = 'SOJA',
+  PESCADO = 'PESCADO',
+  MANI = 'MANI',
+  TRIGO = 'TRIGO',
+  SESAMO = 'SESAMO'
+}
+
 // Interfaces
 export interface Usuario {
   id: string;
   correo: string;
   cedulaRUC: string;
+  nombre: string;
   rol: Rol;
-  // Add other properties as needed
+  firebaseUid: string;
+  fechaNacimiento?: Date; // Solo se pide a Cliente
+  // direccion?: string; // Solo se pide a Restaurante
+  alergenos?: Alergeno[]; // Solo se pide a Restaurante
 }
 
 export interface Paquete {
