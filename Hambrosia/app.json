@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/h_logo.png",
+        "foregroundImage": "./assets/images/Logo-2.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.froggotkd.Hambrosia"

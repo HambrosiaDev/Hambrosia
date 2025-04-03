@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Image, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, Pressable, View, Text, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { Image, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, Pressable, View, Text, TouchableOpacity, Modal, FlatList, Alert } from 'react-native';
 import React from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
+import Checkbox from 'expo-checkbox';
+
 
 
 const roles = ["Usuario", "Restaurante"];
@@ -15,6 +17,117 @@ export default function Register() {
 
   const [selectedRole, setSelectedRole] = useState("Usuario");
   const [modalVisible, setModalVisible] = useState(false);
+
+  const [formData, setFormData] = useState({
+    user: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      city: "",
+      day: "",
+      month: "",
+      year: "",
+    },
+    restaurant: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      ruc: "",
+      location: "",
+    },
+  });
+  
+  const handleChange = (section: "user" | "restaurant", key: string, value: string) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [section]: {
+        ...prevData[section],
+        [key]: value,
+      },
+    }));
+  };
+
+  const [selectedAllergens, setSelectedAllergens] = useState<Record<string, boolean>>({});
+  const toggleAllergen = (allergen: string) => {
+    setSelectedAllergens((prev) => ({
+      ...prev,
+      [allergen]: !prev[allergen],
+    }));
+  };
+  const allergensList = [
+    'Crustáceos/Mariscos', 'Pescado', 'Leche', 'Huevo', 'Frutos Secos', 
+    'Maní/Cacahuate', 'Trigo', 'Granos de Soya', 'Sésamo'
+  ];
+
+  const confirmPassword = (pass1: string, pass2: string): boolean => {
+    if (pass1.length < 8) {
+      Alert.alert("La contraseña debe tener al menos 8 caracteres.");
+      return false;
+    }
+    const validatePassword = (password: string, confirmPassword: string): boolean => {
+      const errors = [];
+      
+      if (password.length < 8) errors.push("Debe tener al menos 8 caracteres.");
+      if (!/[A-Z]/.test(password)) errors.push("Debe tener al menos 1 mayúscula.");
+      if (!/[a-z]/.test(password)) errors.push("Debe tener al menos 1 minúscula.");
+      if (!/[0-9]/.test(password)) errors.push("Debe tener al menos 1 número.");
+      if (!/[\W_]/.test(password)) errors.push("Debe tener al menos 1 caracter especial.");
+      if (password !== confirmPassword) errors.push("Las contraseñas no coinciden.");
+    
+      if (errors.length > 0) {
+        Alert.alert("Error de contraseña", errors.join("\n"));
+        return false;
+      }
+      return true;
+    };
+    
+    return true;
+  };
+
+  const validateEmail = (email: string): boolean =>{
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if(!emailRegex.test(email)){
+      Alert.alert("Formato de correo inválido")
+      return false;
+    } else{
+      return true;
+    }
+  }
+
+
+  const handleRegister = () => {
+    if(selectedRole == "Restaurante"){
+      confirmPassword(formData.restaurant.password, formData.restaurant.password);
+    }else{
+      console.log(formData.user.name);
+      console.log(formData.user.email);
+      console.log(formData.user.password);
+      console.log(formData.user.confirmPassword);
+      console.log(formData.user.city);
+      console.log(formData.user.day);
+      console.log(formData.user.month);
+      console.log(formData.user.year);
+      confirmPassword(formData.user.password, formData.user.confirmPassword)
+      setFormData((prevData) => ({
+        ...prevData,
+        user: {
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          city: "",
+          day: "",
+          month: "",
+          year: "",
+        },
+      }));
+      
+    }
+  
+  };
+
 
   return (
     <KeyboardAvoidingView
@@ -87,7 +200,9 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Nombre completo"
                     placeholderTextColor="gray"
-                  />
+                    value={formData.user.name}
+                    onChangeText={(text) => handleChange("user", "name", text)}
+                    />
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -96,6 +211,8 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Correo electrónico"
                     placeholderTextColor="gray"
+                    value={formData.user.email}
+                    onChangeText={(text) => handleChange("user", "email", text)}
                   />
                 </View>
 
@@ -105,6 +222,8 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Contraseña"
                     placeholderTextColor="gray"
+                    value={formData.user.password}
+                    onChangeText={(text) => handleChange("user", "password", text)}
                     secureTextEntry
                   />
                 </View>
@@ -115,9 +234,13 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Confirmar Contraseña"
                     placeholderTextColor="gray"
+                    value={formData.user.confirmPassword}
+                    onChangeText={(text) => handleChange("user", "confirmPassword", text)}
                     secureTextEntry
                   />
                 </View>
+
+                <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
 
                 <View style={styles.inputContainer}>
                   <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
@@ -125,34 +248,42 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Ciudad ej. Quito"
                     placeholderTextColor="gray"
+                    value={formData.user.city}
+                    onChangeText={(text) => handleChange("user", "city", text)}
                   />
                 </View>
 
                 <View style={styles.dateContainer}>
-                 <View style={styles.date}>
-                  <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Día"
-                    placeholderTextColor="gray"
-                  />
-                 </View>
-                 <View style={styles.date}>
-                 <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Mes"
-                    placeholderTextColor="gray"
-                  />
-                 </View>
-                 <View style={styles.date}>
-                 <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Año"
-                    placeholderTextColor="gray"
-                  />
-                 </View>
+                  <View style={styles.date}>
+                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Día"
+                      placeholderTextColor="gray"
+                      value={formData.user.day}
+                    onChangeText={(text) => handleChange("user", "day", text)}
+                    />
+                  </View>
+                  <View style={styles.date}>
+                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Mes"
+                      placeholderTextColor="gray"
+                      value={formData.user.month}
+                    onChangeText={(text) => handleChange("user", "month", text)}
+                    />
+                  </View>
+                  <View style={styles.date}>
+                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Año"
+                      placeholderTextColor="gray"
+                      value={formData.user.year}
+                    onChangeText={(text) => handleChange("user", "year", text)}
+                    />
+                  </View>
                 </View>
               </>
             ) : (
@@ -163,6 +294,8 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Nombre del restaurante"
                     placeholderTextColor="gray"
+                    value={formData.restaurant.name}
+                    onChangeText={(text) => handleChange("restaurant", "name", text)}
                   />
                 </View>
 
@@ -172,6 +305,8 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Correo electrónico"
                     placeholderTextColor="gray"
+                    value={formData.restaurant.email}
+                    onChangeText={(text) => handleChange("restaurant", "email", text)}
                   />
                 </View>
 
@@ -181,6 +316,8 @@ export default function Register() {
                     style={styles.input}
                     placeholder="RUC"
                     placeholderTextColor="gray"
+                    value={formData.restaurant.ruc}
+                    onChangeText={(text) => handleChange("restaurant", "ruc", text)}
                   />
                 </View>
 
@@ -190,6 +327,8 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Contraseña"
                     placeholderTextColor="gray"
+                    value={formData.restaurant.password}
+                    onChangeText={(text) => handleChange("restaurant", "password", text)}
                     secureTextEntry
                   />
                 </View>
@@ -200,10 +339,12 @@ export default function Register() {
                     style={styles.input}
                     placeholder="Confirmar Contraseña"
                     placeholderTextColor="gray"
+                    value={formData.restaurant.confirmPassword}
+                    onChangeText={(text) => handleChange("restaurant", "confirmPassword", text)}
                     secureTextEntry
                   />
                 </View>
-
+                <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
                 <View style={styles.inputContainer}>
                   <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
                   <TextInput
@@ -212,6 +353,24 @@ export default function Register() {
                     placeholderTextColor="gray"
                   />
                 </View>
+
+                <View style={styles.containerAllergens}>
+                      <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
+                      <View style={styles.allergenList}>
+                        {allergensList.map((allergen) => (
+                          <View key={allergen} style={styles.allergenItem}>
+                            <Checkbox
+                              value={selectedAllergens[allergen] || false}
+                              onValueChange={() => toggleAllergen(allergen)}
+                              color={selectedAllergens[allergen] ? '#E74C3C' : undefined}
+                            />
+                            <Text style={styles.allergenText}>{allergen}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+
+                
               </>
             )}
             <Text style={styles.title}>He leído y acepto los términos y condiciones</Text>
@@ -220,7 +379,7 @@ export default function Register() {
 
 
           {/* Botón Registrarme */}
-          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => router.navigate("/(tabs)")}>
+          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => handleRegister()}>
             <Text style={styles.buttonText}>Registrarme</Text>
           </TouchableOpacity>
 
@@ -254,12 +413,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#DF4E00'
   },
   logo_1: {
-    width: width * 0.15, 
-    height: width * 0.15, 
+    width: width * 0.15,
+    height: width * 0.15,
     resizeMode: "contain",
     alignSelf: "center",
-    bottom:30,
-    marginBottom: 20, 
+    bottom: 30,
+    marginBottom: 20,
   },
   logoContainer: {
     position: 'absolute',
@@ -299,7 +458,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
   },
-  date:{
+  date: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f5c6b0',
@@ -308,12 +467,12 @@ const styles = StyleSheet.create({
     width: '31%',
     height: 45,
     marginBottom: 35,
-    
+
   },
-  dateContainer:{
-    flexDirection:"row",
+  dateContainer: {
+    flexDirection: "row",
     alignContent: 'center',
-    gap:10,
+    gap: 10,
   },
   button: {
     width: '100%',
@@ -336,5 +495,36 @@ const styles = StyleSheet.create({
     color: '#7F8C8D',
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  containerAllergens: {
+    padding: 1,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  titleAllergens: {
+    marginTop:10,
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#333',
+  },
+  allergenList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap', 
+    justifyContent: 'center',
+  },
+  allergenItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5c6b0',
+    padding: 10,
+    borderRadius: 8,
+    margin: 5,
+  },
+  allergenText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#333',
   },
 });
