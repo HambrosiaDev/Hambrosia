@@ -1,6 +1,7 @@
 import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
+import * as admin from 'firebase-admin';
 
 export class UsuarioService {
   private collection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
@@ -33,13 +34,20 @@ export class UsuarioService {
     return this.getByField('cedulaRUC', cedulaRUC);
   }
 
+  // Obtener un usuario por uid de Firebase
+  async getByFirebaseUid(firebaseUid: string): Promise<Usuario | null> {
+    const snapshot = await this.collection.where('firebaseUid', '==', firebaseUid).limit(1).get();
+    return snapshot.empty ? null : snapshot.docs[0].data();
+  }
+
   // Registro con Firebase Authentication y Firestore
   async register(
     email: string,
     password: string,
     cedulaRUC: string,
     nombre: string,
-    fechaNacimiento: Date,
+    direccion: string,
+    fechaNacimiento: Date | undefined,
     rol: Rol,
     alergenos?: Alergeno[]
   ): Promise<Usuario> {
@@ -71,14 +79,22 @@ export class UsuarioService {
         correo: email,
         cedulaRUC: cedulaRUC,
         nombre: nombre,
-        fechaNacimiento: fechaNacimiento,
+        direccion: direccion,
         rol: rol,
-        firebaseUid: firebaseUid
+        firebaseUid: firebaseUid,
+        intentosFallidos: 0, // Inicializar contador de intentos fallidos
+        activo: true // Por defecto, el usuario está activo
       };
   
       // Agregar alérgenos solo si el rol es restaurante y hay alérgenos definidos
       if (rol === Rol.RESTAURANTE && alergenos && alergenos.length > 0) {
         userData.alergenos = alergenos;
+      }
+
+      // Agregar fecha de nacimiento solo si el rol es cliente
+      if (rol === Rol.CLIENTE && fechaNacimiento) {
+        userData.fechaNacimiento = fechaNacimiento;
+        userData.strikes = 0; // Inicializar contador de strikes para clientes
       }
   
       // Guardar en Firestore
@@ -107,11 +123,18 @@ export class UsuarioService {
     // Utilizar la cédula/RUC como ID del documento
     const docRef = this.collection.doc(data.cedulaRUC);
 
-    // Crear el usuario con el ID igual a la cédula/RUC
+    // Crear el usuario con el ID igual a la cédula/RUC y asegurar que intentosFallidos esté inicializado
     const usuario: Usuario = { 
       id: data.cedulaRUC,
-      ...data 
+      ...data,
+      intentosFallidos: data.intentosFallidos || 0,
+      activo: data.activo !== undefined ? data.activo : true // Por defecto, el usuario está activo
     };
+
+    // Inicializar strikes para clientes si no están definidos
+    if (usuario.rol === Rol.CLIENTE && usuario.strikes === undefined) {
+      usuario.strikes = 0;
+    }
 
     // Establecer los datos en el documento
     await docRef.set(usuario);
@@ -143,24 +166,149 @@ export class UsuarioService {
     return snapshot.docs.map(doc => doc.data());
   }
 
-  // Verificar credenciales - no podemos iniciar sesión directamente con el Admin SDK,
-  // este método solo verifica si existe un usuario con esas credenciales
-  async verificarCredenciales(email: string, password: string): Promise<Usuario> {
-    // Nota: No podemos verificar directamente la contraseña con el Admin SDK
-    // En una aplicación real, usarías Firebase Auth en el cliente para iniciar sesión
-    // y luego verificarías el token en el servidor
-    
-    // Buscar usuario por email
-    const usuario = await this.getByEmail(email);
+  // Registrar intento fallido de login y bloquear si es necesario
+  async registrarIntentoFallido(userId: string): Promise<void> {
+    const usuario = await this.getById(userId);
     
     if (!usuario) {
-      throw new Error('Credenciales inválidas');
+      throw new Error('Usuario no encontrado');
     }
     
-    // Como no podemos verificar la contraseña en el servidor con el Admin SDK,
-    // asumimos que la validación de la contraseña se realiza en el cliente
-    // con Firebase Auth, y la respuesta exitosa es indicativa de credenciales válidas
+    const intentosFallidos = (usuario.intentosFallidos || 0) + 1;
     
-    return usuario;
+    // Verificar si se excedió el límite de intentos fallidos (3)
+    if (intentosFallidos >= 3) {
+      // Bloquear la cuenta cambiando activo a FALSE
+      const motivoBloqueo = `Su cuenta ha sido bloqueada por exceder el límite de intentos fallidos de inicio de sesión. Por favor, restablezca su contraseña para desbloquear su cuenta.`;
+      
+      await this.update(userId, { 
+        intentosFallidos,
+        activo: false,
+        motivoBloqueo: motivoBloqueo
+      });
+      
+      // Enviar notificación de bloqueo
+      await this.enviarNotificacionBloqueo(userId, motivoBloqueo);
+    } else {
+      // Solo actualizar el contador de intentos fallidos
+      await this.update(userId, { intentosFallidos });
+    }
+  }
+
+  // Resetear intentos fallidos al iniciar sesión correctamente
+  async resetearIntentosFallidos(userId: string): Promise<void> {
+    const usuario = await this.getById(userId);
+    
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    // Actualizar solo si el bloqueo fue por intentos fallidos
+    await this.update(userId, { 
+      intentosFallidos: 0
+    });
+  }
+
+  // Verificar si el usuario está bloqueado y verificar si debe desbloquearse por tiempo transcurrido
+  async verificarBloqueo(userId: string): Promise<{bloqueado: boolean, mensaje?: string}> {
+    const usuario = await this.getById(userId);
+    
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    // Si la cuenta no está activa
+    if (!usuario.activo) {
+      // Verificar si el bloqueo es por strikes y si ya ha pasado el tiempo de bloqueo
+      if (usuario.bloqueadoHasta && usuario.rol === Rol.CLIENTE && usuario.strikes && usuario.strikes >= 5) {
+        // Si ya pasó el tiempo de bloqueo, desbloquear la cuenta
+        if (new Date() >= usuario.bloqueadoHasta) {
+          await this.update(userId, {
+            activo: true,
+            strikes: 0,
+            bloqueadoHasta: undefined,
+            motivoBloqueo: undefined
+          });
+          return { bloqueado: false };
+        }
+        
+        // Si aún no ha pasado el tiempo de bloqueo
+        const fechaDesbloqueo = usuario.bloqueadoHasta.toLocaleDateString();
+        return {
+          bloqueado: true,
+          mensaje: `Su cuenta ha sido bloqueada por acumulación de strikes. Estará bloqueada hasta el ${fechaDesbloqueo}.`
+        };
+      }
+      
+      // Bloqueo por intentos fallidos u otra razón
+      return {
+        bloqueado: true,
+        mensaje: usuario.motivoBloqueo || 'Su cuenta está bloqueada. Contacte al administrador para más información.'
+      };
+    }
+    
+    return { bloqueado: false };
+  }
+
+  // Incrementar strikes para un cliente y bloquear si es necesario
+  async incrementarStrike(id: string): Promise<number> {
+    const usuario = await this.getById(id);
+    
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    if (usuario.rol !== Rol.CLIENTE) {
+      throw new Error('Solo se pueden asignar strikes a usuarios con rol CLIENTE');
+    }
+    
+    const strikesActuales = usuario.strikes || 0;
+    const nuevosStrikes = strikesActuales + 1;
+    
+    // Preparar los datos para actualizar
+    const updateData: Partial<Usuario> = { strikes: nuevosStrikes };
+    
+    // Si alcanza 5 strikes, desactivar la cuenta y bloquear por 30 días
+    if (nuevosStrikes >= 5) {
+      const bloqueadoHasta = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 días
+      const fechaDesbloqueo = bloqueadoHasta.toLocaleDateString();
+      const motivoBloqueo = `Su cuenta ha sido bloqueada por acumulación de strikes (${nuevosStrikes}/5). Estará bloqueada hasta el ${fechaDesbloqueo}.`;
+      
+      Object.assign(updateData, {
+        activo: false,
+        bloqueadoHasta: bloqueadoHasta,
+        motivoBloqueo: motivoBloqueo
+      });
+      
+      // Enviar notificación de bloqueo
+      await this.enviarNotificacionBloqueo(id, motivoBloqueo);
+    }
+    
+    await this.update(id, updateData);
+    return nuevosStrikes;
+  }
+  
+  // Método para enviar notificación al usuario sobre su bloqueo
+  async enviarNotificacionBloqueo(userId: string, mensaje: string): Promise<void> {
+    const usuario = await this.getById(userId);
+    
+    if (!usuario || !usuario.firebaseUid) {
+      throw new Error('Usuario no encontrado o sin ID de Firebase');
+    }
+    
+    try {
+      // Almacenar mensaje en Firestore para que el cliente lo recupere en próximo inicio de sesión
+      await db.collection('notificaciones').add({
+        userId: userId,
+        firebaseUid: usuario.firebaseUid,
+        mensaje: mensaje,
+        leido: false,
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+      
+      console.log(`Notificación de bloqueo enviada a usuario ${userId}: ${mensaje}`);
+    } catch (error) {
+      console.error('Error al enviar notificación de bloqueo:', error);
+    }
   }
 }

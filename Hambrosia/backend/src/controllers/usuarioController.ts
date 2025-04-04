@@ -41,24 +41,33 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
 // Register new user with authentication
 export const registerUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { correo, password, cedulaRUC, nombre, fechaNacimiento, rol, alergenos } = req.body;
+    const { correo, password, cedulaRUC, nombre, direccion, fechaNacimiento, rol, alergenos } = req.body;
     
     // Validar campos requeridos
-    if (!correo || !password || !cedulaRUC || !nombre || !fechaNacimiento || !rol) {
+    if (!correo || !password || !cedulaRUC || !nombre || !direccion || !rol) {
       res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
       return;
     }
     
-    // Convertir la fecha de nacimiento a objeto Date
-    const fechaNac = new Date(fechaNacimiento);
-    if (isNaN(fechaNac.getTime())) {
-      res.status(400).json({ success: false, error: 'Formato de fecha de nacimiento inválido' });
-      return;
+    // Convertir la fecha de nacimiento a objeto Date si está presente
+    let fechaNac: Date | undefined = undefined;
+    if (fechaNacimiento) {
+      fechaNac = new Date(fechaNacimiento);
+      if (isNaN(fechaNac.getTime())) {
+        res.status(400).json({ success: false, error: 'Formato de fecha de nacimiento inválido' });
+        return;
+      }
     }
     
     // Validar rol
     if (![Rol.CLIENTE, Rol.RESTAURANTE].includes(rol)) {
       res.status(400).json({ success: false, error: 'Rol no válido, debe ser CLIENTE o RESTAURANTE' });
+      return;
+    }
+
+    // Validar que la fecha de nacimiento esté presente para CLIENTE
+    if (rol === Rol.CLIENTE && !fechaNac) {
+      res.status(400).json({ success: false, error: 'La fecha de nacimiento es obligatoria para clientes' });
       return;
     }
     
@@ -85,6 +94,7 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
       password,
       cedulaRUC,
       nombre,
+      direccion,
       fechaNac,
       rol,
       rol === Rol.RESTAURANTE ? alergenos : undefined
@@ -93,24 +103,6 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
     res.status(201).json({ success: true, data: newUsuario });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
-  }
-};
-
-// Verificar credenciales - Esta es una función auxiliar para sistemas backend
-// En un caso real, la autenticación se haría en el cliente con Firebase Auth
-export const verificarCredenciales = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { correo, password } = req.body;
-    
-    if (!correo || !password) {
-      res.status(400).json({ success: false, error: 'Correo y contraseña son requeridos' });
-      return;
-    }
-    
-    const usuario = await usuarioService.verificarCredenciales(correo, password);
-    res.json({ success: true, data: usuario });
-  } catch (error: any) {
-    res.status(401).json({ success: false, error: error.message });
   }
 };
 
@@ -145,18 +137,67 @@ export const deleteUsuario = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-// Get perfil del usuario actual (usuario autenticado)
-export const getPerfilUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+// Incrementar strike 
+export const incrementarStrike = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Este endpoint asume que el middleware de autenticación ya ha sido ejecutado
-    // y ha añadido el usuario al objeto request
-    if (!req.usuario) {
-      res.status(401).json({ success: false, error: 'No autenticado' });
+    const userId = req.params.id;
+    const nuevosStrikes = await usuarioService.incrementarStrike(userId);
+    
+    // Obtener el usuario actualizado para verificar su estado
+    const usuario = await usuarioService.getById(userId);
+    
+    let mensaje = `Se ha incrementado el número de strikes para el usuario. Total: ${nuevosStrikes}`;
+    
+    // Verificar si el usuario ha sido bloqueado por strikes
+    if (usuario && !usuario.activo) {
+      mensaje += `. El usuario ha sido bloqueado hasta ${usuario.bloqueadoHasta?.toLocaleDateString()}.`;
+    }
+    
+    res.json({ 
+      success: true, 
+      data: { 
+        userId, 
+        strikes: nuevosStrikes,
+        activo: usuario?.activo,
+        bloqueadoHasta: usuario?.bloqueadoHasta,
+        mensaje 
+      } 
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+// Registrar intento fallido de login (endpoint para el frontend)
+export const registrarIntentoFallido = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { correo } = req.body;
+    
+    if (!correo) {
+      res.status(400).json({ success: false, error: 'Correo es requerido' });
       return;
     }
     
-    res.json({ success: true, data: req.usuario });
-  } catch (error) {
-    next(error);
+    // Buscar usuario por correo
+    const usuario = await usuarioService.getByEmail(correo);
+    
+    if (!usuario) {
+      res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+      return;
+    }
+    
+    // Registrar intento fallido
+    await usuarioService.registrarIntentoFallido(usuario.id);
+    
+    // Verificar si el usuario ahora está bloqueado
+    const estadoBloqueo = await usuarioService.verificarBloqueo(usuario.id);
+    
+    if (estadoBloqueo.bloqueado) {
+      res.status(403).json({ success: false, error: estadoBloqueo.mensaje });
+    } else {
+      res.status(401).json({ success: false, error: 'Credenciales inválidas' });
+    }
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
   }
 };

@@ -4,20 +4,18 @@ interface SnapshotOptions {
   serverTimestamps?: 'estimate' | 'previous' | 'none';
 }
 
-// Convertidor genérico para manejar fechas en formato "DD-MM-YYYY"
+// Convertidor genérico para manejar fechas, incluyendo bloqueadoHasta y fechaNacimiento
 export function converterFactory<T extends { id: string, [key: string]: any }>() {
   return {
     toFirestore(data: T): DocumentData {
       const { id, ...rest } = data;
 
-      // Convertir objetos Date a string "DD-MM-YYYY"
+      // Convertir objetos Date a timestamp para Firestore
       const processedData: { [key: string]: any } = { ...rest };
       for (const [key, value] of Object.entries(processedData)) {
         if (value instanceof Date) {
-          const dia = String(value.getDate()).padStart(2, '0');
-          const mes = String(value.getMonth() + 1).padStart(2, '0'); // +1 porque getMonth() es base 0
-          const año = value.getFullYear();
-          processedData[key] = `${dia}-${mes}-${año}`;
+          // Guardamos como timestamp en Firestore para mejor precisión
+          processedData[key] = value;
         }
       }
 
@@ -32,10 +30,23 @@ export function converterFactory<T extends { id: string, [key: string]: any }>()
         throw new Error('Document not found');
       }
 
-      // Convertir strings "DD-MM-YYYY" a objetos Date
+      // Convertir timestamps a objetos Date
       const processedData: { [key: string]: any } = { ...data };
+      
+      // Convertir fechas explícitamente conocidas
+      if (processedData.fechaNacimiento && processedData.fechaNacimiento.toDate) {
+        processedData.fechaNacimiento = processedData.fechaNacimiento.toDate();
+      }
+      
+      if (processedData.bloqueadoHasta && processedData.bloqueadoHasta.toDate) {
+        processedData.bloqueadoHasta = processedData.bloqueadoHasta.toDate();
+      }
+      
+      // Buscar otros campos que podrían ser timestamps
       for (const [key, value] of Object.entries(processedData)) {
-        if (typeof value === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
+        if (value && typeof value === 'object' && value.toDate && typeof value.toDate === 'function') {
+          processedData[key] = value.toDate();
+        } else if (typeof value === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
           const [dia, mes, año] = value.split('-').map(Number);
           processedData[key] = new Date(año, mes - 1, dia); // mes - 1 porque Date usa meses base 0
         }

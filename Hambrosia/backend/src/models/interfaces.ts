@@ -1,14 +1,13 @@
-// Enums
-export enum Rol {
-  RESTAURANTE = 'RESTAURANTE',
-  CLIENTE = 'CLIENTE',
-  ADMIN = 'ADMIN'
-}
-
 export enum TipoReporte {
   VENTAS = 'VENTAS',
   USUARIOS = 'USUARIOS',
   // Add other report types as needed
+}
+
+export enum Rol {
+  RESTAURANTE = 'RESTAURANTE',
+  CLIENTE = 'CLIENTE',
+  ADMIN = 'ADMIN'
 }
 
 export enum Alergeno {
@@ -27,14 +26,32 @@ export enum Alergeno {
 // Interfaces
 export interface Usuario {
   id: string;
-  correo: string;
-  cedulaRUC: string;
-  nombre: string;
   rol: Rol;
+  // Login
+  correo: string;
+
+  // Identificacion
+  cedulaRUC: string; // Identificador unico
+  nombre: string; // Nombre completo
+  direccion: string; // Ciudad y direccion
   firebaseUid: string;
-  fechaNacimiento?: Date; // Solo se pide a Cliente
-  // direccion?: string; // Solo se pide a Restaurante
-  alergenos?: Alergeno[]; // Solo se pide a Restaurante
+
+  // Estado del usuario
+  activo: boolean; // true = usuario activo, false = baneado por strikes
+  intentosFallidos: number; // Contador de intentos fallidos
+  bloqueadoHasta?: Date; // Fecha hasta la que el usuario esta bloqueado (por intentos fallidos o strikes)
+  motivoBloqueo?: string; // Razón del bloqueo (para mostrar al usuario)
+
+  // Solo Clientes
+  fechaNacimiento?: Date;
+  strikes?: number;
+
+  // Solo Restaurantes
+  alergenos?: Alergeno[];
+
+  // Auditoria
+  // createdAt: Date;
+  // updatedAt: Date;
 }
 
 export interface Paquete {

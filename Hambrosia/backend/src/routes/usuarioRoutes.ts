@@ -1,25 +1,25 @@
 import { Router } from 'express';
 import * as usuarioController from '../controllers/usuarioController';
-import { authMiddleware, requireRoles } from '../middlewares/authMiddleware';
-import { Rol } from '../models/interfaces';
 
 const router = Router();
 
 // Rutas públicas para autenticación
 router.post('/register', usuarioController.registerUsuario);
-router.post('/verificar-credenciales', usuarioController.verificarCredenciales);
+router.post('/registrar-intento-fallido', usuarioController.registrarIntentoFallido);
 
-// Obtener perfil de usuario actual (requiere autenticación)
-router.get('/perfil', authMiddleware, usuarioController.getPerfilUsuario);
 
 // Rutas que requieren autenticación
-router.get('/tipo/restaurantes', authMiddleware, usuarioController.getRestaurantes);
-router.get('/:id', authMiddleware, usuarioController.getUsuarioById);
+router.get('/tipo/restaurantes', usuarioController.getRestaurantes);
+router.get('/:id', usuarioController.getUsuarioById);
 
 // Rutas que requieren autenticación y rol de administrador
-router.get('/', authMiddleware, requireRoles([Rol.ADMIN]), usuarioController.getAllUsuarios);
-router.post('/', authMiddleware, requireRoles([Rol.ADMIN]), usuarioController.createUsuario);
-router.put('/:id', authMiddleware, requireRoles([Rol.ADMIN]), usuarioController.updateUsuario);
-router.delete('/:id', authMiddleware, requireRoles([Rol.ADMIN]), usuarioController.deleteUsuario);
+router.get('/',  usuarioController.getAllUsuarios);
+router.post('/',  usuarioController.createUsuario);
+router.put('/:id',  usuarioController.updateUsuario);
+router.delete('/:id',  usuarioController.deleteUsuario);
+
+// Ruta para manejo de strikes
+router.post('/:id/incrementar-strike',  usuarioController.incrementarStrike);
+
 
 export default router;
