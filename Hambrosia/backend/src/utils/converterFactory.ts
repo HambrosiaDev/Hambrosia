@@ -4,18 +4,41 @@ interface SnapshotOptions {
   serverTimestamps?: 'estimate' | 'previous' | 'none';
 }
 
-// Convertidor genérico para manejar fechas, incluyendo bloqueadoHasta y fechaNacimiento
+// Convertidor genérico para manejar fechas específicas
 export function converterFactory<T extends { id: string, [key: string]: any }>() {
+  // Lista de campos que deben ser tratados como fechas
+  const dateFields = ['fechaNacimiento', 'bloqueadoHasta'];
+
   return {
     toFirestore(data: T): DocumentData {
       const { id, ...rest } = data;
 
-      // Convertir objetos Date a timestamp para Firestore
+      // Convertir objetos Date o cadenas ISO a los formatos requeridos
       const processedData: { [key: string]: any } = { ...rest };
       for (const [key, value] of Object.entries(processedData)) {
-        if (value instanceof Date) {
-          // Guardamos como timestamp en Firestore para mejor precisión
-          processedData[key] = value;
+        if (dateFields.includes(key)) {
+          let dateValue: Date;
+
+          // Si es una cadena ISO, conviértela a Date
+          if (typeof value === 'string') {
+            dateValue = new Date(value);
+            if (isNaN(dateValue.getTime())) {
+              throw new Error(`Invalid date string for field '${key}': ${value}`);
+            }
+          } else {
+            dateValue = value; // Ya es un objeto Date
+          }
+
+          if (key === 'fechaNacimiento') {
+            // Guardar fechaNacimiento como DD-MM-YYYY
+            const day = String(dateValue.getDate()).padStart(2, '0');
+            const month = String(dateValue.getMonth() + 1).padStart(2, '0'); // Meses base 0
+            const year = dateValue.getFullYear();
+            processedData[key] = `${day}-${month}-${year}`;
+          } else if (key === 'bloqueadoHasta') {
+            // Guardar bloqueadoHasta como timestamp
+            processedData[key] = dateValue;
+          }
         }
       }
 
@@ -30,28 +53,21 @@ export function converterFactory<T extends { id: string, [key: string]: any }>()
         throw new Error('Document not found');
       }
 
-      // Convertir timestamps a objetos Date
+      // Convertir datos recuperados a objetos Date cuando sea necesario
       const processedData: { [key: string]: any } = { ...data };
-      
-      // Convertir fechas explícitamente conocidas
-      if (processedData.fechaNacimiento && processedData.fechaNacimiento.toDate) {
-        processedData.fechaNacimiento = processedData.fechaNacimiento.toDate();
+
+      // Procesar fechaNacimiento (cadena DD-MM-YYYY)
+      if (processedData.fechaNacimiento && typeof processedData.fechaNacimiento === 'string') {
+        const [dia, mes, año] = processedData.fechaNacimiento.split('-').map(Number);
+        processedData.fechaNacimiento = new Date(año, mes - 1, dia); // Meses base 0
       }
-      
+
+      // Procesar bloqueadoHasta (timestamp de Firestore)
       if (processedData.bloqueadoHasta && processedData.bloqueadoHasta.toDate) {
         processedData.bloqueadoHasta = processedData.bloqueadoHasta.toDate();
       }
-      
-      // Buscar otros campos que podrían ser timestamps
-      for (const [key, value] of Object.entries(processedData)) {
-        if (value && typeof value === 'object' && value.toDate && typeof value.toDate === 'function') {
-          processedData[key] = value.toDate();
-        } else if (typeof value === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
-          const [dia, mes, año] = value.split('-').map(Number);
-          processedData[key] = new Date(año, mes - 1, dia); // mes - 1 porque Date usa meses base 0
-        }
-      }
 
+      // Incluir el ID del documento
       return { ...processedData, id: snapshot.id } as T;
     },
   };
