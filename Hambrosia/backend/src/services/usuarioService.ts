@@ -2,15 +2,24 @@ import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
-import {hashCedula, ValidacionCedulaRuc} from '../utils/HELPER';
-
+import { hashCedula } from '../utils/HELPER';
+import { FieldValue } from 'firebase-admin/firestore';
 export class UsuarioService {
   private collection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
 
-  // Método privado para buscar un usuario por su correo o cédula
+  // Método privado para buscar un usuario por cualquier campo
   async getByField(field: string, value: string): Promise<Usuario | null> {
-    const snapshot = await this.collection.where(field, '==', value).limit(1).get();
-    return snapshot.empty ? null : snapshot.docs[0].data();
+    try {
+      const snapshot = await this.collection.where(field, '==', value).limit(1).get();
+      
+      if (!snapshot.empty) {
+        return snapshot.docs[0].data();
+      }
+      
+      return null;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Obtener todos los usuarios
@@ -19,11 +28,9 @@ export class UsuarioService {
     return snapshot.docs.map(doc => doc.data());
   }
 
-  // Obtener un usuario por ID
+  // Obtener un usuario por ID - sin hasheo
   async getById(id: string): Promise<Usuario | null> {
-    const hashedId = hashCedula(id);
-    console.log('ID de usuario getbyuid:', id, 'Hashed ID:', hashedId);
-    const doc = await this.collection.doc(hashedId).get();
+    const doc = await this.collection.doc(id).get();
     return doc.exists ? (doc.data() || null) : null;
   }
 
@@ -39,12 +46,10 @@ export class UsuarioService {
 
   // Obtener un usuario por uid de Firebase
   async getByFirebaseUid(firebaseUid: string): Promise<Usuario | null> {
-    const snapshot = await this.collection.where('firebaseUid', '==', firebaseUid).limit(1).get();
-    return snapshot.empty ? null : snapshot.docs[0].data();
+    return this.getByField('firebaseUid', firebaseUid);
   }
 
-
-  // Registro con Firebase Authentication y Firestore
+  // Registro simple en Firebase Auth y Firestore
   async register(
     email: string,
     password: string,
@@ -55,93 +60,61 @@ export class UsuarioService {
     rol: Rol,
     alergenos?: Alergeno[]
   ): Promise<Usuario> {
-    // Verificar si ya existe un usuario con el mismo correo o cédula
-    if (await this.getByEmail(email)) {
-      throw new Error('El correo ya está registrado');
-    }
-  
-    if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
-      throw new Error('La Cédula/RUC no es válida');
-    }
+    // Crear usuario en Firebase Authentication
+    const userRecord = await auth.createUser({
+      email: email,
+      password: password,
+      displayName: nombre
+    });
     
-    if (await this.getByCedulaRUC(cedulaRUC)) {
-      throw new Error('La Cédula/RUC ya está registrada');
+    const firebaseUid = userRecord.uid;
+
+    // Crear el usuario
+    const userData: Usuario = {
+      id: cedulaRUC, // Usar la cédula/RUC como ID primario
+      correo: email,
+      cedulaRUC: cedulaRUC,
+      nombre: nombre,
+      direccion: direccion,
+      rol: rol,
+      firebaseUid: firebaseUid,
+      intentosFallidos: 0,
+      activo: true
+    };
+
+    // Agregar alérgenos si hay definidos
+    if (alergenos && alergenos.length > 0) {
+      userData.alergenos = alergenos;
     }
 
-    try {
-      // Crear usuario en Firebase Authentication
-      const userRecord = await auth.createUser({
-        email: email,
-        password: password,
-        displayName: nombre
-      });
-      
-      const firebaseUid = userRecord.uid;
-  
-      // Crear una referencia de documento utilizando la cédula/RUC como ID
-      const hashedCedula = hashCedula(cedulaRUC);
-      const docRef = this.collection.doc(hashedCedula);
-  
-      // Crear el usuario
-      const userData: Usuario = {
-        id: cedulaRUC, // Usar la cédula/RUC como ID primario
-        correo: email,
-        cedulaRUC: cedulaRUC,
-        nombre: nombre,
-        direccion: direccion,
-        rol: rol,
-        firebaseUid: firebaseUid,
-        intentosFallidos: 0, // Inicializar contador de intentos fallidos
-        activo: true // Por defecto, el usuario está activo
-      };
-  
-      // Agregar alérgenos solo si el rol es restaurante y hay alérgenos definidos
-      if (rol === Rol.RESTAURANTE && alergenos && alergenos.length > 0) {
-        userData.alergenos = alergenos;
-      }
-
-      // Agregar fecha de nacimiento solo si el rol es cliente
-      if (rol === Rol.CLIENTE && fechaNacimiento) {
-        userData.fechaNacimiento = fechaNacimiento;
-        userData.strikes = 0; // Inicializar contador de strikes para clientes
-      }
-  
-      // Guardar en Firestore
-      await docRef.set(userData);
-      return userData;
-    } catch (error: any) {
-      // Manejar errores de Firebase Authentication
-      if (error.code === 'auth/email-already-in-use') {
-        throw new Error('El correo electrónico ya está en uso');
-      }
-      throw error;
+    // Agregar fecha de nacimiento si está definida
+    if (fechaNacimiento) {
+      userData.fechaNacimiento = fechaNacimiento;
     }
+
+    // Inicializar strikes para clientes
+    if (rol === Rol.CLIENTE) {
+      userData.strikes = 0;
+    }
+
+    // Guardar en Firestore
+    const hashedId = hashCedula(cedulaRUC);
+    const docRef = this.collection.doc(hashedId);
+    await docRef.set(userData);
+    return userData;
   }
 
-  // Crear un nuevo usuario (sin autenticación - para uso administrativo)
+  // Crear un nuevo usuario (sin autenticación)
   async create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
-    // Verificar si ya existe un usuario con el mismo correo o cédula
-    if (await this.getByEmail(data.correo)) {
-      throw new Error('El correo ya está registrado');
-    }
-    
-    if (!ValidacionCedulaRuc.esIdentificacionValida(data.cedulaRUC)) {
-      throw new Error('La Cédula/RUC no es válida');
-    }
+    const hashedId = hashCedula(data.cedulaRUC);
+    const docRef = this.collection.doc(hashedId);
 
-    if (await this.getByCedulaRUC(data.cedulaRUC)) {
-      throw new Error('La Cédula/RUC ya está registrada');
-    }
-
-    const hashedCedula = hashCedula(data.cedulaRUC);
-    const docRef = this.collection.doc(hashedCedula);
-
-    // Crear el usuario con el ID igual a la cédula/RUC y asegurar que intentosFallidos esté inicializado
+    // Crear el usuario con el ID igual a la cédula/RUC
     const usuario: Usuario = { 
       id: data.cedulaRUC,
       ...data,
       intentosFallidos: data.intentosFallidos || 0,
-      activo: data.activo !== undefined ? data.activo : true // Por defecto, el usuario está activo
+      activo: data.activo !== undefined ? data.activo : true
     };
 
     // Inicializar strikes para clientes si no están definidos
@@ -179,177 +152,103 @@ export class UsuarioService {
     return snapshot.docs.map(doc => doc.data());
   }
 
-  // Registrar intento fallido de login y bloquear si es necesario
-  async registrarIntentoFallido(userId: string): Promise<void> {
-    const usuario = await this.getById(userId);
+  // Registrar intento fallido de login y actualizar contador
+  async registrarIntentoFallido(id: string): Promise<void> {
+    const usuario = await this.getById(id);
     
     if (!usuario) {
       throw new Error('Usuario no encontrado');
     }
     
     const intentosFallidos = (usuario.intentosFallidos || 0) + 1;
-    
-    // Verificar si se excedió el límite de intentos fallidos (3)
-    if (intentosFallidos >= 3) {
-      // Bloquear la cuenta cambiando activo a FALSE
-      const bloqueadoHasta = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas de bloqueo
-      const motivoBloqueo = `Su cuenta ha sido bloqueada por exceder el límite de intentos fallidos de inicio de sesión. Por favor, restablezca su contraseña para desbloquear su cuenta.`;
-      
-      await this.update(hashCedula(userId), { 
-        intentosFallidos,
-        activo: false,
-        bloqueadoHasta,
-        motivoBloqueo
-      });
-      
-      // Enviar notificación de bloqueo
-      await this.enviarNotificacionBloqueo(userId, motivoBloqueo);
-    } else {
-      // Solo actualizar el contador de intentos fallidos
-      await this.update(hashCedula(userId), { intentosFallidos });
-    }
+    await this.update(id, { intentosFallidos });
   }
 
-  // Resetear intentos fallidos al iniciar sesión correctamente
-  async resetearIntentosFallidos(userId: string): Promise<void> {
-    const usuario = await this.getById(userId);
+  // Bloquear usuario
+  async bloquearUsuario(id: string, duracionHoras: number, motivo: string): Promise<void> {
+    const bloqueadoHasta = new Date(Date.now() + duracionHoras * 60 * 60 * 1000);
+    
+    await this.update(id, { 
+      activo: false,
+      bloqueadoHasta,
+      motivoBloqueo: motivo
+    });
+  }
+
+  // Resetear intentos fallidos
+  async resetearIntentosFallidos(id: string): Promise<void> {
+    await this.update(id, {
+      intentosFallidos: 0,
+      activo: true,
+      bloqueadoHasta: FieldValue.delete() as any,
+      motivoBloqueo: FieldValue.delete() as any});
+  }
+
+  // Desbloquear usuario
+  async desbloquearUsuario(id: string): Promise<void> {
+    await this.update(id, {
+      activo: true,
+      bloqueadoHasta: FieldValue.delete() as any,
+      motivoBloqueo: FieldValue.delete() as any,
+      strikes: 0,
+      intentosFallidos: 0
+    });
+  }
+
+  // Incrementar strikes para un cliente
+  async incrementarStrike(id: string): Promise<number> {
+    const usuario = await this.getById(id);
     
     if (!usuario) {
       throw new Error('Usuario no encontrado');
-    }
-    
-    // Determinar si el bloqueo fue por intentos fallidos
-    const bloqueadoPorIntentos = !usuario.activo && 
-                               usuario.intentosFallidos && 
-                               usuario.intentosFallidos >= 3 && 
-                               (!usuario.strikes || usuario.strikes < 5);
-    
-    const updateData: Partial<Usuario> = { intentosFallidos: 0 };
-    
-    // Si estaba bloqueado por intentos fallidos, desbloquear la cuenta
-    if (bloqueadoPorIntentos) {
-      updateData.activo = true;
-      updateData.motivoBloqueo = undefined;
-      updateData.bloqueadoHasta = undefined;
-    }
-    
-    await this.update(hashCedula(userId), updateData);
-  }
-
-  // Verificar si el usuario está bloqueado y verificar si debe desbloquearse por tiempo transcurrido
-  async verificarBloqueo(userId: string): Promise<{bloqueado: boolean, mensaje?: string}> {
-    const usuario = await this.getById(userId);
-    
-    if (!usuario) {
-      throw new Error('Usuario no encontrado');
-    }
-    
-    // Si la cuenta no está activa
-    if (!usuario.activo) {
-      // Si hay fecha de bloqueo, verificar si ya pasó el tiempo
-      if (usuario.bloqueadoHasta) {
-        if (new Date() >= usuario.bloqueadoHasta) {
-          // El tiempo de bloqueo ha pasado, desbloquear automáticamente
-          const updateData: Partial<Usuario> = {
-            activo: true,
-            bloqueadoHasta: undefined,
-            motivoBloqueo: undefined
-          };
-          
-          // Si el bloqueo era por strikes, resetear strikes
-          if (usuario.rol === Rol.CLIENTE && usuario.strikes && usuario.strikes >= 5) {
-            updateData.strikes = 0;
-          }
-          
-          // Si el bloqueo era por intentos fallidos, resetear intentos
-          if (usuario.intentosFallidos && usuario.intentosFallidos >= 3) {
-            updateData.intentosFallidos = 0;
-          }
-          
-          await this.update(hashCedula(userId), updateData);
-          return { bloqueado: false };
-        }
-        
-        // Si aún no ha pasado el tiempo de bloqueo
-        const fechaDesbloqueo = usuario.bloqueadoHasta.toLocaleDateString();
-        return {
-          bloqueado: true,
-          mensaje: usuario.motivoBloqueo || `Su cuenta está bloqueada hasta el ${fechaDesbloqueo}.`
-        };
-      }
-      
-      // No hay fecha de bloqueo pero está inactivo (bloqueo permanente)
-      return {
-        bloqueado: true,
-        mensaje: usuario.motivoBloqueo || 'Su cuenta está bloqueada. Contacte al administrador para más información.'
-      };
-    }
-    
-    return { bloqueado: false };
-  }
-
-  // Incrementar strikes para un cliente y bloquear si es necesario
-  async incrementarStrike(userId: string): Promise<number> {
-    console.log('ID de usuario en incrementarStrike:', userId);
-    const usuario = await this.getById(userId);
-    console.log('Usuario encontrado:', usuario);
-    
-    if (!usuario) {
-      throw new Error('Usuario no encontrado');
-    }
-    
-    if (usuario.rol !== Rol.CLIENTE) {
-      throw new Error('Solo se pueden asignar strikes a usuarios con rol CLIENTE');
     }
     
     const strikesActuales = usuario.strikes || 0;
     const nuevosStrikes = strikesActuales + 1;
     
-    // Preparar los datos para actualizar
-    const updateData: Partial<Usuario> = { strikes: nuevosStrikes };
-    
-    // Si alcanza 5 strikes, desactivar la cuenta y bloquear por 30 días
-    if (nuevosStrikes >= 5) {
-      const bloqueadoHasta = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 días
-      const fechaDesbloqueo = bloqueadoHasta.toLocaleDateString();
-      const motivoBloqueo = `Su cuenta ha sido bloqueada por acumulación de strikes (${nuevosStrikes}/5). Estará bloqueada hasta el ${fechaDesbloqueo}.`;
-      
-      Object.assign(updateData, {
-        activo: false,
-        bloqueadoHasta: bloqueadoHasta,
-        motivoBloqueo: motivoBloqueo
-      });
-      
-      // Enviar notificación de bloqueo
-      await this.enviarNotificacionBloqueo(userId, motivoBloqueo);
-    }
-    
-    await this.update(hashCedula(userId), updateData);
+    await this.update(id, { strikes: nuevosStrikes });
     return nuevosStrikes;
   }
   
-  // Método para enviar notificación al usuario sobre su bloqueo
-  async enviarNotificacionBloqueo(userId: string, mensaje: string): Promise<void> {
-    const usuario = await this.getById(userId);
+  // Enviar notificación al usuario
+  async enviarNotificacion(id: string, mensaje: string): Promise<void> {
+    const usuario = await this.getById(id);
     
-    if (!usuario || !usuario.firebaseUid) {
-      throw new Error('Usuario no encontrado o sin ID de Firebase');
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
     }
     
-    try {
-      // Almacenar mensaje en Firestore para que el cliente lo recupere en próximo inicio de sesión
-      await db.collection('notificaciones').add({
-        userId: userId,
-        cedulaRUC: usuario.cedulaRUC, // Agregar cedulaRUC para referencias futuras
-        firebaseUid: usuario.firebaseUid,
-        mensaje: mensaje,
-        leido: false,
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    await db.collection('notificaciones').add({
+      userId: id,
+      cedulaRUC: usuario.cedulaRUC,
+      firebaseUid: usuario.firebaseUid,
+      mensaje: mensaje,
+      leido: false,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  async resetearStrikes(correo: string): Promise<void> {
+    const usuario = await this.getByEmail(correo);
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
+    }
+    // Verificar si el usuario tiene strikes para resetear
+    if (!usuario.strikes || usuario.strikes === 0) {
+      console.warn(`El usuario ${correo} no tiene strikes para resetear`);
+      return;
+    }
+
+    const updateData: Partial<Usuario> = { strikes: 0 };
+  
+    if (!usuario.activo || usuario.bloqueadoHasta && usuario.strikes >= 5) {
+      Object.assign(updateData, {
+        activo: true,
+        bloqueadoHasta: admin.firestore.FieldValue.delete() as any,
+        motivoBloqueo: admin.firestore.FieldValue.delete() as any,
       });
-      
-      console.log(`Notificación de bloqueo enviada a usuario ${userId}: ${mensaje}`);
-    } catch (error) {
-      console.error('Error al enviar notificación de bloqueo:', error);
     }
+
+    await this.update(usuario.id, updateData);
   }
 }

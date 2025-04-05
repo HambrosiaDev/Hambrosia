@@ -7,6 +7,7 @@ const router = Router();
 router.post('/register', usuarioController.registerUsuario);
 router.post('/login/intentoFallido', usuarioController.registrarIntentoFallido);
 router.post('/login/resetearIntentos', usuarioController.resetearIntentosFallidos);
+router.post('/login/resetearStrikes', usuarioController.resetearStrikes);
 
 // Rutas que requieren autenticación
 router.get('/restaurantes', usuarioController.getRestaurantes);
@@ -20,6 +21,8 @@ router.delete('/:id',  usuarioController.deleteUsuario);
 
 // Ruta para manejo de strikes
 router.post('/:id/incrementar-strike',  usuarioController.incrementarStrike);
-router.post('')
+router.get('/:id/Verificar-bloqueo',  usuarioController.verificarBloqueo);
+
+router.post('/desbloquear',  usuarioController.desbloquearUsuario);
 
 export default router;
