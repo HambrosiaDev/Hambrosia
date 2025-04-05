@@ -2,6 +2,7 @@ import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
+import {hashCedula} from '../utils/helper';
 
 export class UsuarioService {
   private collection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
@@ -20,7 +21,8 @@ export class UsuarioService {
 
   // Obtener un usuario por ID
   async getById(id: string): Promise<Usuario | null> {
-    const doc = await this.collection.doc(id).get();
+    const hashedId = hashCedula(id);
+    const doc = await this.collection.doc(hashedId).get();
     return doc.exists ? (doc.data() || null) : null;
   }
 
@@ -71,7 +73,8 @@ export class UsuarioService {
       const firebaseUid = userRecord.uid;
   
       // Crear una referencia de documento utilizando la cédula/RUC como ID
-      const docRef = this.collection.doc(cedulaRUC);
+      const hashedCedula = hashCedula(cedulaRUC);
+      const docRef = this.collection.doc(hashedCedula);
   
       // Crear el usuario
       const userData: Usuario = {
@@ -119,9 +122,9 @@ export class UsuarioService {
     if (await this.getByCedulaRUC(data.cedulaRUC)) {
       throw new Error('La Cédula/RUC ya está registrada');
     }
-
-    // Utilizar la cédula/RUC como ID del documento
-    const docRef = this.collection.doc(data.cedulaRUC);
+    
+    const hashedCedula = hashCedula(data.cedulaRUC);
+    const docRef = this.collection.doc(hashedCedula);
 
     // Crear el usuario con el ID igual a la cédula/RUC y asegurar que intentosFallidos esté inicializado
     const usuario: Usuario = { 

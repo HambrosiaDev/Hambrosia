@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { UsuarioService } from '../services/usuarioService';
 import { Rol, Alergeno } from '../models/interfaces';
+import {hashCedula} from '../utils/helper';
+
 
 const usuarioService = new UsuarioService();
 
@@ -137,7 +139,7 @@ export const deleteUsuario = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-// Incrementar strike 
+// Incrementar strike
 export const incrementarStrike = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.params.id;
