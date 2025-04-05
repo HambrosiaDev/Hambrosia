@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UsuarioService } from '../services/usuarioService';
 import { Rol, Alergeno } from '../models/interfaces';
-import {hashCedula} from '../utils/helper';
 
 
 const usuarioService = new UsuarioService();

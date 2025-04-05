@@ -2,7 +2,7 @@ import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
-import {hashCedula} from '../utils/helper';
+import {hashCedula, ValidacionCedulaRuc} from '../utils/HELPER';
 
 export class UsuarioService {
   private collection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
@@ -58,10 +58,14 @@ export class UsuarioService {
       throw new Error('El correo ya está registrado');
     }
   
+    if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
+      throw new Error('La Cédula/RUC no es válida');
+    }
+    
     if (await this.getByCedulaRUC(cedulaRUC)) {
       throw new Error('La Cédula/RUC ya está registrada');
     }
-  
+
     try {
       // Crear usuario en Firebase Authentication
       const userRecord = await auth.createUser({
@@ -118,11 +122,15 @@ export class UsuarioService {
     if (await this.getByEmail(data.correo)) {
       throw new Error('El correo ya está registrado');
     }
+    
+    if (!ValidacionCedulaRuc.esIdentificacionValida(data.cedulaRUC)) {
+      throw new Error('La Cédula/RUC no es válida');
+    }
 
     if (await this.getByCedulaRUC(data.cedulaRUC)) {
       throw new Error('La Cédula/RUC ya está registrada');
     }
-    
+
     const hashedCedula = hashCedula(data.cedulaRUC);
     const docRef = this.collection.doc(hashedCedula);
 
