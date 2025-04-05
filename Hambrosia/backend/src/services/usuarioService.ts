@@ -22,6 +22,7 @@ export class UsuarioService {
   // Obtener un usuario por ID
   async getById(id: string): Promise<Usuario | null> {
     const hashedId = hashCedula(id);
+    console.log('ID de usuario getbyuid:', id, 'Hashed ID:', hashedId);
     const doc = await this.collection.doc(hashedId).get();
     return doc.exists ? (doc.data() || null) : null;
   }
@@ -41,6 +42,7 @@ export class UsuarioService {
     const snapshot = await this.collection.where('firebaseUid', '==', firebaseUid).limit(1).get();
     return snapshot.empty ? null : snapshot.docs[0].data();
   }
+
 
   // Registro con Firebase Authentication y Firestore
   async register(
@@ -190,19 +192,21 @@ export class UsuarioService {
     // Verificar si se excedió el límite de intentos fallidos (3)
     if (intentosFallidos >= 3) {
       // Bloquear la cuenta cambiando activo a FALSE
+      const bloqueadoHasta = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas de bloqueo
       const motivoBloqueo = `Su cuenta ha sido bloqueada por exceder el límite de intentos fallidos de inicio de sesión. Por favor, restablezca su contraseña para desbloquear su cuenta.`;
       
-      await this.update(userId, { 
+      await this.update(hashCedula(userId), { 
         intentosFallidos,
         activo: false,
-        motivoBloqueo: motivoBloqueo
+        bloqueadoHasta,
+        motivoBloqueo
       });
       
       // Enviar notificación de bloqueo
       await this.enviarNotificacionBloqueo(userId, motivoBloqueo);
     } else {
       // Solo actualizar el contador de intentos fallidos
-      await this.update(userId, { intentosFallidos });
+      await this.update(hashCedula(userId), { intentosFallidos });
     }
   }
 
@@ -214,10 +218,22 @@ export class UsuarioService {
       throw new Error('Usuario no encontrado');
     }
     
-    // Actualizar solo si el bloqueo fue por intentos fallidos
-    await this.update(userId, { 
-      intentosFallidos: 0
-    });
+    // Determinar si el bloqueo fue por intentos fallidos
+    const bloqueadoPorIntentos = !usuario.activo && 
+                               usuario.intentosFallidos && 
+                               usuario.intentosFallidos >= 3 && 
+                               (!usuario.strikes || usuario.strikes < 5);
+    
+    const updateData: Partial<Usuario> = { intentosFallidos: 0 };
+    
+    // Si estaba bloqueado por intentos fallidos, desbloquear la cuenta
+    if (bloqueadoPorIntentos) {
+      updateData.activo = true;
+      updateData.motivoBloqueo = undefined;
+      updateData.bloqueadoHasta = undefined;
+    }
+    
+    await this.update(hashCedula(userId), updateData);
   }
 
   // Verificar si el usuario está bloqueado y verificar si debe desbloquearse por tiempo transcurrido
@@ -230,16 +246,27 @@ export class UsuarioService {
     
     // Si la cuenta no está activa
     if (!usuario.activo) {
-      // Verificar si el bloqueo es por strikes y si ya ha pasado el tiempo de bloqueo
-      if (usuario.bloqueadoHasta && usuario.rol === Rol.CLIENTE && usuario.strikes && usuario.strikes >= 5) {
-        // Si ya pasó el tiempo de bloqueo, desbloquear la cuenta
+      // Si hay fecha de bloqueo, verificar si ya pasó el tiempo
+      if (usuario.bloqueadoHasta) {
         if (new Date() >= usuario.bloqueadoHasta) {
-          await this.update(userId, {
+          // El tiempo de bloqueo ha pasado, desbloquear automáticamente
+          const updateData: Partial<Usuario> = {
             activo: true,
-            strikes: 0,
             bloqueadoHasta: undefined,
             motivoBloqueo: undefined
-          });
+          };
+          
+          // Si el bloqueo era por strikes, resetear strikes
+          if (usuario.rol === Rol.CLIENTE && usuario.strikes && usuario.strikes >= 5) {
+            updateData.strikes = 0;
+          }
+          
+          // Si el bloqueo era por intentos fallidos, resetear intentos
+          if (usuario.intentosFallidos && usuario.intentosFallidos >= 3) {
+            updateData.intentosFallidos = 0;
+          }
+          
+          await this.update(hashCedula(userId), updateData);
           return { bloqueado: false };
         }
         
@@ -247,11 +274,11 @@ export class UsuarioService {
         const fechaDesbloqueo = usuario.bloqueadoHasta.toLocaleDateString();
         return {
           bloqueado: true,
-          mensaje: `Su cuenta ha sido bloqueada por acumulación de strikes. Estará bloqueada hasta el ${fechaDesbloqueo}.`
+          mensaje: usuario.motivoBloqueo || `Su cuenta está bloqueada hasta el ${fechaDesbloqueo}.`
         };
       }
       
-      // Bloqueo por intentos fallidos u otra razón
+      // No hay fecha de bloqueo pero está inactivo (bloqueo permanente)
       return {
         bloqueado: true,
         mensaje: usuario.motivoBloqueo || 'Su cuenta está bloqueada. Contacte al administrador para más información.'
@@ -262,8 +289,10 @@ export class UsuarioService {
   }
 
   // Incrementar strikes para un cliente y bloquear si es necesario
-  async incrementarStrike(id: string): Promise<number> {
-    const usuario = await this.getById(id);
+  async incrementarStrike(userId: string): Promise<number> {
+    console.log('ID de usuario en incrementarStrike:', userId);
+    const usuario = await this.getById(userId);
+    console.log('Usuario encontrado:', usuario);
     
     if (!usuario) {
       throw new Error('Usuario no encontrado');
@@ -292,10 +321,10 @@ export class UsuarioService {
       });
       
       // Enviar notificación de bloqueo
-      await this.enviarNotificacionBloqueo(id, motivoBloqueo);
+      await this.enviarNotificacionBloqueo(userId, motivoBloqueo);
     }
     
-    await this.update(id, updateData);
+    await this.update(hashCedula(userId), updateData);
     return nuevosStrikes;
   }
   
@@ -311,6 +340,7 @@ export class UsuarioService {
       // Almacenar mensaje en Firestore para que el cliente lo recupere en próximo inicio de sesión
       await db.collection('notificaciones').add({
         userId: userId,
+        cedulaRUC: usuario.cedulaRUC, // Agregar cedulaRUC para referencias futuras
         firebaseUid: usuario.firebaseUid,
         mensaje: mensaje,
         leido: false,

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { UsuarioService } from '../services/usuarioService';
 import { Rol, Alergeno } from '../models/interfaces';
-
+import { hashCedula } from '../utils/HELPER';
 
 const usuarioService = new UsuarioService();
 
@@ -120,7 +120,8 @@ export const createUsuario = async (req: Request, res: Response, next: NextFunct
 // Update usuario
 export const updateUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await usuarioService.update(req.params.id, req.body);
+    const hashedId = hashCedula(req.params.id);
+    await usuarioService.update(hashedId, req.body);
     const updatedUsuario = await usuarioService.getById(req.params.id);
     res.json({ success: true, data: updatedUsuario });
   } catch (error) {
@@ -131,7 +132,8 @@ export const updateUsuario = async (req: Request, res: Response, next: NextFunct
 // Delete usuario
 export const deleteUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await usuarioService.delete(req.params.id);
+    const hashedId = hashCedula(req.params.id);
+    await usuarioService.delete(hashedId);
     res.json({ success: true, message: 'Usuario eliminado correctamente' });
   } catch (error) {
     next(error);
@@ -142,6 +144,9 @@ export const deleteUsuario = async (req: Request, res: Response, next: NextFunct
 export const incrementarStrike = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.params.id;
+    console.log('ID de usuario en controller:', userId);
+    
+    // Aplicamos el incremento directamente al ID original (el servicio aplicará el hash)
     const nuevosStrikes = await usuarioService.incrementarStrike(userId);
     
     // Obtener el usuario actualizado para verificar su estado
@@ -198,6 +203,33 @@ export const registrarIntentoFallido = async (req: Request, res: Response, next:
     } else {
       res.status(401).json({ success: false, error: 'Credenciales inválidas' });
     }
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const resetearIntentosFallidos = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      res.status(400).json({ success: false, error: 'ID de usuario es requerido' });
+      return;
+    }
+    
+    await usuarioService.resetearIntentosFallidos(userId);
+    
+    // Verificar el estado actual del usuario
+    const usuario = await usuarioService.getById(userId);
+    
+    res.json({ 
+      success: true, 
+      data: {
+        intentosFallidos: usuario?.intentosFallidos || 0,
+        activo: usuario?.activo
+      },
+      message: 'Intentos fallidos reseteados exitosamente'
+    });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
   }

@@ -5,11 +5,11 @@ const router = Router();
 
 // Rutas públicas para autenticación
 router.post('/register', usuarioController.registerUsuario);
-router.post('/registrar-intento-fallido', usuarioController.registrarIntentoFallido);
-
+router.post('/login/intentoFallido', usuarioController.registrarIntentoFallido);
+router.post('/login/resetearIntentos', usuarioController.resetearIntentosFallidos);
 
 // Rutas que requieren autenticación
-router.get('/tipo/restaurantes', usuarioController.getRestaurantes);
+router.get('/restaurantes', usuarioController.getRestaurantes);
 router.get('/:id', usuarioController.getUsuarioById);
 
 // Rutas que requieren autenticación y rol de administrador
@@ -20,6 +20,6 @@ router.delete('/:id',  usuarioController.deleteUsuario);
 
 // Ruta para manejo de strikes
 router.post('/:id/incrementar-strike',  usuarioController.incrementarStrike);
-
+router.post('')
 
 export default router;
