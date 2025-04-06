@@ -1,10 +1,28 @@
 import { Image, StyleSheet, View, TextInput, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import React from 'react';
+import React, { useState, useEffect  } from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Dimensions } from "react-native";
+import Loading from '@/components/Loading';
+
+
+
+const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+ 
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+  }, []);
+
+  if (loading) return <Loading />;
+
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -78,19 +96,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#DF4E00'
   },
   logo_1: {
-    width: '30%',
-    height: '250%',
+    width: width * 0.35,
+    height: width * 0.35,
+    resizeMode: "contain",
+    bottom:10
   },
   logoContainer: {
     position: 'absolute',
-    top: 160,
+    top: 70,
     paddingVertical: 10,
     paddingHorizontal: 20,
     justifyContent: "center",
     alignItems: "center"
   },
   logo: {
-    fontSize: 24,
+    fontSize: 35,
     fontWeight: 'bold',
     color: '#fff',
   },
