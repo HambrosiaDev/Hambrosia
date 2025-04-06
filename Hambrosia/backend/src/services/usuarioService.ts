@@ -1,5 +1,5 @@
 import { db, auth } from '../config/firebase';
-import { Usuario, Rol, Alergeno } from '../models/interfaces';
+import { Usuario, Rol, Alergeno, Ciudad } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
 import { hashCedula } from '../utils/HELPER';
@@ -55,6 +55,7 @@ export class UsuarioService {
     password: string,
     cedulaRUC: string,
     nombre: string,
+    ciudad: Ciudad[],
     direccion: string,
     fechaNacimiento: Date | undefined,
     rol: Rol,
@@ -75,16 +76,16 @@ export class UsuarioService {
       correo: email,
       cedulaRUC: cedulaRUC,
       nombre: nombre,
+      ciudad: ciudad,
       direccion: direccion,
       rol: rol,
       firebaseUid: firebaseUid,
       intentosFallidos: 0,
       activo: true
     };
-
-    // Agregar alérgenos si hay definidos
-    if (alergenos && alergenos.length > 0) {
-      userData.alergenos = alergenos;
+    
+    if (rol === Rol.RESTAURANTE) {
+      userData.alergenos = alergenos || []; // Inicializar alérgenos como un array vacío si no se proporciona
     }
 
     // Agregar fecha de nacimiento si está definida

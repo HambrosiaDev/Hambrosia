@@ -54,10 +54,10 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
 // Register new user with authentication
 export const registerUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { correo, password, cedulaRUC, nombre, direccion, fechaNacimiento, rol, alergenos } = req.body;
+    const { correo, password, cedulaRUC, nombre, direccion, ciudad, fechaNacimiento, rol, alergenos } = req.body;
 
     // Validar campos requeridos
-    if (!correo || !password || !cedulaRUC || !nombre || !direccion || !rol) {
+    if (!correo || !password || !cedulaRUC || !nombre || !direccion || !rol || !ciudad) {
       res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
       return;
     }
@@ -76,19 +76,22 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
 
     // Validar alergenos si es restaurante
     if (rol === Rol.RESTAURANTE) {
-      if (!alergenos || !Array.isArray(alergenos) || alergenos.length === 0) {
+      // Permitir un array vacío o un array con valores válidos
+      if (!Array.isArray(alergenos)) {
         res.status(400).json({
           success: false,
-          error: 'Debe seleccionar al menos un alérgeno para el restaurante',
+          error: 'Los alérgenos deben ser un array',
         });
         return;
       }
 
-      // Verificar que los alérgenos son válidos
-      const alergenosValidos = alergenos.every((a) => Object.values(Alergeno).includes(a));
-      if (!alergenosValidos) {
-        res.status(400).json({ success: false, error: 'Uno o más alérgenos no son válidos' });
-        return;
+      // Verificar que los alérgenos son válidos (si no está vacío)
+      if (alergenos.length > 0) {
+        const alergenosValidos = alergenos.every((a) => Object.values(Alergeno).includes(a));
+        if (!alergenosValidos) {
+          res.status(400).json({ success: false, error: 'Uno o más alérgenos no son válidos' });
+          return;
+        }
       }
     }
 
@@ -120,7 +123,8 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
         cedulaRUC,
         nombre,
         direccion,
-        fechaNacimiento ? new Date(fechaNacimiento) : undefined,
+        ciudad,
+        fechaNacimiento ? fechaNacimiento : undefined,
         rol,
         rol === Rol.RESTAURANTE ? alergenos : undefined
       );
@@ -142,10 +146,10 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
 // Create usuario (admin function)
 export const createUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { correo, cedulaRUC, nombre, direccion, fechaNacimiento, rol, alergenos } = req.body;
+    const { correo, cedulaRUC, nombre, direccion, ciudad, fechaNacimiento, rol, alergenos } = req.body;
     
     // Validar campos requeridos
-    if (!correo || !cedulaRUC || !nombre || !direccion || !rol) {
+    if (!correo || !cedulaRUC || !nombre || !direccion || !rol || !ciudad) {
       res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
       return;
     }

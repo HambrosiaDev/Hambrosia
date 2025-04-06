@@ -23,6 +23,34 @@ export enum Alergeno {
   SESAMO = 'SESAMO'
 }
 
+export enum Ciudad {
+  AMBATO = 'AMBATO',               // Tungurahua
+  BABAHOYO = 'BABAHOYO',           // Los Ríos
+  CUENCA = 'CUENCA',               // Azuay
+  ESMERALDAS = 'ESMERALDAS',       // Esmeraldas
+  GUARANDA = 'GUARANDA',           // Bolívar
+  GUAYAQUIL = 'GUAYAQUIL',         // Guayas
+  IBARRA = 'IBARRA',               // Imbabura
+  LATACUNGA = 'LATACUNGA',         // Cotopaxi
+  LOJA = 'LOJA',                   // Loja
+  MACHALA = 'MACHALA',             // El Oro
+  MACAS = 'MACAS',                 // Morona Santiago
+  NUEVA_LOJA = 'NUEVA LOJA',       // Sucumbíos
+  PUYO = 'PUYO',                   // Pastaza
+  PORTOVIEJO = 'PORTOVIEJO',       // Manabí
+  QUITO = 'QUITO',                 // Pichincha
+  RIOBAMBA = 'RIOBAMBA',           // Chimborazo
+  SANTA_ELENA = 'SANTA ELENA',     // Santa Elena
+  SANTO_DOMINGO = 'SANTO DOMINGO', // Santo Domingo de los Tsáchilas
+  TENA = 'TENA',                   // Napo
+  TULCAN = 'TULCAN',               // Carchi
+  ZAMORA = 'ZAMORA',               // Zamora Chinchipe
+  ZARUMA = 'ZARUMA',               // (Antigua capital de El Oro, actual es Machala)
+  FRANCISCO_DE_ORELLANA = 'FRANCISCO DE ORELLANA', // Orellana
+  PUERTO_BAQUERIZO_MORENO = 'PUERTO BAQUERIZO MORENO' // Galápagos
+}
+
+
 // Interfaces
 export interface Usuario {
   id: string;
@@ -33,6 +61,7 @@ export interface Usuario {
   // Identificacion
   cedulaRUC: string; // Identificador unico
   nombre: string; // Nombre completo
+  ciudad: Ciudad[]; // Ciudad de residencia
   direccion: string; // Ciudad y direccion
   firebaseUid: string;
 
@@ -48,24 +77,37 @@ export interface Usuario {
 
   // Solo Restaurantes
   alergenos?: Alergeno[];
-
-  // Auditoria
-  // createdAt: Date;
-  // updatedAt: Date;
 }
 
 export interface Paquete {
   id: string;
+
+  // Solo los restaurantes pueden crear paquetes
   restauranteId: string;
-  visibilidad: boolean;
-  agotado: boolean;
-  // Add other properties as needed
+  firebaseUid: string;
+
+  // Información del paquete
+  nombre: string;
+  descripcion: string;
+  
+  precio: number;                // Ingresado manualmente por el restaurante
+  descuento?: number;            // Porcentaje de descuento (opcional), calculado en base a precio y precioDescuento
+  precioDescuento: number;       // Ingresado manualmente por el restaurante
+
+  unidades: number;              // Mínimo 1
+  agotado?: boolean;             // True si ya no hay unidades disponibles
+
+  imagenURL: string;             // URL de la imagen del paquete
+
+  fechaPublicacion: Date;        // Fecha de publicación del paquete
+  fechaRetiro?: Date;            // Fecha en la que se retirará el paquete (opcional)
 }
+
 
 export interface Compra {
   id: string;
   codigo: string;
-  usuarioId: string;
+  clienteId: string;
   paqueteId: string;
   // Add other properties as needed
 }
