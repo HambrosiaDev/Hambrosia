@@ -1,10 +1,10 @@
-import { Image, StyleSheet, View, TextInput, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import React, { useState, useEffect  } from 'react';
+import { Image, StyleSheet, View, TextInput, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import React, { useState, useEffect, useRef  } from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
 import Loading from '@/components/Loading';
-
+import { transform } from '@babel/core';
 
 
 const { width } = Dimensions.get("window");
@@ -12,15 +12,25 @@ const { width } = Dimensions.get("window");
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
- 
+  const translation = useRef(new Animated.Value(0)).current;
+  
+  useEffect(()=>{
+    Animated.timing(translation, {
+      toValue: -100,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  }, [])
 
-  useEffect(() => {
+ /* useEffect(() => {
     setTimeout(() => {
       setLoading(false);
     }, 3000);
-  }, []);
+  }, []);*/
 
-  if (loading) return <Loading />;
+
+  //if (loading) return <Loading />;
+
 
 
   return (
@@ -38,10 +48,10 @@ export default function HomeScreen() {
         />
 
         {/* Logo y Nombre */}
-        <View style={styles.logoContainer}>
-          <Image source={require('@/assets/images/Logo-2.png')} style={styles.logo_1}/>
+        <Animated.View style={[styles.logoContainer, { transform: [{ translateY: translation }] }]}>
+        <Image source={require('@/assets/images/Logo-2.png')} style={styles.logo_1}/>
           <Text style={styles.logo}>HAMBROSÍA</Text>
-        </View>
+        </Animated.View>
 
         {/* Formulario */}
         <View style={styles.formContainer}>
@@ -103,11 +113,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     position: 'absolute',
-    top: 70,
+    top: 180,
     paddingVertical: 10,
     paddingHorizontal: 20,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   },
   logo: {
     fontSize: 35,

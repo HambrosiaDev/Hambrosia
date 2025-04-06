@@ -7,7 +7,6 @@ const { width } = Dimensions.get('window');
 
 
 export default function Loading() {
-
     return (
         <View style={styles.container}>
             <LottieView
