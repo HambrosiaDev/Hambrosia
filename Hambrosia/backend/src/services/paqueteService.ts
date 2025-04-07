@@ -1,48 +1,81 @@
-import { db } from '../config/firebase';
-import { Paquete } from '../models/interfaces';
-import { converterFactory } from '../utils/converterFactory';
+// src/services/paqueteService.ts
+import { db } from "../config/firebase"; // Importa db
+import { Rol } from "../models/interfaces"; // Importa el modelo de Rol si es necesario
+import { hashCedula } from "../utils/HELPER"; // Importa la función hashCedula
 
 export class PaqueteService {
-  private collection = db.collection('paquetes').withConverter(converterFactory<Paquete>());
+  private paquetesCollection = db.collection("paquetes");
 
-  async getAll(): Promise<Paquete[]> {
-    const snapshot = await this.collection.get();
-    return snapshot.docs.map(doc => doc.data());
-  }
+  // Método para publicar un paquete
+  async publicarPaquete(
+    cedulaRUC: string,
+    dataPaquete: {
+      nombre: string;
+      descripcion: string;
+      precio: number;
+      precioDescuento: number;
+      unidades: number;
+      fechaRetiro: string;
+      imagenURL?: string | null;
+    }
+  ) {
+    try {
+      // Encriptar la cédula RUC
+      // const hashedCedula = hashCedula(cedulaRUC);
+      console.log("Hashed Cedula:", cedulaRUC); // Depuración: Imprime la cédula cifrada
 
-  async getById(id: string): Promise<Paquete | null> {
-    const doc = await this.collection.doc(id).get();
-    return doc.exists ? doc.data()! : null;
-  }
+      // Buscar el usuario (restaurante) por cedulaRUC
+      const usuarioRef = db.collection("usuarios").doc(cedulaRUC);
+      const usuarioSnapshot = await usuarioRef.get();
 
-  async getByRestaurante(restauranteId: string): Promise<Paquete[]> {
-    const snapshot = await this.collection
-      .where('restauranteId', '==', restauranteId)
-      .get();
-    return snapshot.docs.map(doc => doc.data());
-  }
+      console.log("Usuario Snapshot:", usuarioSnapshot); // Depuración: Imprime el snapshot completo
+      console.log("Existe el usuario?", usuarioSnapshot.exists); // Depuración: Verifica si el documento existe
 
-  async getVisibles(): Promise<Paquete[]> {
-    const snapshot = await this.collection
-      .where('visibilidad', '==', true)
-      .where('agotado', '==', false)
-      .get();
-    return snapshot.docs.map(doc => doc.data());
-  }
+      if (!usuarioSnapshot.exists) {
+        throw { statusCode: 404, message: "Restaurante no encontrado" };
+      }
 
-  async create(data: Omit<Paquete, 'id'>): Promise<Paquete> {
-    const docRef = this.collection.doc();
-    const id = docRef.id;
-    const paqueteWithId: Paquete = { id, ...data };
-    await docRef.set(paqueteWithId);
-    return paqueteWithId;
-  }
+      const usuario = usuarioSnapshot.data();
+      console.log("Datos del usuario:", usuario); // Depuración: Imprime los datos del usuario
 
-  async update(id: string, data: Partial<Paquete>): Promise<void> {
-    await this.collection.doc(id).update(data);
-  }
+      if (!usuario) {
+        throw { statusCode: 404, message: "Datos del restaurante no encontrados" };
+      }
 
-  async delete(id: string): Promise<void> {
-    await this.collection.doc(id).delete();
+      // Validar que el usuario tenga el rol RESTAURANTE
+      if (usuario.rol !== Rol.RESTAURANTE) {
+        throw { statusCode: 403, message: "Solo los restaurantes pueden publicar paquetes" };
+      }
+
+      
+
+      // Calcular el descuento
+      const descuento = ((dataPaquete.precio - dataPaquete.precioDescuento) / dataPaquete.precio) * 100;
+
+      // Crear el objeto del paquete
+      const nuevoPaquete = {
+        restauranteId: cedulaRUC,
+      
+        nombre: dataPaquete.nombre,
+        descripcion: dataPaquete.descripcion,
+        precio: dataPaquete.precio,
+        descuento,
+        precioDescuento: dataPaquete.precioDescuento,
+        unidades: dataPaquete.unidades,
+        agotado: false,
+        imagenURL: dataPaquete.imagenURL || null, // Opcional
+        fechaPublicacion: new Date(),
+        fechaRetiro: new Date(dataPaquete.fechaRetiro), // Convertir a Date
+      };
+
+      // Guardar el paquete en la colección 'paquetes'
+      const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);
+
+      // Devolver el ID del paquete creado junto con los datos
+      return { id: paqueteRef.id, ...nuevoPaquete };
+    } catch (error: any) {
+      console.error("Error en el servicio de publicarPaquete:", error);
+      throw error; // Re-lanzar el error para que lo maneje el controlador
+    }
   }
 }

@@ -1,27 +1,29 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import * as paqueteController from '../controllers/paqueteController';
 
 const router = Router();
 
-// Get all paquetes
-router.get('/', paqueteController.getAllPaquetes);
+router.post("/:cedRuc/crearPaquete", paqueteController.publicarPaquete);
 
-// Get visible paquetes
-router.get('/visibles', paqueteController.getVisiblePaquetes);
+// // Get all paquetes
+// router.get('/', paqueteController.getAllPaquetes);
 
-// Get paquetes by restaurante
-router.get('/restaurante/:id', paqueteController.getPaquetesByRestaurante);
+// // Get visible paquetes
+// router.get('/visibles', paqueteController.getVisiblePaquetes);
 
-// Get paquete by ID
-router.get('/:id', paqueteController.getPaqueteById);
+// // Get paquetes by restaurante
+// router.get('/restaurante/:id', paqueteController.getPaquetesByRestaurante);
 
-// Create paquete
-router.post('/', paqueteController.createPaquete);
+// // Get paquete by ID
+// router.get('/:id', paqueteController.getPaqueteById);
 
-// Update paquete
-router.put('/:id', paqueteController.updatePaquete);
+// // Create paquete
+// router.post('/', paqueteController.createPaquete);
 
-// Delete paquete
-router.delete('/:id', paqueteController.deletePaquete);
+// // Update paquete
+// router.put('/:id', paqueteController.updatePaquete);
+
+// // Delete paquete
+// router.delete('/:id', paqueteController.deletePaquete);
 
 export default router;

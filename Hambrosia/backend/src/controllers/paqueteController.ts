@@ -1,98 +1,58 @@
-import { Request, Response } from 'express';
-import { PaqueteService } from '../services/paqueteService';
-import { RequestHandler } from 'express';
+// src/controllers/paqueteController.ts
+import { Request, Response, NextFunction } from "express";
+import { PaqueteService } from "../services/paqueteService";
+import { hashCedula } from "../utils/HELPER";
 
+// Instancia del servicio
 const paqueteService = new PaqueteService();
 
-// Get all paquetes
-export const getAllPaquetes = async (req: Request, res: Response) => {
+// Controlador para publicar un paquete
+export const publicarPaquete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const paquetes = await paqueteService.getAll();
-    res.json({ success: true, data: paquetes });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ success: false, error: errorMessage });
-  }
-};
+    // Extraer datos del cuerpo de la solicitud y parámetros
+    const { nombre, descripcion, precio, precioDescuento, unidades, fechaRetiro, imagenURL } = req.body;
+    const { cedRuc } = req.params;
 
-// Get visible paquetes
-export const getVisiblePaquetes = async (req: Request, res: Response) => {
-  try {
-    const paquetes = await paqueteService.getVisibles();
-    res.json({ success: true, data: paquetes });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ success: false, error: errorMessage });
-  }
-};
-
-// Get paquetes by restaurante
-export const getPaquetesByRestaurante = async (req: Request, res: Response) => {
-  try {
-    const paquetes = await paqueteService.getByRestaurante(req.params.id);
-    res.json({ success: true, data: paquetes });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ success: false, error: errorMessage });
-  }
-};
-
-// Get paquete by ID
-export const getPaqueteById: RequestHandler = async (req, res) => {
-    try {
-      const { id } = req.params;
-  
-      // Validar que el ID sea un string no vac�o
-      if (!id || typeof id !== 'string') {
-        res.status(400).json({ success: false, error: 'ID de paquete inv�lido' });
-        return;
-      }
-  
-      const paquete = await paqueteService.getById(id);
-  
-      if (!paquete) {
-        res.status(404).json({ success: false, error: 'Paquete no encontrado' });
-        return;
-      }
-  
-      res.json({ success: true, data: paquete });
-  
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error interno del servidor';
-      res.status(500).json({ success: false, error: errorMessage });
+    // Validar campos obligatorios
+    if (!nombre || !descripcion || !precio || !precioDescuento || !unidades || !fechaRetiro) {
+      res.status(400).json({ success: false, error: "Todos los campos obligatorios deben ser proporcionados" });
+      return;
     }
-  };
 
-// Create paquete
-export const createPaquete = async (req: Request, res: Response) => {
-  try {
-    const newPaquete = await paqueteService.create(req.body);
-    res.status(201).json({ success: true, data: newPaquete });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    res.status(400).json({ success: false, error: errorMessage });
-  }
-};
+    if (unidades < 1) {
+      res.status(400).json({ success: false, error: "El número de unidades debe ser al menos 1" });
+      return;
+    }
 
-// Update paquete
-export const updatePaquete = async (req: Request, res: Response) => {
-  try {
-    await paqueteService.update(req.params.id, req.body);
-    const updatedPaquete = await paqueteService.getById(req.params.id);
-    res.json({ success: true, data: updatedPaquete });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    res.status(400).json({ success: false, error: errorMessage });
-  }
-};
+    // Encriptar la cédula RUC
+    const hashedCedula = hashCedula(cedRuc);
 
-// Delete paquete
-export const deletePaquete = async (req: Request, res: Response) => {
-  try {
-    await paqueteService.delete(req.params.id);
-    res.json({ success: true, message: 'Paquete eliminado correctamente' });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    res.status(400).json({ success: false, error: errorMessage });
+    // Convertir fechaRetiro a un objeto Date
+    const parsedFechaRetiro = new Date(fechaRetiro);
+    if (isNaN(parsedFechaRetiro.getTime())) {
+      res.status(400).json({ success: false, error: "La fecha de retiro no es válida" });
+      return;
+    }
+
+    // Llamar al servicio para publicar el paquete
+    const resultado = await paqueteService.publicarPaquete(hashedCedula, {
+      nombre,
+      descripcion,
+      precio,
+      precioDescuento,
+      unidades,
+      fechaRetiro: parsedFechaRetiro.toISOString(), // Convertir a ISO string para Firestore
+      imagenURL,
+    });
+
+    // Devolver respuesta exitosa
+    res.status(201).json({
+      success: true,
+      message: "Paquete publicado exitosamente",
+      data: resultado,
+    });
+  } catch (error: any) {
+    console.error("Error en el controlador de publicarPaquete:", error);
+    next(error); // Pasar el error al middleware de manejo de errores
   }
 };

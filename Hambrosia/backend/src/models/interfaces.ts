@@ -80,11 +80,8 @@ export interface Usuario {
 }
 
 export interface Paquete {
-  id: string;
-
   // Solo los restaurantes pueden crear paquetes
   restauranteId: string;
-  firebaseUid: string;
 
   // Información del paquete
   nombre: string;
@@ -97,10 +94,10 @@ export interface Paquete {
   unidades: number;              // Mínimo 1
   agotado?: boolean;             // True si ya no hay unidades disponibles
 
-  imagenURL: string;             // URL de la imagen del paquete
+  imagenURL?: string | null;             // URL de la imagen del paquete
 
   fechaPublicacion: Date;        // Fecha de publicación del paquete
-  fechaRetiro?: Date;            // Fecha en la que se retirará el paquete (opcional)
+  fechaRetiro: Date;            // Fecha en la que se retirará el paquete (opcional)
 }
 
 

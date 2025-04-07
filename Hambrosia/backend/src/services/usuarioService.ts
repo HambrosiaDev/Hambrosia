@@ -5,12 +5,12 @@ import * as admin from 'firebase-admin';
 import { hashCedula } from '../utils/HELPER';
 import { FieldValue } from 'firebase-admin/firestore';
 export class UsuarioService {
-  private collection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
+  private usuariosCollection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
 
   // Método privado para buscar un usuario por cualquier campo
   async getByField(field: string, value: string): Promise<Usuario | null> {
     try {
-      const snapshot = await this.collection.where(field, '==', value).limit(1).get();
+      const snapshot = await this.usuariosCollection.where(field, '==', value).limit(1).get();
       
       if (!snapshot.empty) {
         return snapshot.docs[0].data();
@@ -24,13 +24,13 @@ export class UsuarioService {
 
   // Obtener todos los usuarios
   async getAll(): Promise<Usuario[]> {
-    const snapshot = await this.collection.get();
+    const snapshot = await this.usuariosCollection.get();
     return snapshot.docs.map(doc => doc.data());
   }
 
   // Obtener un usuario por ID - sin hasheo
   async getById(id: string): Promise<Usuario | null> {
-    const doc = await this.collection.doc(id).get();
+    const doc = await this.usuariosCollection.doc(id).get();
     return doc.exists ? (doc.data() || null) : null;
   }
 
@@ -100,7 +100,7 @@ export class UsuarioService {
 
     // Guardar en Firestore
     const hashedId = hashCedula(cedulaRUC);
-    const docRef = this.collection.doc(hashedId);
+    const docRef = this.usuariosCollection.doc(hashedId);
     await docRef.set(userData);
     return userData;
   }
@@ -108,7 +108,7 @@ export class UsuarioService {
   // Crear un nuevo usuario (sin autenticación)
   async create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
     const hashedId = hashCedula(data.cedulaRUC);
-    const docRef = this.collection.doc(hashedId);
+    const docRef = this.usuariosCollection.doc(hashedId);
 
     // Crear el usuario con el ID igual a la cédula/RUC
     const usuario: Usuario = { 
@@ -130,7 +130,7 @@ export class UsuarioService {
 
   // Actualizar los datos de un usuario
   async update(id: string, data: Partial<Usuario>): Promise<void> {
-    await this.collection.doc(id).update(data);
+    await this.usuariosCollection.doc(id).update(data);
   }
 
   // Eliminar un usuario
@@ -144,12 +144,12 @@ export class UsuarioService {
     }
     
     // Eliminar el documento de Firestore
-    await this.collection.doc(id).delete();
+    await this.usuariosCollection.doc(id).delete();
   }
 
   // Obtener usuarios que son restaurantes
   async getRestaurantes(): Promise<Usuario[]> {
-    const snapshot = await this.collection.where('rol', '==', Rol.RESTAURANTE).get();
+    const snapshot = await this.usuariosCollection.where('rol', '==', Rol.RESTAURANTE).get();
     return snapshot.docs.map(doc => doc.data());
   }
 
