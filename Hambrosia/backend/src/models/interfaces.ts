@@ -98,17 +98,25 @@ export interface Paquete {
 
   fechaPublicacion: Date;        // Fecha de publicación del paquete
   fechaRetiro: Date;             // Fecha en la que se retirará el paquete (opcional)
-  ciudad: Ciudad;
-  calificacion?: 1|2|3|4|5;      // Calificación del paquete (opcional)        
+  ciudad: Ciudad;    
 }
 
 
 export interface Compra {
   id: string;
   codigo: string;
+  confirmacionCodigo: boolean; // true = compra confirmada, false = compra no confirmada
   clienteId: string;
+  restauranteId: string;
   paqueteId: string;
-  // Add other properties as needed
+  pagado: boolean; // true = compra pagada, false = compra no pagada
+  retirado: boolean; // true = compra retirada, false = compra no retirada
+  calificacion?: 1|2|3|4|5; // Calificación de la compra (opcional)
+  fechaCompra?: Date; // Fecha de la compra
+  comision: number; // Comision del restaurante
+  cantidadComprada: number; // Cantidad comprada del paquete
+  cancelado?: boolean; // true = compra cancelada, false = compra no cancelada
+  metodoPago: "EFECTIVO" | "TARJETA"; // Método de pago (opcional)
 }
 
 export interface Reporte {
