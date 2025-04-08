@@ -61,7 +61,7 @@ export interface Usuario {
   // Identificacion
   cedulaRUC: string; // Identificador unico
   nombre: string; // Nombre completo
-  ciudad: Ciudad[]; // Ciudad de residencia
+  ciudad: Ciudad; // Ciudad de residencia
   direccion: string; // Ciudad y direccion
   firebaseUid: string;
 
@@ -84,7 +84,7 @@ export interface Paquete {
   restauranteId: string;
 
   // Información del paquete
-  nombre: string;
+  nombreRestaurante: string;
   descripcion: string;
   
   precio: number;                // Ingresado manualmente por el restaurante
@@ -94,10 +94,12 @@ export interface Paquete {
   unidades: number;              // Mínimo 1
   agotado?: boolean;             // True si ya no hay unidades disponibles
 
-  imagenURL?: string | null;             // URL de la imagen del paquete
+  imagenURL?: string | null;     // URL de la imagen del paquete
 
   fechaPublicacion: Date;        // Fecha de publicación del paquete
-  fechaRetiro: Date;            // Fecha en la que se retirará el paquete (opcional)
+  fechaRetiro: Date;             // Fecha en la que se retirará el paquete (opcional)
+  ciudad: Ciudad;
+  calificacion?: 1|2|3|4|5;      // Calificación del paquete (opcional)        
 }
 
 

@@ -10,11 +10,11 @@ const paqueteService = new PaqueteService();
 export const publicarPaquete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Extraer datos del cuerpo de la solicitud y parámetros
-    const { nombre, descripcion, precio, precioDescuento, unidades, fechaRetiro, imagenURL } = req.body;
+    const { descripcion, precio, precioDescuento, unidades, fechaRetiro, imagenURL } = req.body;
     const { cedRuc } = req.params;
 
     // Validar campos obligatorios
-    if (!nombre || !descripcion || !precio || !precioDescuento || !unidades || !fechaRetiro) {
+    if (!descripcion || !precio || !precioDescuento || !unidades || !fechaRetiro) {
       res.status(400).json({ success: false, error: "Todos los campos obligatorios deben ser proporcionados" });
       return;
     }
@@ -36,7 +36,6 @@ export const publicarPaquete = async (req: Request, res: Response, next: NextFun
 
     // Llamar al servicio para publicar el paquete
     const resultado = await paqueteService.publicarPaquete(hashedCedula, {
-      nombre,
       descripcion,
       precio,
       precioDescuento,
@@ -53,6 +52,26 @@ export const publicarPaquete = async (req: Request, res: Response, next: NextFun
     });
   } catch (error: any) {
     console.error("Error en el controlador de publicarPaquete:", error);
+    next(error); // Pasar el error al middleware de manejo de errores
+  }
+};
+
+export const getPaqueteByCiudad = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { ciudad } = req.params;
+    const paquetes = await paqueteService.getPaqueteByCiudad(ciudad);
+
+    if (paquetes.length === 0) {
+      res.status(404).json({ success: false, message: "No se encontraron paquetes para esta ciudad" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: paquetes,
+    });
+  } catch (error: any) {
+    console.error("Error en el controlador de getPaqueteByCiudad:", error);
     next(error); // Pasar el error al middleware de manejo de errores
   }
 };

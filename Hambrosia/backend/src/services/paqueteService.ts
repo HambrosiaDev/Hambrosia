@@ -10,7 +10,6 @@ export class PaqueteService {
   async publicarPaquete(
     cedulaRUC: string,
     dataPaquete: {
-      nombre: string;
       descripcion: string;
       precio: number;
       precioDescuento: number;
@@ -47,7 +46,11 @@ export class PaqueteService {
         throw { statusCode: 403, message: "Solo los restaurantes pueden publicar paquetes" };
       }
 
-      
+      const nombreRestaurante = usuario.nombre; // Obtener el nombre del restaurante desde el usuario
+
+      // Obtener la primera ciudad del restaurante
+      // Si un restaurante tiene múltiples ciudades, usamos la primera
+      const ciudadRestaurante = usuario.ciudad;
 
       // Calcular el descuento
       const descuento = ((dataPaquete.precio - dataPaquete.precioDescuento) / dataPaquete.precio) * 100;
@@ -56,7 +59,7 @@ export class PaqueteService {
       const nuevoPaquete = {
         restauranteId: cedulaRUC,
       
-        nombre: dataPaquete.nombre,
+        nombreRestaurante: nombreRestaurante,
         descripcion: dataPaquete.descripcion,
         precio: dataPaquete.precio,
         descuento,
@@ -66,16 +69,35 @@ export class PaqueteService {
         imagenURL: dataPaquete.imagenURL || null, // Opcional
         fechaPublicacion: new Date(),
         fechaRetiro: new Date(dataPaquete.fechaRetiro), // Convertir a Date
+        ciudad: ciudadRestaurante, // Usar la ciudad del restaurante
       };
 
       // Guardar el paquete en la colección 'paquetes'
       const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);
 
       // Devolver el ID del paquete creado junto con los datos
-      return { id: paqueteRef.id, ...nuevoPaquete };
+      return { id: paqueteRef.id,
+        ...nuevoPaquete,
+        };
     } catch (error: any) {
       console.error("Error en el servicio de publicarPaquete:", error);
       throw error; // Re-lanzar el error para que lo maneje el controlador
     }
   }
+  async getPaqueteByCiudad(ciudad: string) {
+    try {
+      const snapshot = await this.paquetesCollection.where("ciudad", "==", ciudad).get();
+      const paquetes: any[] = [];
+
+      snapshot.forEach((doc) => {
+        paquetes.push({ id: doc.id, ...doc.data() });
+      });
+
+      return paquetes;
+    } catch (error: any) {
+      console.error("Error al obtener paquetes por ciudad:", error);
+      throw error; // Re-lanzar el error para que lo maneje el controlador
+    }
+  }
 }
+
