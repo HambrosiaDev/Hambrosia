@@ -4,7 +4,11 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
 import Loading from '@/components/Loading';
-import { transform } from '@babel/core';
+
+
+import { auth } from "@/app/firebaseConfig";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import {FirebaseError} from "firebase/app"
 
 
 const { width } = Dimensions.get("window");
@@ -13,6 +17,35 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const translation = useRef(new Animated.Value(0)).current;
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const signIn = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e: any) {
+      const err = e as FirebaseError;
+      alert('Sign in failed: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async () => {
+    setIsLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (e: any) {
+      const err = e as FirebaseError;
+      alert('Sign up failed: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   
   useEffect(()=>{
     Animated.timing(translation, {
@@ -22,16 +55,12 @@ export default function HomeScreen() {
     }).start();
   }, [])
 
- /* useEffect(() => {
+ useEffect(() => {
     setTimeout(() => {
       setLoading(false);
     }, 3000);
-  }, []);*/
-
-
-  //if (loading) return <Loading />;
-
-
+  }, []);
+  if (loading) return <Loading />;
 
   return (
     <KeyboardAvoidingView 
@@ -58,7 +87,7 @@ export default function HomeScreen() {
           {/* Input de correo */}
           <View style={styles.inputContainer}>
             <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
-            <TextInput style={styles.input} placeholder="Correo electrónico" placeholderTextColor="gray" />
+            <TextInput style={styles.input} placeholder="Correo electrónico" placeholderTextColor="gray" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           </View>
 
           {/* Input de contraseña */}
@@ -69,11 +98,14 @@ export default function HomeScreen() {
               placeholder="Contraseña"
               placeholderTextColor="gray"
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none" 
             />
           </View>
 
           {/* Botón Ingresar */}
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity style={styles.button} onPress={signIn} disabled={loading}>
             <Text style={styles.buttonText}>Ingresar</Text>
           </TouchableOpacity>
 

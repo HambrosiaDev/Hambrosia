@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "597880099830",
+    "project_id": "hambrosia-ec04f",
+    "storage_bucket": "hambrosia-ec04f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597880099830:android:1766bedd54e8e0f673add7",
+        "android_client_info": {
+          "package_name": "com.hambrosia.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmCQ-fGCzwDXNjOG4H3D2q2yWiwKmiGG4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

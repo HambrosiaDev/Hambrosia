@@ -149,7 +149,7 @@ export default function Register() {
         <View style={styles.formContainer}>
           <Image source={require('@/assets/images/Logo-2-orange.png')} style={styles.logo_1} />
 
-          <Text style={styles.title}>Seleccione</Text>
+          <Text style={styles.title}>ViewPackages</Text>
           <View style={{ width: '100%', alignItems: 'center' }}>
             <TouchableOpacity
               style={{
