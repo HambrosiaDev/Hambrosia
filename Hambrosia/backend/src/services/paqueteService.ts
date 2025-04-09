@@ -182,33 +182,24 @@ export class PaqueteService {
   /**
    * Método estático para calcular la comisión.
    */
-  static async calcularComision(paqueteId: string, cantidad: number, comision: number): Promise<number> {
+  static async calcularComision(paqueteId: string, cantidadComprada: number): Promise<number> {
     try {
-      // Referencia al documento del paquete
       const paqueteRef = this.paquetesCollection.doc(paqueteId);
-
-      // Obtener el documento del paquete
       const paqueteSnapshot = await paqueteRef.get();
+
       if (!paqueteSnapshot.exists) {
-        throw { statusCode: 404, message: "Paquete no encontrado" };
+        throw { statusCode: 404, message: 'Paquete no encontrado' };
       }
 
-      // Extraer los datos del paquete
       const paqueteData = paqueteSnapshot.data();
-      if (!paqueteData || typeof paqueteData.precioDescuento !== 'number') {
-        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'precioDescuento' no encontrado" };
-      }
-
-      const precioPaquete = paqueteData.precioDescuento;
-
-      // Calcular la comisión
-      const valorComision = (precioPaquete * comision) * cantidad;
-      return valorComision;
-    } catch (error: any) {
-      console.error("Error al calcular la comisión del paquete:", error.message || error);
-      throw { ...error, message: `Error al calcular la comisión del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
-    }
-  }
+      const precioUnitario = paqueteData?.precio || 0;
+      const comision = 0.1; // 10% de comisión
+      return cantidadComprada * precioUnitario * comision;
+    } catch (error) {
+      console.error('Error calculando la comisión:', error);
+      throw error;
+    }
+  }
 
   /**
    * Método estático para obtener un paquete por ID.

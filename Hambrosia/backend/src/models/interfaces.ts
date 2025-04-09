@@ -107,7 +107,7 @@ export interface Compra {
   retirado?: boolean; // true = compra retirada, false = compra no retirada
   calificacion?: 1|2|3|4|5; // Calificación de la compra (opcional)
   fechaCompra?: Date; // Fecha de la compra
-  comision?: 0.1; // Comision del restaurante
+  comision?: number; // Comision del restaurante
   valorComision?: number; // Valor de la comision
   cantidadComprada: number; // Cantidad comprada del paquete
   cancelado?: boolean; // true = compra cancelada, false = compra no cancelada
