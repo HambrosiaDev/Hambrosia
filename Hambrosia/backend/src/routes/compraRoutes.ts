@@ -4,6 +4,6 @@ import * as compraController from '../controllers/compraController';
 const router = express.Router();
 
 // Crear compra
-router.post('/:paqueteId', compraController.crearCompra);
+router.post('/:paqueteId/:clienteId/:restauranteId', compraController.crearCompra);
 
 export default router;

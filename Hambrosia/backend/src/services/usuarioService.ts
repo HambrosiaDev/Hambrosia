@@ -253,3 +253,5 @@ export class UsuarioService {
     await this.update(usuario.id, updateData);
   }
 }
+
+export const usuarioService = new UsuarioService();
