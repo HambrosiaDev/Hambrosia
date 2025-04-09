@@ -121,9 +121,15 @@ export class PaqueteService {
         throw { statusCode: 400, message: `No hay suficientes unidades disponibles. Actual: ${unidadesActuales}, Solicitado: ${cantidad}` };
       }
 
+    
       // Calcular las nuevas unidades
       const nuevasUnidades = unidadesActuales - cantidad;
 
+      if(nuevasUnidades <= 0) {
+        // Si las unidades llegan a cero, marcar el paquete como agotado
+        await paqueteRef.update({ unidades: 0, agotado: true });
+        console.log(`Paquete ${paqueteId} agotado. Unidades restantes: 0`);
+      }
       // Actualizar las unidades en Firestore
       await paqueteRef.update({ unidades: nuevasUnidades });
 
@@ -137,6 +143,68 @@ export class PaqueteService {
       throw { ...error, message: `Error al restar unidades del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
     }
   }
+
+  static async aumentarUnidadesPaquete(paqueteId: string, cantidad: number): Promise<void> {
+    try {
+      // Referencia al documento del paquete
+      const paqueteRef = this.paquetesCollection.doc(paqueteId);
+  
+      // Obtener el documento del paquete
+      const paqueteSnapshot = await paqueteRef.get();
+      if (!paqueteSnapshot.exists) {
+        throw { statusCode: 404, message: "Paquete no encontrado" };
+      }
+  
+      // Extraer los datos del paquete
+      const paqueteData = paqueteSnapshot.data();
+      if (!paqueteData || typeof paqueteData.unidades !== 'number') {
+        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'unidades' no encontrado" };
+      }
+  
+      // Obtener las unidades actuales
+      const unidadesActuales = paqueteData.unidades;
+  
+      // Calcular las nuevas unidades (suma en lugar de resta)
+      const nuevasUnidades = unidadesActuales + cantidad;
+  
+      // Actualizar las unidades en Firestore
+      await paqueteRef.update({ unidades: nuevasUnidades });
+  
+      // Registro de éxito
+      console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${unidadesActuales}, Nuevas: ${nuevasUnidades}`);
+    } catch (error: any) {
+      // Registro del error
+      console.error("Error al aumentar unidades del paquete:", error.message || error);
+  
+      // Re-lanzar el error con contexto adicional
+      throw { ...error, message: `Error al aumentar unidades del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
+    }
+  }
+
+  static async calcularComision(paqueteId: string, cantidad: number, comision: number): Promise<number> {
+    try {
+      // Referencia al documento del paquete
+      const paqueteRef = this.paquetesCollection.doc(paqueteId);
+      // Obtener el documento del paquete
+      const paqueteSnapshot = await paqueteRef.get();
+      if (!paqueteSnapshot.exists) {
+        throw { statusCode: 404, message: "Paquete no encontrado" };
+      }
+      // Extraer los datos del paquete
+      const paqueteData = paqueteSnapshot.data();
+      if (!paqueteData || typeof paqueteData.precioDescuento !== 'number') {
+        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'unidades' no encontrado" };
+      }
+      const precioPaquete = paqueteData.precioDescuento;
+        // Calcular la comisión
+        const valorComision = (precioPaquete * comision) * cantidad;
+        return valorComision;
+    }catch (error: any) {
+      console.error("Error al calcular la comision del paquete:", error.message || error);
+      throw { ...error, message: `Error al calcular la comision del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
+      }
+}
+
 }
 
 // Exportar una instancia predeterminada de la clase

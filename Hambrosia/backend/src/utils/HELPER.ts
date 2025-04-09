@@ -382,3 +382,15 @@ export class ValidacionCedulaRuc {
     }
   }
 }
+
+export function generarCodigoAleatorioSeguro(): string {
+  // Generar un número aleatorio seguro de 6 dígitos
+  const buffer = crypto.randomBytes(3); // 3 bytes = 24 bits
+  const numero = (buffer.readUIntBE(0, 3) % 1000000).toString().padStart(6, "0");
+  return numero;
+}
+
+export function verificarCodigo(codigoIngresado: string, codigoAlmacenado: string): boolean {
+  // Comparar ambos códigos
+  return codigoIngresado === codigoAlmacenado;
+}
