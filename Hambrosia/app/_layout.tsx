@@ -1,13 +1,8 @@
-import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from "@/app/firebaseConfig"; 
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-import  { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,31 +14,49 @@ export default function RootLayout() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('onAuthStateChanged', user);
       setUser(user);
-      if (initializing) setInitializing(false);
+      if (initializing) {
+        setInitializing(false);
+      }
     });
     return unsubscribe;
   }, []);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Firebase Auth state changed. User:", user);
+      setUser(user);
+      if (initializing) setInitializing(false);
+    });
+    return unsubscribe;
+  }, []);
+  
+
+  useEffect(() => {
     if (initializing) return;
   
-    const inTabsGroup = segments[0] === '(tabs)';
+    const inAuthGroup = segments[0] === '(auth)';
+    const inAppGroup = segments[0] === '(tabs)';
+    const currentPage = segments[1]; // e.g., 'register' or 'login'
   
-    if (user && !inTabsGroup) {
-      router.replace('/(tabs)/viewPackages');
-    } else if (!user && inTabsGroup) {
+    SplashScreen.hideAsync();
+  
+    if (user && inAppGroup) {
+      router.replace('/(tabs)/viewPackages'); 
+    } else if (
+      !user &&
+      inAppGroup // trying to go to the app while unauthenticated
+    ) {
       router.replace('/');
     }
-  }, [user, initializing]);
-  
+  }, [user, initializing, segments]);
   
 
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" options={{ headerShown: false}} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
     </Stack>
   );
 }

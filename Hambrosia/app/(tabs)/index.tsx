@@ -7,42 +7,32 @@ import Loading from '@/components/Loading';
 
 
 import { auth } from "@/app/firebaseConfig";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import {FirebaseError} from "firebase/app"
 
 
 const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingPage, setLoadingPage] = useState(true);
   const router = useRouter();
   const translation = useRef(new Animated.Value(0)).current;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const signIn = async () => {
-    setIsLoading(true);
+    setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      setEmail("");
+      setPassword("");
     } catch (e: any) {
       const err = e as FirebaseError;
       alert('Sign in failed: ' + err.message);
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async () => {
-    setIsLoading(true);
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-    } catch (e: any) {
-      const err = e as FirebaseError;
-      alert('Sign up failed: ' + err.message);
-    } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -57,10 +47,10 @@ export default function HomeScreen() {
 
  useEffect(() => {
     setTimeout(() => {
-      setLoading(false);
+      setLoadingPage(false);
     }, 3000);
   }, []);
-  if (loading) return <Loading />;
+if(loadingPage) return <Loading />
 
   return (
     <KeyboardAvoidingView 
@@ -106,11 +96,11 @@ export default function HomeScreen() {
 
           {/* Botón Ingresar */}
           <TouchableOpacity style={styles.button} onPress={signIn} disabled={loading}>
-            <Text style={styles.buttonText}>Ingresar</Text>
+        <Text style={styles.buttonText}>{loading ? 'Ingresando' : 'Ingresar'}</Text>
           </TouchableOpacity>
 
           {/* Botón Registrarme */}
-          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={()=>router.navigate("/(tabs)/register")}>
+          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={()=>router.navigate("/(auth)/register")} >
             <Text style={styles.buttonText}>Registrarme</Text>
           </TouchableOpacity>
 
@@ -125,7 +115,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7ccbe',
+    backgroundColor: '#f7ccbe', 
   },
   scrollContainer: {
     flexGrow: 1,
@@ -135,13 +125,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 350,
     opacity: 0.8,
-    backgroundColor: '#DF4E00'
+    backgroundColor: '#C2410C'
   },
   logo_1: {
     width: width * 0.35,
     height: width * 0.35,
     resizeMode: "contain",
-    bottom:10
+    bottom: 10
   },
   logoContainer: {
     position: 'absolute',
@@ -154,7 +144,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 35,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFF7ED', 
   },
   formContainer: {
     width: '85%',
@@ -167,31 +157,33 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5c6b0',
+    backgroundColor: '#FFFBEB', 
     paddingHorizontal: 10,
     borderRadius: 8,
     width: '100%',
     height: 45,
     marginBottom: 15,
+
   },
   icon: {
     marginRight: 10,
+    color: '#6B7280' 
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: 'black',
+    color: '#1F2937', // Dark text from ViewPackages
   },
   button: {
     width: '100%',
-    backgroundColor: '#CE2C04',
+    backgroundColor: '#CE2C04', // Red from ViewPackages
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
   },
   registerButton: {
-    backgroundColor: '#E74C3C',
+    backgroundColor: '#B91C1C', // Darker red from ViewPackages currentPrice
   },
   buttonText: {
     color: 'white',
@@ -200,7 +192,7 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     marginTop: 10,
-    color: '#7F8C8D',
+    color: '#6B7280', // Gray from ViewPackages
     fontSize: 14,
     fontStyle: 'italic',
   },

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Image, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, Pressable, View, Text, TouchableOpacity, Modal, FlatList, Alert } from 'react-native';
 import React from 'react';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
 import Checkbox from 'expo-checkbox';
@@ -37,9 +37,10 @@ export default function Register() {
       confirmPassword: "",
       ruc: "",
       location: "",
+      city: ""
     },
   });
-  
+
   const handleChange = (section: "user" | "restaurant", key: string, value: string) => {
     setFormData((prevData) => ({
       ...prevData,
@@ -58,7 +59,7 @@ export default function Register() {
     }));
   };
   const allergensList = [
-    'Crustáceos/Mariscos', 'Pescado', 'Leche', 'Huevo', 'Frutos Secos', 
+    'Crustáceos/Mariscos', 'Pescado', 'Leche', 'Huevo', 'Frutos Secos',
     'Maní/Cacahuate', 'Trigo', 'Granos de Soya', 'Sésamo'
   ];
 
@@ -69,39 +70,39 @@ export default function Register() {
     }
     const validatePassword = (password: string, confirmPassword: string): boolean => {
       const errors = [];
-      
+
       if (password.length < 8) errors.push("Debe tener al menos 8 caracteres.");
       if (!/[A-Z]/.test(password)) errors.push("Debe tener al menos 1 mayúscula.");
       if (!/[a-z]/.test(password)) errors.push("Debe tener al menos 1 minúscula.");
       if (!/[0-9]/.test(password)) errors.push("Debe tener al menos 1 número.");
       if (!/[\W_]/.test(password)) errors.push("Debe tener al menos 1 caracter especial.");
       if (password !== confirmPassword) errors.push("Las contraseñas no coinciden.");
-    
+
       if (errors.length > 0) {
         Alert.alert("Error de contraseña", errors.join("\n"));
         return false;
       }
       return true;
     };
-    
+
     return true;
   };
 
-  const validateEmail = (email: string): boolean =>{
+  const validateEmail = (email: string): boolean => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if(!emailRegex.test(email)){
+    if (!emailRegex.test(email)) {
       Alert.alert("Formato de correo inválido")
       return false;
-    } else{
+    } else {
       return true;
     }
   }
 
 
   const handleRegister = () => {
-    if(selectedRole == "Restaurante"){
+    if (selectedRole == "Restaurante") {
       confirmPassword(formData.restaurant.password, formData.restaurant.password);
-    }else{
+    } else {
       console.log(formData.user.name);
       console.log(formData.user.email);
       console.log(formData.user.password);
@@ -115,7 +116,7 @@ export default function Register() {
         ...prevData,
         user: {
           name: "",
-          cedula:"",
+          cedula: "",
           email: "",
           password: "",
           confirmPassword: "",
@@ -125,9 +126,9 @@ export default function Register() {
           year: "",
         },
       }));
-      
+
     }
-  
+
   };
 
 
@@ -150,41 +151,56 @@ export default function Register() {
           <Image source={require('@/assets/images/Logo-2-orange.png')} style={styles.logo_1} />
 
           <Text style={styles.title}>Seleccione</Text>
-          <View style={{ width: '100%', alignItems: 'center' }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#f5c6b0',
-                padding: 10,
-                borderRadius: 8,
-                bottom: 10,
-                width: '100%',
-                height: 45,
-                justifyContent: 'center'
-              }}
-              onPress={() => setModalVisible(true)}
-            >
-              <Text style={{ color: 'black', fontSize: 16 }}>{selectedRole}</Text>
-            </TouchableOpacity>
+          <View style={{ width: '100%', alignItems: 'center', display: "flex", flexDirection: "row" }}>
+            <View style={styles.roleSelectorContainer}>
+              <TouchableOpacity
+                style={styles.roleSelectorButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <View style={styles.roleSelectorContent}>
+                  <FontAwesome5
+                    name="user-tag"
+                    size={16}
+                    color="#C2410C"
+                    style={styles.roleIcon}
+                  />
+                  <Text style={styles.roleSelectorText}>
+                    {selectedRole}
+                  </Text>
+                  <FontAwesome5
+                    name="chevron-down"
+                    size={14}
+                    color="#6B7280"
+                    style={styles.chevronIcon}
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
 
             {/* Modal con la lista de opciones */}
             <Modal visible={modalVisible} transparent animationType="fade">
               <TouchableOpacity
-                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                style={styles.modalOverlay}
                 onPress={() => setModalVisible(false)}
+                activeOpacity={1}
               >
-                <View style={{ backgroundColor: 'white', padding: 10, borderRadius: 8, width: '85%' }}>
+                <View style={styles.modalContainer}>
+                  <Text style={styles.modalTitle}>Selecciona un rol para tu cuenta</Text>
                   <FlatList
                     data={roles}
                     keyExtractor={(item) => item}
                     renderItem={({ item }) => (
                       <TouchableOpacity
-                        style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' }}
+                        style={styles.modalItem}
                         onPress={() => {
                           setSelectedRole(item);
                           setModalVisible(false);
                         }}
                       >
-                        <Text style={{ fontSize: 16 }}>{item}</Text>
+                        <Text style={styles.modalItemText}>{item}</Text>
+                        {selectedRole === item && (
+                          <FontAwesome name="check" size={16} color="#D97706" />
+                        )}
                       </TouchableOpacity>
                     )}
                   />
@@ -204,7 +220,7 @@ export default function Register() {
                     placeholderTextColor="gray"
                     value={formData.user.name}
                     onChangeText={(text) => handleChange("user", "name", text)}
-                    />
+                  />
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -274,7 +290,7 @@ export default function Register() {
                       placeholder="Día"
                       placeholderTextColor="gray"
                       value={formData.user.day}
-                    onChangeText={(text) => handleChange("user", "day", text)}
+                      onChangeText={(text) => handleChange("user", "day", text)}
                     />
                   </View>
                   <View style={styles.date}>
@@ -284,7 +300,7 @@ export default function Register() {
                       placeholder="Mes"
                       placeholderTextColor="gray"
                       value={formData.user.month}
-                    onChangeText={(text) => handleChange("user", "month", text)}
+                      onChangeText={(text) => handleChange("user", "month", text)}
                     />
                   </View>
                   <View style={styles.date}>
@@ -294,7 +310,7 @@ export default function Register() {
                       placeholder="Año"
                       placeholderTextColor="gray"
                       value={formData.user.year}
-                    onChangeText={(text) => handleChange("user", "year", text)}
+                      onChangeText={(text) => handleChange("user", "year", text)}
                     />
                   </View>
                 </View>
@@ -359,7 +375,7 @@ export default function Register() {
                 </View>
                 <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
                 <View style={styles.inputContainer}>
-                  <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
+                  <FontAwesome name="map" size={16} color="gray" style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Dirección"
@@ -367,23 +383,34 @@ export default function Register() {
                   />
                 </View>
 
-                <View style={styles.containerAllergens}>
-                      <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
-                      <View style={styles.allergenList}>
-                        {allergensList.map((allergen) => (
-                          <View key={allergen} style={styles.allergenItem}>
-                            <Checkbox
-                              value={selectedAllergens[allergen] || false}
-                              onValueChange={() => toggleAllergen(allergen)}
-                              color={selectedAllergens[allergen] ? '#E74C3C' : undefined}
-                            />
-                            <Text style={styles.allergenText}>{allergen}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
+                <View style={styles.inputContainer}>
+                  <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ciudad ej. Quito"
+                    placeholderTextColor="gray"
+                    value={formData.restaurant.city}
+                    onChangeText={(text) => handleChange("restaurant", "city", text)}
+                  />
+                </View>
 
-                
+                <View style={styles.containerAllergens}>
+                  <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
+                  <View style={styles.allergenList}>
+                    {allergensList.map((allergen) => (
+                      <View key={allergen} style={styles.allergenItem}>
+                        <Checkbox
+                          value={selectedAllergens[allergen] || false}
+                          onValueChange={() => toggleAllergen(allergen)}
+                          color={selectedAllergens[allergen] ? '#E74C3C' : undefined}
+                        />
+                        <Text style={styles.allergenText}>{allergen}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+
               </>
             )}
             <Text style={styles.title}>He leído y acepto los términos y condiciones</Text>
@@ -414,6 +441,70 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f7ccbe',
+  },
+  roleSelectorContainer: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  roleSelectorButton: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  roleSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  roleIcon: {
+    marginRight: 12,
+  },
+  roleSelectorText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  chevronIcon: {
+    marginLeft: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '80%',
+    maxHeight: '60%',
+    paddingVertical: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    padding: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalItem: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  selectedModalItem: {
+    backgroundColor: '#FFFBEB',
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: '#1F2937',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -456,7 +547,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5c6b0',
+    backgroundColor: '#FFFBEB',
     paddingHorizontal: 10,
     borderRadius: 8,
     width: '100%',
@@ -474,18 +565,18 @@ const styles = StyleSheet.create({
   date: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5c6b0',
+    backgroundColor: '#FFFBEB',
     paddingHorizontal: 10,
     borderRadius: 8,
     width: '31%',
     height: 45,
-    marginBottom: 35,
-
+    
   },
   dateContainer: {
     flexDirection: "row",
     alignContent: 'center',
     gap: 10,
+    marginBottom: 20,
   },
   button: {
     width: '100%',
@@ -503,19 +594,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  forgotPassword: {
-    marginTop: 10,
-    color: '#7F8C8D',
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
   containerAllergens: {
     padding: 1,
     alignItems: 'center',
     borderRadius: 10,
+    marginBottom: 20,
   },
   titleAllergens: {
-    marginTop:10,
+    marginTop: 10,
     fontSize: 15,
     fontWeight: 'bold',
     marginBottom: 16,
@@ -524,13 +610,13 @@ const styles = StyleSheet.create({
   },
   allergenList: {
     flexDirection: 'row',
-    flexWrap: 'wrap', 
+    flexWrap: 'wrap',
     justifyContent: 'center',
   },
   allergenItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5c6b0',
+    backgroundColor: '#FFFBEB',
     padding: 10,
     borderRadius: 8,
     margin: 5,

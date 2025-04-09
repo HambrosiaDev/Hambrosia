@@ -1,543 +1,370 @@
-import { useState } from 'react';
-import { Image, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, Pressable, View, Text, TouchableOpacity, Modal, FlatList, Alert } from 'react-native';
-import React from 'react';
-import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { Dimensions } from "react-native";
-import Checkbox from 'expo-checkbox';
+// ViewPackages.tsx
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
+import { auth } from '../firebaseConfig';
 
+const cities = ['Todos', 'Floresta', 'Cumbayá', 'Iñaquito', 'Valle de los Chillos'];
 
+const packages = [
+  {
+    id: 1,
+    name: 'Burguer King',
+    description: 'Algo sustancioso y una bebida',
+    discount: 50,
+    currentPrice: '$2.50',
+    oldPrice: '$5.00',
+    city: 'Floresta',
+    location: 'Av. Amazonas',
+    time: '22:00',
+    icon: 'hamburger',
+  },
+  {
+    id: 2,
+    name: 'Freshii',
+    description: 'Algo refrescante y saludable',
+    discount: 60,
+    currentPrice: '$2.80',
+    oldPrice: '$7.00',
+    city: 'Cumbayá',
+    location: 'Av. Naciones Unidas',
+    time: '21:30',
+    icon: 'leaf',
+  },
+  {
+    id: 3,
+    name: 'Pan Casero',
+    description: 'Algo francés y algo dulce',
+    discount: 30,
+    currentPrice: '$3.15',
+    oldPrice: '$4.50',
+    city: 'Floresta',
+    location: 'Av. 6 de Diciembre',
+    time: '20:00',
+    icon: 'bread-slice',
+  },
+  {
+    id: 4,
+    name: 'Cinnabon',
+    description: 'Algo dulce',
+    discount: 30,
+    currentPrice: '$4.20',
+    oldPrice: '$6.00',
+    city: 'Iñaquito',
+    location: 'Centro Comercial Iñaquito',
+    time: '21:00',
+    icon: 'cookie',
+  },
+];
 
-const roles = ["Usuario", "Restaurante"];
-const { width } = Dimensions.get("window");
-
-
-export default function Register() {
-  const router = useRouter();
-
-  const [selectedRole, setSelectedRole] = useState("Usuario");
+export default function ViewPackages() {
+  const [selectedCity, setSelectedCity] = useState('Todos');
   const [modalVisible, setModalVisible] = useState(false);
 
-  const [formData, setFormData] = useState({
-    user: {
-      name: "",
-      cedula: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      city: "",
-      day: "",
-      month: "",
-      year: "",
-    },
-    restaurant: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      ruc: "",
-      location: "",
-    },
-  });
-  
-  const handleChange = (section: "user" | "restaurant", key: string, value: string) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      [section]: {
-        ...prevData[section],
-        [key]: value,
-      },
-    }));
+  const handleSignOut = () => {
+    auth.signOut();
   };
 
-  const [selectedAllergens, setSelectedAllergens] = useState<Record<string, boolean>>({});
-  const toggleAllergen = (allergen: string) => {
-    setSelectedAllergens((prev) => ({
-      ...prev,
-      [allergen]: !prev[allergen],
-    }));
-  };
-  const allergensList = [
-    'Crustáceos/Mariscos', 'Pescado', 'Leche', 'Huevo', 'Frutos Secos', 
-    'Maní/Cacahuate', 'Trigo', 'Granos de Soya', 'Sésamo'
-  ];
-
-  const confirmPassword = (pass1: string, pass2: string): boolean => {
-    if (pass1.length < 8) {
-      Alert.alert("La contraseña debe tener al menos 8 caracteres.");
-      return false;
-    }
-    const validatePassword = (password: string, confirmPassword: string): boolean => {
-      const errors = [];
-      
-      if (password.length < 8) errors.push("Debe tener al menos 8 caracteres.");
-      if (!/[A-Z]/.test(password)) errors.push("Debe tener al menos 1 mayúscula.");
-      if (!/[a-z]/.test(password)) errors.push("Debe tener al menos 1 minúscula.");
-      if (!/[0-9]/.test(password)) errors.push("Debe tener al menos 1 número.");
-      if (!/[\W_]/.test(password)) errors.push("Debe tener al menos 1 caracter especial.");
-      if (password !== confirmPassword) errors.push("Las contraseñas no coinciden.");
-    
-      if (errors.length > 0) {
-        Alert.alert("Error de contraseña", errors.join("\n"));
-        return false;
-      }
-      return true;
-    };
-    
-    return true;
-  };
-
-  const validateEmail = (email: string): boolean =>{
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if(!emailRegex.test(email)){
-      Alert.alert("Formato de correo inválido")
-      return false;
-    } else{
-      return true;
-    }
-  }
-
-
-  const handleRegister = () => {
-    if(selectedRole == "Restaurante"){
-      confirmPassword(formData.restaurant.password, formData.restaurant.password);
-    }else{
-      console.log(formData.user.name);
-      console.log(formData.user.email);
-      console.log(formData.user.password);
-      console.log(formData.user.confirmPassword);
-      console.log(formData.user.city);
-      console.log(formData.user.day);
-      console.log(formData.user.month);
-      console.log(formData.user.year);
-      confirmPassword(formData.user.password, formData.user.confirmPassword)
-      setFormData((prevData) => ({
-        ...prevData,
-        user: {
-          name: "",
-          cedula:"",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          city: "",
-          day: "",
-          month: "",
-          year: "",
-        },
-      }));
-      
-    }
-  
-  };
-
+  const filteredPackages = selectedCity === 'Todos' 
+    ? packages 
+    : packages.filter(pkg => pkg.city === selectedCity);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-        {/* Header Image */}
-        <Image
-          source={{
-            uri: 'https://studyadelaide.com/storage/app/media/life/discover-adelaide/food/food-1300x1300.jpg',
-          }}
-          style={styles.headerImage}
-        />
-
-        {/* Formulario */}
-        <View style={styles.formContainer}>
-          <Image source={require('@/assets/images/Logo-2-orange.png')} style={styles.logo_1} />
-
-          <Text style={styles.title}>ViewPackages</Text>
-          <View style={{ width: '100%', alignItems: 'center' }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#f5c6b0',
-                padding: 10,
-                borderRadius: 8,
-                bottom: 10,
-                width: '100%',
-                height: 45,
-                justifyContent: 'center'
-              }}
-              onPress={() => setModalVisible(true)}
-            >
-              <Text style={{ color: 'black', fontSize: 16 }}>{selectedRole}</Text>
-            </TouchableOpacity>
-
-            {/* Modal con la lista de opciones */}
-            <Modal visible={modalVisible} transparent animationType="fade">
-              <TouchableOpacity
-                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
-                onPress={() => setModalVisible(false)}
-              >
-                <View style={{ backgroundColor: 'white', padding: 10, borderRadius: 8, width: '85%' }}>
-                  <FlatList
-                    data={roles}
-                    keyExtractor={(item) => item}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' }}
-                        onPress={() => {
-                          setSelectedRole(item);
-                          setModalVisible(false);
-                        }}
-                      >
-                        <Text style={{ fontSize: 16 }}>{item}</Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              </TouchableOpacity>
-            </Modal>
-          </View>
-          {/* Input */}
-          <View style={{ width: '100%' }}>
-            {selectedRole === "Usuario" ? (
-              <>
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nombre completo"
-                    placeholderTextColor="gray"
-                    value={formData.user.name}
-                    onChangeText={(text) => handleChange("user", "name", text)}
-                    />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="id-badge" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Cédula"
-                    placeholderTextColor="gray"
-                    value={formData.user.cedula}
-                    onChangeText={(text) => handleChange("user", "cedula", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="gray"
-                    value={formData.user.email}
-                    onChangeText={(text) => handleChange("user", "email", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.user.password}
-                    onChangeText={(text) => handleChange("user", "password", text)}
-                    secureTextEntry
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirmar Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.user.confirmPassword}
-                    onChangeText={(text) => handleChange("user", "confirmPassword", text)}
-                    secureTextEntry
-                  />
-                </View>
-
-                <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ciudad ej. Quito"
-                    placeholderTextColor="gray"
-                    value={formData.user.city}
-                    onChangeText={(text) => handleChange("user", "city", text)}
-                  />
-                </View>
-
-                <View style={styles.dateContainer}>
-                  <View style={styles.date}>
-                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Día"
-                      placeholderTextColor="gray"
-                      value={formData.user.day}
-                    onChangeText={(text) => handleChange("user", "day", text)}
-                    />
-                  </View>
-                  <View style={styles.date}>
-                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Mes"
-                      placeholderTextColor="gray"
-                      value={formData.user.month}
-                    onChangeText={(text) => handleChange("user", "month", text)}
-                    />
-                  </View>
-                  <View style={styles.date}>
-                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Año"
-                      placeholderTextColor="gray"
-                      value={formData.user.year}
-                    onChangeText={(text) => handleChange("user", "year", text)}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nombre del restaurante"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.name}
-                    onChangeText={(text) => handleChange("restaurant", "name", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.email}
-                    onChangeText={(text) => handleChange("restaurant", "email", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="id-badge" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="RUC"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.ruc}
-                    onChangeText={(text) => handleChange("restaurant", "ruc", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.password}
-                    onChangeText={(text) => handleChange("restaurant", "password", text)}
-                    secureTextEntry
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirmar Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.confirmPassword}
-                    onChangeText={(text) => handleChange("restaurant", "confirmPassword", text)}
-                    secureTextEntry
-                  />
-                </View>
-                <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Dirección"
-                    placeholderTextColor="gray"
-                  />
-                </View>
-
-                <View style={styles.containerAllergens}>
-                      <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
-                      <View style={styles.allergenList}>
-                        {allergensList.map((allergen) => (
-                          <View key={allergen} style={styles.allergenItem}>
-                            <Checkbox
-                              value={selectedAllergens[allergen] || false}
-                              onValueChange={() => toggleAllergen(allergen)}
-                              color={selectedAllergens[allergen] ? '#E74C3C' : undefined}
-                            />
-                            <Text style={styles.allergenText}>{allergen}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-
-                
-              </>
-            )}
-            <Text style={styles.title}>He leído y acepto los términos y condiciones</Text>
-          </View>
-
-
-
-          {/* Botón Registrarme */}
-          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => handleRegister()}>
-            <Text style={styles.buttonText}>Registrarme</Text>
-          </TouchableOpacity>
-
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>HAMBROSÍA</Text>
+          <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
+          <Text style={styles.logOutText}>Salir</Text>
+        </TouchableOpacity>
+      </View>
 
+      {/* City Selector */}
+      <TouchableOpacity 
+        style={styles.citySelector} 
+        onPress={() => setModalVisible(true)}
+      >
+        <FontAwesome5 name="map-marker-alt" size={16} color="#D97706" />
+        <Text style={styles.cityText}>{selectedCity}</Text>
+        <FontAwesome5 name="chevron-down" size={14} color="#6B7280" />
+      </TouchableOpacity>
+
+      {/* City Selection Modal */}
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          onPress={() => setModalVisible(false)}
+          activeOpacity={1}
+        >
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Selecciona un sector</Text>
+            {cities.map((city) => (
+              <TouchableOpacity
+                key={city}
+                style={[
+                  styles.modalItem,
+                  selectedCity === city && styles.selectedModalItem
+                ]}
+                onPress={() => {
+                  setSelectedCity(city);
+                  setModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalItemText}>{city}</Text>
+                {selectedCity === city && (
+                  <FontAwesome5 name="check" size={16} color="#D97706" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Packages List */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+        {filteredPackages.length > 0 ? (
+          filteredPackages.map((pkg) => (
+            <View key={pkg.id} style={styles.card}>
+              <View style={styles.iconContainer}>
+                <FontAwesome5 name={pkg.icon} size={24} color="#D97706" />
+              </View>
+
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.name}>{pkg.name}</Text>
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>{pkg.discount}%</Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.description}>{pkg.description}</Text>
+
+                <View style={styles.priceRow}>
+                  <Text style={styles.currentPrice}>{pkg.currentPrice}</Text>
+                  <Text style={styles.oldPrice}>{pkg.oldPrice}</Text>
+                </View>
+
+                <View style={styles.metaRow}>
+                  <View style={styles.metaItem}>
+                    <FontAwesome name="map-marker" size={12} color="#6B7280" />
+                    <Text style={styles.metaText}>{pkg.location}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <FontAwesome5 name="stopwatch" size={12} color="#6B7280" />
+                    <Text style={styles.metaText}>{pkg.time}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <FontAwesome5 name="map-marked-alt" size={48} color="#D1D5DB" />
+            <Text style={styles.emptyText}>No hay paquetes disponibles en {selectedCity}</Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    alignSelf: "flex-start",
-    color: '#7F8C8D',
-    fontSize: 14,
-    fontStyle: 'italic',
-    bottom: 7
-  },
   container: {
     flex: 1,
     backgroundColor: '#f7ccbe',
+    padding: 20,
+    paddingTop: 30,
   },
-  scrollContainer: {
-    flexGrow: 1,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    bottom: 24,
+    padding:10
+  },
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  headerImage: {
-    width: '100%',
-    height: 60,
-    opacity: 0.8,
-    backgroundColor: '#DF4E00'
-  },
-  logo_1: {
-    width: width * 0.15,
-    height: width * 0.15,
-    resizeMode: "contain",
-    alignSelf: "center",
-    bottom: 30,
-    marginBottom: 20,
-  },
-  logoContainer: {
-    position: 'absolute',
-    top: 0,
-    paddingHorizontal: 20,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  logo: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
-  },
-  formContainer: {
-    width: '85%',
-    marginTop: 40,
-    backgroundColor: '#f7ccbe',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5c6b0',
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    width: '100%',
-    height: 45,
-    marginBottom: 10,
-  },
-  icon: {
+    color: '#C2410C',
     marginRight: 10,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: 'black',
-  },
-  date: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5c6b0',
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    width: '31%',
-    height: 45,
-    marginBottom: 35,
-
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignContent: 'center',
-    gap: 10,
-  },
-  button: {
-    width: '100%',
+  logOutButton: {
     backgroundColor: '#CE2C04',
-    paddingVertical: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10,
   },
-  registerButton: {
-    backgroundColor: '#E74C3C',
-  },
-  buttonText: {
+  logOutText: {
     color: 'white',
+    fontWeight: '600',
+  },
+  citySelector: {
+    backgroundColor: 'white',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cityText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: '#1F2937',
+    fontWeight: '500',
+    flex: 1,
+    marginHorizontal: 10,
   },
-  forgotPassword: {
-    marginTop: 10,
-    color: '#7F8C8D',
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  containerAllergens: {
-    padding: 1,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  titleAllergens: {
-    marginTop:10,
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#333',
-  },
-  allergenList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap', 
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  allergenItem: {
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: '80%',
+    maxHeight: '60%',
+    paddingVertical: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    padding: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalItem: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  selectedModalItem: {
+    backgroundColor: '#FFFBEB',
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  scrollContainer: {
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  icon: {
+    marginRight: 12,
+    marginTop: 4,
+  },
+  name: {
+    fontWeight: '600',
+    fontSize: 18,
+    color: '#1F2937',
+    flex: 1,
+  },
+  discountBadge: {
+    backgroundColor: '#2A7C04',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginLeft: 8,
+  },
+  discountText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  description: {
+    color: '#6B7280',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5c6b0',
-    padding: 10,
-    borderRadius: 8,
-    margin: 5,
+    marginBottom: 12,
   },
-  allergenText: {
-    marginLeft: 8,
+  currentPrice: {
+    color: '#B91C1C',
+    fontWeight: '700',
+    fontSize: 18,
+    marginRight: 8,
+  },
+  oldPrice: {
+    textDecorationLine: 'line-through',
+    color: '#9CA3AF',
     fontSize: 14,
-    color: '#333',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  metaText: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
