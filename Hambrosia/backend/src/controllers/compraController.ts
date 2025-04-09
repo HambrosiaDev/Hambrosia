@@ -1,11 +1,21 @@
 import { Request, Response } from 'express';
 import { CompraService } from '../services/compraService';
+import { Compra } from '../models/interfaces';
+
 
 const compraService = new CompraService();
 
 export const crearCompra = async (req: Request, res: Response): Promise<void> => {
   try {
-    const compraData = req.body;
+    const { paqueteId } = req.params; // Mover aquí para usarlo en compraData
+    
+    const compraData: Compra={
+      clienteId: req.body.clienteId,
+      restauranteId: req.body.restauranteId,
+      paqueteId: req.body.paqueteId,
+      cantidadComprada: req.body.cantidadComprada,
+      metodoPago: req.body.metodoPago
+    }
 
     // Validar los datos de la compra
     if (!compraData) {
@@ -14,7 +24,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Crear la compra utilizando el servicio
-    const nuevaCompra = await compraService.crearCompra(compraData);
+    const nuevaCompra = await compraService.crearCompra(paqueteId, compraData);
 
     // Responder con la compra creada
     res.status(201).json({

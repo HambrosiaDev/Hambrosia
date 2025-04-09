@@ -205,6 +205,24 @@ export class PaqueteService {
       }
 }
 
+static async obtenerPaquetePorId(paqueteId: string) {
+  try {
+    // Referencia al documento del paquete
+    const paqueteRef = this.paquetesCollection.doc(paqueteId);
+    // Obtener el documento del paquete
+    const paqueteSnapshot = await paqueteRef.get();
+    if (!paqueteSnapshot.exists) {
+      throw { statusCode: 404, message: "Paquete no encontrado" };
+    }
+    // Extraer los datos del paquete
+    const paqueteData = paqueteSnapshot.data();
+    return { id: paqueteSnapshot.id, ...paqueteData };
+  } catch (error: any) {
+    console.error("Error al obtener el paquete por ID:", error.message || error);
+    throw { ...error, message: `Error al obtener el paquete por ID ${paqueteId}: ${error.message || "Error desconocido"}` };
+  }
+
+}
 }
 
 // Exportar una instancia predeterminada de la clase
