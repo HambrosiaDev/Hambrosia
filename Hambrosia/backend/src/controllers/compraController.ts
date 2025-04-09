@@ -2,29 +2,32 @@ import { Request, Response } from 'express';
 import { CompraService } from '../services/compraService';
 import { Compra } from '../models/interfaces';
 
-
 const compraService = new CompraService();
 
 export const crearCompra = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { paqueteId } = req.params; // Mover aquí para usarlo en compraData
-    
-    const compraData: Compra={
+    const { paqueteId } = req.params;
+
+    const compraData: Partial<Compra> = {
       clienteId: req.body.clienteId,
       restauranteId: req.body.restauranteId,
-      paqueteId: req.body.paqueteId,
       cantidadComprada: req.body.cantidadComprada,
-      metodoPago: req.body.metodoPago
-    }
+      metodoPago: req.body.metodoPago,
+    };
 
-    // Validar los datos de la compra
-    if (!compraData) {
-      res.status(400).json({ success: false, error: 'Datos de compra no proporcionados' });
+    // Validar que todos los campos obligatorios estén presentes
+    if (
+      !compraData.clienteId ||
+      !compraData.restauranteId ||
+      !compraData.cantidadComprada ||
+      !compraData.metodoPago
+    ) {
+      res.status(400).json({ success: false, error: 'Faltan datos obligatorios para crear la compra' });
       return;
     }
 
     // Crear la compra utilizando el servicio
-    const nuevaCompra = await compraService.crearCompra(paqueteId, compraData);
+    const nuevaCompra = await compraService.crearCompra(paqueteId, compraData as Compra);
 
     // Responder con la compra creada
     res.status(201).json({
@@ -32,8 +35,8 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       message: 'Compra creada exitosamente',
       data: nuevaCompra,
     });
-  } catch (error) {
-    console.error('Error creando la compra:', error);
-    res.status(500).json({ success: false, error: 'Error al crear la compra' });
+  } catch (error: any) {
+    console.error('Error creando la compra:', error.message || error);
+    res.status(500).json({ success: false, error: error.message || 'Error al crear la compra' });
   }
 };

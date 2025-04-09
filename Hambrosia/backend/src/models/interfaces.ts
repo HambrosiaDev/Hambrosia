@@ -80,25 +80,19 @@ export interface Usuario {
 }
 
 export interface Paquete {
-  // Solo los restaurantes pueden crear paquetes
+  id?: string;
   restauranteId: string;
-
-  // Información del paquete
   nombreRestaurante: string;
   descripcion: string;
-  
-  precio: number;                // Ingresado manualmente por el restaurante
-  descuento?: number;            // Porcentaje de descuento (opcional), calculado en base a precio y precioDescuento
-  precioDescuento: number;       // Ingresado manualmente por el restaurante
-
-  unidades: number;              // Mínimo 1
-  agotado?: boolean;             // True si ya no hay unidades disponibles
-
-  imagenURL?: string | null;     // URL de la imagen del paquete
-
-  fechaPublicacion: Date;        // Fecha de publicación del paquete
-  fechaRetiro: Date;             // Fecha en la que se retirará el paquete (opcional)
-  ciudad: Ciudad;    
+  precio: number;
+  descuento?: number;
+  precioDescuento: number;
+  unidades: number;
+  agotado?: boolean;
+  imagenURL?: string | null;
+  fechaPublicacion: Date;
+  fechaRetiro?: Date;
+  ciudad: Ciudad;
 }
 
 

@@ -1,10 +1,12 @@
-import { db } from "../config/firebase"; // Importa db
-import { Rol } from "../models/interfaces"; // Importa el modelo de Rol si es necesario
-import { hashCedula } from "../utils/HELPER"; // Importa la función hashCedula
+import { db } from "../config/firebase";
+import { converterFactory } from "../utils/converterFactory";
+import { Paquete } from "../models/interfaces";
+import { hashCedula } from "../utils/HELPER";
+import { Rol } from "../models/interfaces";
 
 export class PaqueteService {
-  // Propiedad estática para la colección de paquetes
-  private static paquetesCollection = db.collection("paquetes");
+  // Propiedad estática para la colección de paquetes con el Converter
+  private static paquetesCollection = db.collection("paquetes").withConverter(converterFactory<Paquete>());
 
   /**
    * Método para publicar un paquete.
@@ -19,7 +21,7 @@ export class PaqueteService {
       fechaRetiro: string;
       imagenURL?: string | null;
     }
-  ) {
+  ): Promise<Paquete> {
     try {
       // Encriptar la cédula RUC
       const hashedCedula = hashCedula(cedulaRUC);
@@ -79,13 +81,14 @@ export class PaqueteService {
   /**
    * Método para obtener paquetes por ciudad.
    */
-  async getPaqueteByCiudad(ciudad: string) {
+  async getPaqueteByCiudad(ciudad: string): Promise<Paquete[]> {
     try {
       const snapshot = await PaqueteService.paquetesCollection.where("ciudad", "==", ciudad).get();
-      const paquetes: any[] = [];
+      const paquetes: Paquete[] = [];
 
       snapshot.forEach((doc) => {
-        paquetes.push({ id: doc.id, ...doc.data() });
+        const paqueteData = doc.data();
+        paquetes.push({ id: doc.id, ...paqueteData });
       });
 
       return paquetes;
@@ -121,108 +124,114 @@ export class PaqueteService {
         throw { statusCode: 400, message: `No hay suficientes unidades disponibles. Actual: ${unidadesActuales}, Solicitado: ${cantidad}` };
       }
 
-    
       // Calcular las nuevas unidades
       const nuevasUnidades = unidadesActuales - cantidad;
 
-      if(nuevasUnidades <= 0) {
+      if (nuevasUnidades <= 0) {
         // Si las unidades llegan a cero, marcar el paquete como agotado
         await paqueteRef.update({ unidades: 0, agotado: true });
         console.log(`Paquete ${paqueteId} agotado. Unidades restantes: 0`);
+      } else {
+        // Actualizar las unidades en Firestore
+        await paqueteRef.update({ unidades: nuevasUnidades });
+        console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${unidadesActuales}, Nuevas: ${nuevasUnidades}`);
       }
-      // Actualizar las unidades en Firestore
-      await paqueteRef.update({ unidades: nuevasUnidades });
-
-      // Registro de éxito
-      console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${unidadesActuales}, Nuevas: ${nuevasUnidades}`);
     } catch (error: any) {
-      // Registro del error
       console.error("Error al restar unidades del paquete:", error.message || error);
-
-      // Re-lanzar el error con contexto adicional
       throw { ...error, message: `Error al restar unidades del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
     }
   }
 
+  /**
+   * Método estático para aumentar unidades de un paquete.
+   */
   static async aumentarUnidadesPaquete(paqueteId: string, cantidad: number): Promise<void> {
     try {
       // Referencia al documento del paquete
       const paqueteRef = this.paquetesCollection.doc(paqueteId);
-  
+
       // Obtener el documento del paquete
       const paqueteSnapshot = await paqueteRef.get();
       if (!paqueteSnapshot.exists) {
         throw { statusCode: 404, message: "Paquete no encontrado" };
       }
-  
+
       // Extraer los datos del paquete
       const paqueteData = paqueteSnapshot.data();
       if (!paqueteData || typeof paqueteData.unidades !== 'number') {
         throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'unidades' no encontrado" };
       }
-  
+
       // Obtener las unidades actuales
       const unidadesActuales = paqueteData.unidades;
-  
+
       // Calcular las nuevas unidades (suma en lugar de resta)
       const nuevasUnidades = unidadesActuales + cantidad;
-  
+
       // Actualizar las unidades en Firestore
       await paqueteRef.update({ unidades: nuevasUnidades });
-  
+
       // Registro de éxito
       console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${unidadesActuales}, Nuevas: ${nuevasUnidades}`);
     } catch (error: any) {
-      // Registro del error
       console.error("Error al aumentar unidades del paquete:", error.message || error);
-  
-      // Re-lanzar el error con contexto adicional
       throw { ...error, message: `Error al aumentar unidades del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
     }
   }
 
+  /**
+   * Método estático para calcular la comisión.
+   */
   static async calcularComision(paqueteId: string, cantidad: number, comision: number): Promise<number> {
     try {
       // Referencia al documento del paquete
       const paqueteRef = this.paquetesCollection.doc(paqueteId);
+
       // Obtener el documento del paquete
       const paqueteSnapshot = await paqueteRef.get();
       if (!paqueteSnapshot.exists) {
         throw { statusCode: 404, message: "Paquete no encontrado" };
       }
+
       // Extraer los datos del paquete
       const paqueteData = paqueteSnapshot.data();
       if (!paqueteData || typeof paqueteData.precioDescuento !== 'number') {
-        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'unidades' no encontrado" };
+        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'precioDescuento' no encontrado" };
       }
-      const precioPaquete = paqueteData.precioDescuento;
-        // Calcular la comisión
-        const valorComision = (precioPaquete * comision) * cantidad;
-        return valorComision;
-    }catch (error: any) {
-      console.error("Error al calcular la comision del paquete:", error.message || error);
-      throw { ...error, message: `Error al calcular la comision del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
-      }
-}
 
-static async obtenerPaquetePorId(paqueteId: string) {
-  try {
-    // Referencia al documento del paquete
-    const paqueteRef = this.paquetesCollection.doc(paqueteId);
-    // Obtener el documento del paquete
-    const paqueteSnapshot = await paqueteRef.get();
-    if (!paqueteSnapshot.exists) {
-      throw { statusCode: 404, message: "Paquete no encontrado" };
+      const precioPaquete = paqueteData.precioDescuento;
+
+      // Calcular la comisión
+      const valorComision = (precioPaquete * comision) * cantidad;
+      return valorComision;
+    } catch (error: any) {
+      console.error("Error al calcular la comisión del paquete:", error.message || error);
+      throw { ...error, message: `Error al calcular la comisión del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
     }
-    // Extraer los datos del paquete
-    const paqueteData = paqueteSnapshot.data();
-    return { id: paqueteSnapshot.id, ...paqueteData };
-  } catch (error: any) {
-    console.error("Error al obtener el paquete por ID:", error.message || error);
-    throw { ...error, message: `Error al obtener el paquete por ID ${paqueteId}: ${error.message || "Error desconocido"}` };
   }
 
-}
+  /**
+   * Método estático para obtener un paquete por ID.
+   */
+  static async obtenerPaquetePorId(paqueteId: string): Promise<Paquete> {
+    try {
+      // Referencia al documento del paquete
+      const paqueteRef = this.paquetesCollection.doc(paqueteId);
+
+      // Obtener el documento del paquete
+      const paqueteSnapshot = await paqueteRef.get();
+      if (!paqueteSnapshot.exists) {
+        throw { statusCode: 404, message: "Paquete no encontrado" };
+      }
+
+      // Extraer los datos del paquete
+      const paqueteData = paqueteSnapshot.data();
+      return { id: paqueteSnapshot.id, ...paqueteData } as Paquete;
+    } catch (error: any) {
+      console.error("Error al obtener el paquete por ID:", error.message || error);
+      throw { ...error, message: `Error al obtener el paquete por ID ${paqueteId}: ${error.message || "Error desconocido"}` };
+    }
+  }
 }
 
 // Exportar una instancia predeterminada de la clase
