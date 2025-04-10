@@ -1,68 +1,78 @@
-// src/controllers/paqueteController.ts
-import { Request, Response, NextFunction } from "express";
-import { PaqueteService } from "../services/paqueteService";
-import { hashCedula } from "../utils/HELPER";
+import { Request, Response } from 'express';
+import { paqueteService } from '../services/paqueteService';
+import { hashCedula } from '../utils/HELPER';
+import { Paquete } from '../models/interfaces';
 
-// Instancia del servicio
-const paqueteService = new PaqueteService();
+// Centralized error messages
+const ERROR_MESSAGES = {
+  MISSING_FIELDS: 'Todos los campos obligatorios deben ser proporcionados',
+  INVALID_UNITS: 'El número de unidades debe ser al menos 1',
+  INVALID_DATE: 'La fecha de retiro no es válida',
+  PUBLISH_ERROR: 'Error al publicar el paquete',
+  GET_BY_CITY_ERROR: 'Error al obtener paquetes por ciudad',
+  NO_PACKAGES_FOUND: 'No se encontraron paquetes para esta ciudad',
+  PACKAGE_NOT_FOUND: 'Paquete no encontrado',
+};
 
-// Controlador para publicar un paquete
-export const publicarPaquete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+// Helper function to fetch a package or return an error
+const getPaqueteOrError = async (res: Response, paqueteId: string) => {
+  const paquete = await paqueteService.obtenerPaquetePorId(paqueteId);
+  if (!paquete) {
+    res.status(404).json({ success: false, error: ERROR_MESSAGES.PACKAGE_NOT_FOUND });
+    return null;
+  }
+  return paquete;
+};
+
+export const publicarPaquete = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Extraer datos del cuerpo de la solicitud y parámetros
     const { descripcion, precio, precioDescuento, unidades, fechaRetiro, imagenURL } = req.body;
     const { cedRuc } = req.params;
 
-    // Validar campos obligatorios
     if (!descripcion || !precio || !precioDescuento || !unidades || !fechaRetiro) {
-      res.status(400).json({ success: false, error: "Todos los campos obligatorios deben ser proporcionados" });
+      res.status(400).json({ success: false, error: ERROR_MESSAGES.MISSING_FIELDS });
       return;
     }
 
     if (unidades < 1) {
-      res.status(400).json({ success: false, error: "El número de unidades debe ser al menos 1" });
+      res.status(400).json({ success: false, error: ERROR_MESSAGES.INVALID_UNITS });
       return;
     }
 
-    // Encriptar la cédula RUC
-    const hashedCedula = hashCedula(cedRuc);
-
-    // Convertir fechaRetiro a un objeto Date
     const parsedFechaRetiro = new Date(fechaRetiro);
     if (isNaN(parsedFechaRetiro.getTime())) {
-      res.status(400).json({ success: false, error: "La fecha de retiro no es válida" });
+      res.status(400).json({ success: false, error: ERROR_MESSAGES.INVALID_DATE });
       return;
     }
 
-    // Llamar al servicio para publicar el paquete
+    const hashedCedula = hashCedula(cedRuc);
     const resultado = await paqueteService.publicarPaquete(hashedCedula, {
       descripcion,
       precio,
       precioDescuento,
       unidades,
-      fechaRetiro: parsedFechaRetiro.toISOString(), // Convertir a ISO string para Firestore
+      fechaRetiro: parsedFechaRetiro.toISOString(),
       imagenURL,
     });
 
-    // Devolver respuesta exitosa
     res.status(201).json({
       success: true,
-      message: "Paquete publicado exitosamente",
+      message: 'Paquete publicado exitosamente',
       data: resultado,
     });
   } catch (error: any) {
-    console.error("Error en el controlador de publicarPaquete:", error);
-    next(error); // Pasar el error al middleware de manejo de errores
+    console.error(ERROR_MESSAGES.PUBLISH_ERROR, error.message || error);
+    res.status(500).json({ success: false, error: ERROR_MESSAGES.PUBLISH_ERROR });
   }
 };
 
-export const getPaqueteByCiudad = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getPaqueteByCiudad = async (req: Request, res: Response): Promise<void> => {
   try {
     const { ciudad } = req.params;
     const paquetes = await paqueteService.getPaqueteByCiudad(ciudad);
 
     if (paquetes.length === 0) {
-      res.status(404).json({ success: false, message: "No se encontraron paquetes para esta ciudad" });
+      res.status(404).json({ success: false, message: ERROR_MESSAGES.NO_PACKAGES_FOUND });
       return;
     }
 
@@ -71,7 +81,7 @@ export const getPaqueteByCiudad = async (req: Request, res: Response, next: Next
       data: paquetes,
     });
   } catch (error: any) {
-    console.error("Error en el controlador de getPaqueteByCiudad:", error);
-    next(error); // Pasar el error al middleware de manejo de errores
+    console.error(ERROR_MESSAGES.GET_BY_CITY_ERROR, error.message || error);
+    res.status(500).json({ success: false, error: ERROR_MESSAGES.GET_BY_CITY_ERROR });
   }
 };

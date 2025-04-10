@@ -1,16 +1,45 @@
-import { db } from "../config/firebase";
-import { converterFactory } from "../utils/converterFactory";
-import { Paquete } from "../models/interfaces";
-import { hashCedula } from "../utils/HELPER";
-import { Rol } from "../models/interfaces";
+import { db } from '../config/firebase';
+import { converterFactory } from '../utils/converterFactory';
+import { Paquete, Rol } from '../models/interfaces';
+import { hashCedula } from '../utils/HELPER';
+
+// Centralized error messages
+const ERROR_MESSAGES = {
+  RESTAURANT_NOT_FOUND: 'Restaurante no encontrado',
+  INVALID_RESTAURANT_DATA: 'Datos del restaurante no encontrados',
+  UNAUTHORIZED_PUBLISH: 'Solo los restaurantes pueden publicar paquetes',
+  MISSING_UNITS: "Datos del paquete inválidos o campo 'unidades' no encontrado",
+  INSUFFICIENT_UNITS: 'No hay suficientes unidades disponibles',
+  PACKAGE_NOT_FOUND: 'Paquete no encontrado',
+  GET_PACKAGE_ERROR: 'Error al obtener el paquete por ID',
+  GET_PACKAGES_BY_CITY_ERROR: 'Error al obtener paquetes por ciudad',
+  UPDATE_UNITS_ERROR: 'Error al actualizar unidades del paquete',
+  CALCULATE_COMMISSION_ERROR: 'Error calculando la comisión',
+  PUBLISH_PACKAGE_ERROR: 'Error al publicar paquete',
+};
 
 export class PaqueteService {
-  // Propiedad estática para la colección de paquetes con el Converter
-  private static paquetesCollection = db.collection("paquetes").withConverter(converterFactory<Paquete>());
+  private paquetesCollection = db.collection('paquetes').withConverter(converterFactory<Paquete>());
 
-  /**
-   * Método para publicar un paquete.
-   */
+  // Helper method to get a paqueteRef
+  private paqueteRef(paqueteId: string) {
+    return this.paquetesCollection.doc(paqueteId);
+  }
+
+  // Helper method to get a package by ID or return null
+  async obtenerPaquetePorId(paqueteId: string): Promise<Paquete | null> {
+    try {
+      const paqueteSnapshot = await this.paqueteRef(paqueteId).get();
+      if (!paqueteSnapshot.exists) {
+        return null;
+      }
+      return { id: paqueteSnapshot.id, ...paqueteSnapshot.data() } as Paquete;
+    } catch (error: any) {
+      console.error(ERROR_MESSAGES.GET_PACKAGE_ERROR, error.message || error);
+      throw error;
+    }
+  }
+
   async publicarPaquete(
     cedulaRUC: string,
     dataPaquete: {
@@ -23,67 +52,52 @@ export class PaqueteService {
     }
   ): Promise<Paquete> {
     try {
-      // Encriptar la cédula RUC
       const hashedCedula = hashCedula(cedulaRUC);
-      console.log("Hashed Cedula:", hashedCedula); // Depuración: Imprime la cédula cifrada
-
-      // Buscar el usuario (restaurante) por cedulaRUC
-      const usuarioRef = db.collection("usuarios").doc(hashedCedula);
+      const usuarioRef = db.collection('usuarios').doc(hashedCedula);
       const usuarioSnapshot = await usuarioRef.get();
 
       if (!usuarioSnapshot.exists) {
-        throw { statusCode: 404, message: "Restaurante no encontrado" };
+        throw { statusCode: 404, message: ERROR_MESSAGES.RESTAURANT_NOT_FOUND };
       }
 
       const usuario = usuarioSnapshot.data();
       if (!usuario) {
-        throw { statusCode: 404, message: "Datos del restaurante no encontrados" };
+        throw { statusCode: 404, message: ERROR_MESSAGES.INVALID_RESTAURANT_DATA };
       }
 
-      // Validar que el usuario tenga el rol RESTAURANTE
       if (usuario.rol !== Rol.RESTAURANTE) {
-        throw { statusCode: 403, message: "Solo los restaurantes pueden publicar paquetes" };
+        throw { statusCode: 403, message: ERROR_MESSAGES.UNAUTHORIZED_PUBLISH };
       }
 
-      const nombreRestaurante = usuario.nombre; // Obtener el nombre del restaurante desde el usuario
-      const ciudadRestaurante = usuario.ciudad; // Usar la ciudad del restaurante
-
-      // Calcular el descuento
+      const { nombre: nombreRestaurante, ciudad: ciudadRestaurante } = usuario;
       const descuento = ((dataPaquete.precio - dataPaquete.precioDescuento) / dataPaquete.precio) * 100;
 
-      // Crear el objeto del paquete
       const nuevoPaquete = {
         restauranteId: hashedCedula,
-        nombreRestaurante: nombreRestaurante,
+        nombreRestaurante,
         descripcion: dataPaquete.descripcion,
         precio: dataPaquete.precio,
         descuento,
         precioDescuento: dataPaquete.precioDescuento,
         unidades: dataPaquete.unidades,
         agotado: false,
-        imagenURL: dataPaquete.imagenURL || null, // Opcional
+        imagenURL: dataPaquete.imagenURL || null,
         fechaPublicacion: new Date(),
-        fechaRetiro: new Date(dataPaquete.fechaRetiro), // Convertir a Date
-        ciudad: ciudadRestaurante, // Usar la ciudad del restaurante
+        fechaRetiro: new Date(dataPaquete.fechaRetiro),
+        ciudad: ciudadRestaurante,
       };
 
-      // Guardar el paquete en la colección 'paquetes'
-      const paqueteRef = await PaqueteService.paquetesCollection.add(nuevoPaquete);
-
-      // Devolver el ID del paquete creado junto con los datos
+      const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);
       return { id: paqueteRef.id, ...nuevoPaquete };
     } catch (error: any) {
-      console.error("Error en el servicio de publicarPaquete:", error);
-      throw error; // Re-lanzar el error para que lo maneje el controlador
+      console.error(ERROR_MESSAGES.PUBLISH_PACKAGE_ERROR, error.message || error);
+      throw error;
     }
   }
 
-  /**
-   * Método para obtener paquetes por ciudad.
-   */
   async getPaqueteByCiudad(ciudad: string): Promise<Paquete[]> {
     try {
-      const snapshot = await PaqueteService.paquetesCollection.where("ciudad", "==", ciudad).get();
+      const snapshot = await this.paquetesCollection.where('ciudad', '==', ciudad).get();
       const paquetes: Paquete[] = [];
 
       snapshot.forEach((doc) => {
@@ -93,134 +107,66 @@ export class PaqueteService {
 
       return paquetes;
     } catch (error: any) {
-      console.error("Error al obtener paquetes por ciudad:", error);
-      throw error; // Re-lanzar el error para que lo maneje el controlador
+      console.error(ERROR_MESSAGES.GET_PACKAGES_BY_CITY_ERROR, error.message || error);
+      throw error;
     }
   }
 
-  /**
-   * Método estático para restar unidades de un paquete.
-   */
-  static async restarUnidadesPaquete(paqueteId: string, cantidad: number): Promise<void> {
+  async restarUnidadesPaquete(paqueteId: string, cantidad: number): Promise<void> {
     try {
-      // Referencia al documento del paquete
-      const paqueteRef = this.paquetesCollection.doc(paqueteId);
-
-      // Obtener el documento del paquete
-      const paqueteSnapshot = await paqueteRef.get();
-      if (!paqueteSnapshot.exists) {
-        throw { statusCode: 404, message: "Paquete no encontrado" };
+      const paquete = await this.obtenerPaquetePorId(paqueteId);
+      if (!paquete) {
+        throw { statusCode: 404, message: ERROR_MESSAGES.PACKAGE_NOT_FOUND };
       }
-
-      // Extraer los datos del paquete
-      const paqueteData = paqueteSnapshot.data();
-      if (!paqueteData || typeof paqueteData.unidades !== 'number') {
-        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'unidades' no encontrado" };
+      if (typeof paquete.unidades !== 'number') {
+        throw { statusCode: 500, message: ERROR_MESSAGES.MISSING_UNITS };
       }
-
-      // Validar que haya suficientes unidades disponibles
-      const unidadesActuales = paqueteData.unidades;
-      if (unidadesActuales < cantidad) {
-        throw { statusCode: 400, message: `No hay suficientes unidades disponibles. Actual: ${unidadesActuales}, Solicitado: ${cantidad}` };
+      if (paquete.unidades < cantidad) {
+        throw {
+          statusCode: 400,
+          message: `${ERROR_MESSAGES.INSUFFICIENT_UNITS}. Actual: ${paquete.unidades}, Solicitado: ${cantidad}`,
+        };
       }
-
-      // Calcular las nuevas unidades
-      const nuevasUnidades = unidadesActuales - cantidad;
-
-      if (nuevasUnidades <= 0) {
-        // Si las unidades llegan a cero, marcar el paquete como agotado
-        await paqueteRef.update({ unidades: 0, agotado: true });
-        console.log(`Paquete ${paqueteId} agotado. Unidades restantes: 0`);
-      } else {
-        // Actualizar las unidades en Firestore
-        await paqueteRef.update({ unidades: nuevasUnidades });
-        console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${unidadesActuales}, Nuevas: ${nuevasUnidades}`);
-      }
+      const nuevasUnidades = paquete.unidades - cantidad;
+      await this.paqueteRef(paqueteId).update({ unidades: nuevasUnidades, agotado: nuevasUnidades <= 0 });
+      console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${paquete.unidades}, Nuevas: ${nuevasUnidades}`);
     } catch (error: any) {
-      console.error("Error al restar unidades del paquete:", error.message || error);
-      throw { ...error, message: `Error al restar unidades del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
+      console.error(ERROR_MESSAGES.UPDATE_UNITS_ERROR, error.message || error);
+      throw error;
     }
   }
 
-  /**
-   * Método estático para aumentar unidades de un paquete.
-   */
-  static async aumentarUnidadesPaquete(paqueteId: string, cantidad: number): Promise<void> {
+  async aumentarUnidadesPaquete(paqueteId: string, cantidad: number): Promise<void> {
     try {
-      // Referencia al documento del paquete
-      const paqueteRef = this.paquetesCollection.doc(paqueteId);
-
-      // Obtener el documento del paquete
-      const paqueteSnapshot = await paqueteRef.get();
-      if (!paqueteSnapshot.exists) {
-        throw { statusCode: 404, message: "Paquete no encontrado" };
+      const paquete = await this.obtenerPaquetePorId(paqueteId);
+      if (!paquete) {
+        throw { statusCode: 404, message: ERROR_MESSAGES.PACKAGE_NOT_FOUND };
       }
 
-      // Extraer los datos del paquete
-      const paqueteData = paqueteSnapshot.data();
-      if (!paqueteData || typeof paqueteData.unidades !== 'number') {
-        throw { statusCode: 500, message: "Datos del paquete inválidos o campo 'unidades' no encontrado" };
+      if (typeof paquete.unidades !== 'number') {
+        throw { statusCode: 500, message: ERROR_MESSAGES.MISSING_UNITS };
       }
-
-      // Obtener las unidades actuales
-      const unidadesActuales = paqueteData.unidades;
-
-      // Calcular las nuevas unidades (suma en lugar de resta)
-      const nuevasUnidades = unidadesActuales + cantidad;
-
-      // Actualizar las unidades en Firestore
-      await paqueteRef.update({ unidades: nuevasUnidades });
-
-      // Registro de éxito
-      console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${unidadesActuales}, Nuevas: ${nuevasUnidades}`);
+      const nuevasUnidades = paquete.unidades + cantidad;
+      await this.paqueteRef(paqueteId).update({ unidades: nuevasUnidades });
+      console.log(`Unidades del paquete ${paqueteId} actualizadas. Anterior: ${paquete.unidades}, Nuevas: ${nuevasUnidades}`);
     } catch (error: any) {
-      console.error("Error al aumentar unidades del paquete:", error.message || error);
-      throw { ...error, message: `Error al aumentar unidades del paquete ${paqueteId}: ${error.message || "Error desconocido"}` };
+      console.error(ERROR_MESSAGES.UPDATE_UNITS_ERROR, error.message || error);
+      throw error;
     }
   }
 
-  /**
-   * Método estático para calcular la comisión.
-   */
-  static async calcularComision(paqueteId: string, cantidadComprada: number): Promise<number> {
+  async calcularComision(paqueteId: string, cantidadComprada: number): Promise<number> {
     try {
-      const paqueteRef = this.paquetesCollection.doc(paqueteId);
-      const paqueteSnapshot = await paqueteRef.get();
-
-      if (!paqueteSnapshot.exists) {
-        throw { statusCode: 404, message: 'Paquete no encontrado' };
+      const paquete = await this.obtenerPaquetePorId(paqueteId);
+      if (!paquete) {
+        throw { statusCode: 404, message: ERROR_MESSAGES.PACKAGE_NOT_FOUND };
       }
-
-      const paqueteData = paqueteSnapshot.data();
-      const precioUnitario = paqueteData?.precio || 0;
+      const precioUnitario = paquete.precio || 0;
       const comision = 0.1; // 10% de comisión
       return cantidadComprada * precioUnitario * comision;
-    } catch (error) {
-      console.error('Error calculando la comisión:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Método estático para obtener un paquete por ID.
-   */
-  static async obtenerPaquetePorId(paqueteId: string): Promise<Paquete> {
-    try {
-      // Referencia al documento del paquete
-      const paqueteRef = this.paquetesCollection.doc(paqueteId);
-
-      // Obtener el documento del paquete
-      const paqueteSnapshot = await paqueteRef.get();
-      if (!paqueteSnapshot.exists) {
-        throw { statusCode: 404, message: "Paquete no encontrado" };
-      }
-
-      // Extraer los datos del paquete
-      const paqueteData = paqueteSnapshot.data();
-      return { id: paqueteSnapshot.id, ...paqueteData } as Paquete;
     } catch (error: any) {
-      console.error("Error al obtener el paquete por ID:", error.message || error);
-      throw { ...error, message: `Error al obtener el paquete por ID ${paqueteId}: ${error.message || "Error desconocido"}` };
+      console.error(ERROR_MESSAGES.CALCULATE_COMMISSION_ERROR, error.message || error);
+      throw error;
     }
   }
 }
