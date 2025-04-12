@@ -15,7 +15,7 @@ router.get('/:id', usuarioController.getUsuarioById);
 
 // Rutas que requieren autenticación y rol de administrador
 router.get('/',  usuarioController.getAllUsuarios);
-router.post('/',  usuarioController.createUsuario);
+// router.post('/',  usuarioController.createUsuario);
 router.put('/:id',  usuarioController.updateUsuario);
 router.delete('/:id',  usuarioController.deleteUsuario);
 

@@ -52,50 +52,46 @@ export class UsuarioService {
   // Registro simple en Firebase Auth y Firestore
   async register(
     email: string,
-    password: string,
     cedulaRUC: string,
     nombre: string,
-    direccion: string,
-    ciudad: Ciudad,
-    fechaNacimiento: Date | undefined,
+    ciudad: string,
     rol: Rol,
+    firebaseUid: string,
+    fechaNacimiento?: string | undefined, // Fecha de nacimiento es opcional
     alergenos?: Alergeno[]
-  ): Promise<Usuario> {
-    // Crear usuario en Firebase Authentication
-    const userRecord = await auth.createUser({
-      email: email,
-      password: password,
-      displayName: nombre
-    });
-    
-    const firebaseUid = userRecord.uid;
+): Promise<Usuario> {
+    // Convertir fechaNacimiento a Date si existe
+    let parsedFechaNacimiento: Date | undefined = undefined;
+    if (fechaNacimiento) {
+        const [day, month, year] = fechaNacimiento.split('-').map(Number);
+        parsedFechaNacimiento = new Date(year, month - 1, day); // Mes empieza en 0 en JavaScript
+    }
 
     // Crear el usuario
     const userData: Usuario = {
-      id: cedulaRUC, // Usar la cédula/RUC como ID primario
-      correo: email,
-      cedulaRUC: cedulaRUC,
-      nombre: nombre,
-      direccion: direccion,
-      ciudad: ciudad,
-      rol: rol,
-      firebaseUid: firebaseUid,
-      intentosFallidos: 0,
-      activo: true
+        id: cedulaRUC, // Usar la cédula/RUC como ID primario
+        correo: email,
+        cedulaRUC: cedulaRUC,
+        nombre: nombre,
+        ciudad: ciudad, // Asignar ciudad directamente
+        rol: rol,
+        firebaseUid: firebaseUid,
+        intentosFallidos: 0,
+        activo: true
     };
-    
+
     if (rol === Rol.RESTAURANTE) {
-      userData.alergenos = alergenos || []; // Inicializar alérgenos como un array vacío si no se proporciona
+        userData.alergenos = alergenos || []; // Inicializar alérgenos como un array vacío si no se proporciona
     }
 
     // Agregar fecha de nacimiento si está definida
-    if (fechaNacimiento) {
-      userData.fechaNacimiento = fechaNacimiento;
+    if (parsedFechaNacimiento) {
+        userData.fechaNacimiento = parsedFechaNacimiento;
     }
 
     // Inicializar strikes para clientes
     if (rol === Rol.CLIENTE) {
-      userData.strikes = 0;
+        userData.strikes = 0;
     }
 
     // Guardar en Firestore
@@ -103,30 +99,7 @@ export class UsuarioService {
     const docRef = this.usuariosCollection.doc(hashedId);
     await docRef.set(userData);
     return userData;
-  }
-
-  // Crear un nuevo usuario (sin autenticación)
-  async create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
-    const hashedId = hashCedula(data.cedulaRUC);
-    const docRef = this.usuariosCollection.doc(hashedId);
-
-    // Crear el usuario con el ID igual a la cédula/RUC
-    const usuario: Usuario = { 
-      id: data.cedulaRUC,
-      ...data,
-      intentosFallidos: data.intentosFallidos || 0,
-      activo: data.activo !== undefined ? data.activo : true
-    };
-
-    // Inicializar strikes para clientes si no están definidos
-    if (usuario.rol === Rol.CLIENTE && usuario.strikes === undefined) {
-      usuario.strikes = 0;
-    }
-
-    // Establecer los datos en el documento
-    await docRef.set(usuario);
-    return usuario;
-  }
+}
 
   // Actualizar los datos de un usuario
   async update(id: string, data: Partial<Usuario>): Promise<void> {

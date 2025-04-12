@@ -32,6 +32,13 @@ app.use('/api/compras', compraRoutes);
 app.use('/api/reportes', reporteRoutes);
 app.use('/api/comisiones', comisionRoutes);
 
+app.get('/api', (req: Request, res: Response) => {
+  res.json({
+    message: 'Hola Daniel'
+  });
+}
+);
+
 app.get('/', async (req: Request, res: Response) => {
   const querySnapshot = await db.collection('contacts').get()
   console.log(querySnapshot);
@@ -42,5 +49,7 @@ app.get('/', async (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`);
 });
+
+
 
 

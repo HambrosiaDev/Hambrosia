@@ -54,132 +54,136 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
 // Register new user with authentication
 export const registerUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { correo, password, cedulaRUC, nombre, direccion, ciudad, fechaNacimiento, rol, alergenos } = req.body;
+      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos } = req.body;
 
-    // Validar campos requeridos
-    if (!correo || !password || !cedulaRUC || !nombre || !direccion || !rol || !ciudad) {
-      res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
-      return;
-    }
-
-    // Validar rol
-    if (![Rol.CLIENTE, Rol.RESTAURANTE].includes(rol)) {
-      res.status(400).json({ success: false, error: 'Rol no válido, debe ser CLIENTE o RESTAURANTE' });
-      return;
-    }
-
-    // Validar que la fecha de nacimiento esté presente para CLIENTE
-    if (rol === Rol.CLIENTE && !fechaNacimiento) {
-      res.status(400).json({ success: false, error: 'La fecha de nacimiento es obligatoria para clientes' });
-      return;
-    }
-
-    // Validar alergenos si es restaurante
-    if (rol === Rol.RESTAURANTE) {
-      // Permitir un array vacío o un array con valores válidos
-      if (!Array.isArray(alergenos)) {
-        res.status(400).json({
-          success: false,
-          error: 'Los alérgenos deben ser un array',
-        });
-        return;
-      }
-
-      // Verificar que los alérgenos son válidos (si no está vacío)
-      if (alergenos.length > 0) {
-        const alergenosValidos = alergenos.every((a) => Object.values(Alergeno).includes(a));
-        if (!alergenosValidos) {
-          res.status(400).json({ success: false, error: 'Uno o más alérgenos no son válidos' });
+      // Validar campos requeridos
+      if (!correo || !cedulaRUC || !nombre || !rol || !ciudad) {
+          res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
           return;
-        }
       }
-    }
 
-    // Validar el formato de la cédula/RUC
-    if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
-      res.status(400).json({ success: false, error: 'La Cédula/RUC no es válida' });
-      return;
-    }
-
-    // Verificar si ya existe un usuario con el mismo correo
-    const existeCorreo = await usuarioService.getByEmail(correo);
-    if (existeCorreo) {
-      res.status(400).json({ success: false, error: 'El correo ya está registrado' });
-      return;
-    }
-
-    // Verificar si ya existe un usuario con la misma cédula/RUC
-    const existeCedula = await usuarioService.getByCedulaRUC(cedulaRUC);
-    if (existeCedula) {
-      res.status(400).json({ success: false, error: 'La Cédula/RUC ya está registrada' });
-      return;
-    }
-
-    try {
-      // Registrar el usuario utilizando el servicio
-      const newUsuario = await usuarioService.register(
-        correo,
-        password,
-        cedulaRUC,
-        nombre,
-        direccion,
-        ciudad,
-        fechaNacimiento ? fechaNacimiento : undefined,
-        rol,
-        rol === Rol.RESTAURANTE ? alergenos : undefined
-      );
-
-      res.status(201).json({ success: true, data: newUsuario });
-    } catch (error: any) {
-      // Manejar errores específicos de Firebase
-      if (error.code === 'auth/email-already-in-use') {
-        res.status(400).json({ success: false, error: 'El correo electrónico ya está en uso' });
-      } else {
-        res.status(400).json({ success: false, error: error.message });
+      // Validar que ciudad sea un string no vacío
+      if (typeof ciudad !== 'string' || ciudad.trim() === '') {
+          res.status(400).json({ success: false, error: 'La ciudad debe ser un string válido' });
+          return;
       }
-    }
+
+      // Validar rol
+      if (![Rol.CLIENTE, Rol.RESTAURANTE].includes(rol)) {
+          res.status(400).json({ success: false, error: 'Rol no válido, debe ser CLIENTE o RESTAURANTE' });
+          return;
+      }
+
+      // Validar que la fecha de nacimiento esté presente para CLIENTE
+      if (rol === Rol.CLIENTE && !fechaNacimiento) {
+          res.status(400).json({ success: false, error: 'La fecha de nacimiento es obligatoria para clientes' });
+          return;
+      }
+
+      // Validar alergenos si es restaurante
+      if (rol === Rol.RESTAURANTE) {
+          // Permitir un array vacío o un array con valores válidos
+          if (!Array.isArray(alergenos)) {
+              res.status(400).json({
+                  success: false,
+                  error: 'Los alérgenos deben ser un array',
+              });
+              return;
+          }
+
+          // Verificar que los alérgenos son válidos (si no está vacío)
+          if (alergenos.length > 0) {
+              const alergenosValidos = alergenos.every((a) => Object.values(Alergeno).includes(a));
+              if (!alergenosValidos) {
+                  res.status(400).json({ success: false, error: 'Uno o más alérgenos no son válidos' });
+                  return;
+              }
+          }
+      }
+
+      // Validar el formato de la cédula/RUC
+      if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
+          res.status(400).json({ success: false, error: 'La Cédula/RUC no es válida' });
+          return;
+      }
+
+      // Verificar si ya existe un usuario con el mismo correo
+      const existeCorreo = await usuarioService.getByEmail(correo);
+      if (existeCorreo) {
+          res.status(400).json({ success: false, error: 'El correo ya está registrado' });
+          return;
+      }
+
+      // Verificar si ya existe un usuario con la misma cédula/RUC
+      const existeCedula = await usuarioService.getByCedulaRUC(cedulaRUC);
+      if (existeCedula) {
+          res.status(400).json({ success: false, error: 'La Cédula/RUC ya está registrada' });
+          return;
+      }
+
+      try {
+          // Registrar el usuario utilizando el servicio
+          const newUsuario = await usuarioService.register(
+            correo,          // email
+            cedulaRUC,       // cedulaRUC
+            nombre,          // nombre
+            ciudad,          // ciudad
+            rol,             // rol
+            req.body.firebaseUid, // firebaseUid (asegúrate de usar el valor correcto del payload)
+            fechaNacimiento  // fechaNacimiento
+        );
+
+          res.status(201).json({ success: true, data: newUsuario });
+      } catch (error: any) {
+          // Manejar errores específicos de Firebase
+          if (error.code === 'auth/email-already-in-use') {
+              res.status(400).json({ success: false, error: 'El correo electrónico ya está en uso' });
+          } else {
+              res.status(400).json({ success: false, error: error.message });
+          }
+      }
   } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message });
+      res.status(400).json({ success: false, error: error.message });
   }
 };
 
 // Create usuario (admin function)
-export const createUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { correo, cedulaRUC, nombre, direccion, ciudad, fechaNacimiento, rol, alergenos } = req.body;
+// export const createUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+//   try {
+//     const { correo, cedulaRUC, nombre, direccion, ciudad, fechaNacimiento, rol, alergenos } = req.body;
     
-    // Validar campos requeridos
-    if (!correo || !cedulaRUC || !nombre || !direccion || !rol || !ciudad) {
-      res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
-      return;
-    }
+//     // Validar campos requeridos
+//     if (!correo || !cedulaRUC || !nombre || !direccion || !rol || !ciudad) {
+//       res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
+//       return;
+//     }
     
-    // Validar el formato de la cédula/RUC
-    if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
-      res.status(400).json({ success: false, error: 'La Cédula/RUC no es válida' });
-      return;
-    }
+//     // Validar el formato de la cédula/RUC
+//     if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
+//       res.status(400).json({ success: false, error: 'La Cédula/RUC no es válida' });
+//       return;
+//     }
     
-    // Verificar si ya existe un usuario con el mismo correo
-    const existeCorreo = await usuarioService.getByEmail(correo);
-    if (existeCorreo) {
-      res.status(400).json({ success: false, error: 'El correo ya está registrado' });
-      return;
-    }
+//     // Verificar si ya existe un usuario con el mismo correo
+//     const existeCorreo = await usuarioService.getByEmail(correo);
+//     if (existeCorreo) {
+//       res.status(400).json({ success: false, error: 'El correo ya está registrado' });
+//       return;
+//     }
     
-    // Verificar si ya existe un usuario con la misma cédula/RUC
-    const existeCedula = await usuarioService.getByCedulaRUC(cedulaRUC);
-    if (existeCedula) {
-      res.status(400).json({ success: false, error: 'La Cédula/RUC ya está registrada' });
-      return;
-    }
+//     // Verificar si ya existe un usuario con la misma cédula/RUC
+//     const existeCedula = await usuarioService.getByCedulaRUC(cedulaRUC);
+//     if (existeCedula) {
+//       res.status(400).json({ success: false, error: 'La Cédula/RUC ya está registrada' });
+//       return;
+//     }
     
-    const newUsuario = await usuarioService.create(req.body);
-    res.status(201).json({ success: true, data: newUsuario });
-  } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-};
+//     const newUsuario = await usuarioService.createUsuario(req.body);
+//     res.status(201).json({ success: true, data: newUsuario });
+//   } catch (error: any) {
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// };
 
 // Update usuario
 export const updateUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

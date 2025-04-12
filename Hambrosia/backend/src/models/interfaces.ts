@@ -61,8 +61,8 @@ export interface Usuario {
   // Identificacion
   cedulaRUC: string; // Identificador unico
   nombre: string; // Nombre completo
-  ciudad: Ciudad; // Ciudad de residencia
-  direccion: string; // Ciudad y direccion
+  ciudad: string; // Ciudad de residencia
+  direccion?: string; // Ciudad y direccion
   firebaseUid: string;
 
   // Estado del usuario
@@ -92,7 +92,7 @@ export interface Paquete {
   imagenURL?: string | null;
   fechaPublicacion: Date;
   fechaRetiro?: Date;
-  ciudad: Ciudad;
+  ciudad: string;
 }
 
 
