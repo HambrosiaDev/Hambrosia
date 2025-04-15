@@ -1,14 +1,16 @@
 import { Image, StyleSheet, View, TextInput, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
-import React, { useState, useEffect, useRef  } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
 import Loading from '@/components/Loading';
 
 
-import { auth } from "@/app/firebaseConfig";
+import { auth, firestore } from "@/app/firebaseConfig";
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import {FirebaseError} from "firebase/app"
+import { FirebaseError } from "firebase/app"
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { useUserStore } from '../user';
 
 
 const { width } = Dimensions.get("window");
@@ -22,22 +24,96 @@ export default function HomeScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const signIn = async () => {
+  /*const signIn = async () => {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
       setEmail("");
       setPassword("");
+  
+      const userDocRef = doc(firestore, "usuarios", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+  
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        console.log("User data from Firestore:", userData);
+        
+
+      } else {
+        console.log("No user data found in Firestore");
+      }
+  
     } catch (e: any) {
       const err = e as FirebaseError;
       alert('Sign in failed: ' + err.message);
     } finally {
       setLoading(false);
     }
+  };*/
+
+
+  const signIn = async () => {
+    setLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+
+      const usuariosQuery = query(
+        collection(firestore, "usuarios"),
+        where("firebaseUid", "==", user.uid)
+      );
+      const querySnapshot = await getDocs(usuariosQuery);
+
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+        useUserStore.getState().setRole(userData.rol);
+
+        console.log("User data from Firestore:", userData);
+
+      } else {
+        console.log("No user data found in Firestore for UID:", user.uid);
+
+      }
+      setEmail("");
+      setPassword("");
+
+
+    } catch (e: any) {
+      alert("Ingreso fallido" );
+      try {
+        const payload = {
+          correo: email
+        }
+        const response = await fetch("https://hambrosia.onrender.com/api/usuarios/login/intentoFallido", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Strikes failed: ${response.status} - ${errorText}`);
+        }
+      } catch (e: any) {
+        console.log("Error" + e)
+      }
+
+    } finally {
+      setLoading(false);
+    }
   };
 
-  
-  useEffect(()=>{
+
+
+
+
+  useEffect(() => {
     Animated.timing(translation, {
       toValue: -100,
       duration: 1000,
@@ -45,16 +121,16 @@ export default function HomeScreen() {
     }).start();
   }, [])
 
- useEffect(() => {
+  useEffect(() => {
     setTimeout(() => {
       setLoadingPage(false);
     }, 3000);
   }, []);
-if(loadingPage) return <Loading />
+  if (loadingPage) return <Loading />
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
@@ -68,7 +144,7 @@ if(loadingPage) return <Loading />
 
         {/* Logo y Nombre */}
         <Animated.View style={[styles.logoContainer, { transform: [{ translateY: translation }] }]}>
-        <Image source={require('@/assets/images/Logo-2.png')} style={styles.logo_1}/>
+          <Image source={require('@/assets/images/Logo-2.png')} style={styles.logo_1} />
           <Text style={styles.logo}>HAMBROSÍA</Text>
         </Animated.View>
 
@@ -90,17 +166,18 @@ if(loadingPage) return <Loading />
               secureTextEntry
               value={password}
               onChangeText={setPassword}
-              autoCapitalize="none" 
+              autoCapitalize="none"
+              
             />
           </View>
 
           {/* Botón Ingresar */}
           <TouchableOpacity style={styles.button} onPress={signIn} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Ingresando' : 'Ingresar'}</Text>
+            <Text style={styles.buttonText}>{loading ? 'Ingresando' : 'Ingresar'}</Text>
           </TouchableOpacity>
 
           {/* Botón Registrarme */}
-          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={()=>router.navigate("/(auth)/register")} >
+          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => router.navigate("/(auth)/register")} >
             <Text style={styles.buttonText}>Registrarme</Text>
           </TouchableOpacity>
 
@@ -115,7 +192,7 @@ if(loadingPage) return <Loading />
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7ccbe', 
+    backgroundColor: '#f7ccbe',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -144,7 +221,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 35,
     fontWeight: 'bold',
-    color: '#FFF7ED', 
+    color: '#FFF7ED',
   },
   formContainer: {
     width: '85%',
@@ -157,7 +234,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBEB', 
+    backgroundColor: '#FFFBEB',
     paddingHorizontal: 10,
     borderRadius: 8,
     width: '100%',
@@ -167,7 +244,7 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 10,
-    color: '#6B7280' 
+    color: '#6B7280'
   },
   input: {
     flex: 1,

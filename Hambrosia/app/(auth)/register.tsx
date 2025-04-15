@@ -5,17 +5,19 @@ import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
 import Checkbox from 'expo-checkbox';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from "@/app/firebaseConfig";
+import { validarIdentificacionEcuatoriana, TipoIdentificacionEnum } from "@/components/testId";
 
 
-
-const roles = ["Usuario", "Restaurante"];
+const roles = ["Cliente", "Restaurante"];
 const { width } = Dimensions.get("window");
 
 
 export default function Register() {
   const router = useRouter();
 
-  const [selectedRole, setSelectedRole] = useState("Usuario");
+  const [selectedRole, setSelectedRole] = useState("Cliente");
   const [modalVisible, setModalVisible] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -63,73 +65,210 @@ export default function Register() {
     'Maní/Cacahuate', 'Trigo', 'Granos de Soya', 'Sésamo'
   ];
 
-  const confirmPassword = (pass1: string, pass2: string): boolean => {
-    if (pass1.length < 8) {
-      Alert.alert("La contraseña debe tener al menos 8 caracteres.");
+
+  const validateDate = (day: string, month: string, year: string): boolean => {
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+
+    if (isNaN(dayNum)) return false;
+    if (isNaN(monthNum)) return false;
+    if (isNaN(yearNum)) return false;
+
+    if (monthNum < 1 || monthNum > 12) return false;
+    if (dayNum < 1 || dayNum > 31) return false;
+
+    if ([4, 6, 9, 11].includes(monthNum) && dayNum > 30) return false;
+
+    if (monthNum === 2) {
+      const isLeapYear = (yearNum % 4 === 0 && yearNum % 100 !== 0) || yearNum % 400 === 0;
+      if (dayNum > (isLeapYear ? 29 : 28)) return false;
+    }
+
+    const currentDate = new Date();
+    const inputDate = new Date(yearNum, monthNum - 1, dayNum);
+    return inputDate < currentDate;
+  }
+
+
+
+  const setToNull = () => {
+    setFormData((prevData) => ({
+      ...prevData,
+      user: {
+        name: "",
+        cedula: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        city: "",
+        day: "",
+        month: "",
+        year: "",
+      }, restaurant: {
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        ruc: "",
+        location: "",
+        city: ""
+      },
+    }));
+  }
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string, confirmPassword: string): boolean => {
+    const errors = [];
+
+    if (password.length < 8) errors.push("Debe tener al menos 8 caracteres.");
+    if (!/[A-Z]/.test(password)) errors.push("Debe tener al menos 1 mayúscula.");
+    if (!/[a-z]/.test(password)) errors.push("Debe tener al menos 1 minúscula.");
+    if (!/[0-9]/.test(password)) errors.push("Debe tener al menos 1 número.");
+    if (!/[\W_]/.test(password)) errors.push("Debe tener al menos 1 caracter especial.");
+    if (password !== confirmPassword) errors.push("Las contraseñas no coinciden.");
+
+    if (errors.length > 0) {
+      Alert.alert("Error de contraseña", errors.join("\n"));
       return false;
     }
-    const validatePassword = (password: string, confirmPassword: string): boolean => {
-      const errors = [];
+    return true;
+  };
 
-      if (password.length < 8) errors.push("Debe tener al menos 8 caracteres.");
-      if (!/[A-Z]/.test(password)) errors.push("Debe tener al menos 1 mayúscula.");
-      if (!/[a-z]/.test(password)) errors.push("Debe tener al menos 1 minúscula.");
-      if (!/[0-9]/.test(password)) errors.push("Debe tener al menos 1 número.");
-      if (!/[\W_]/.test(password)) errors.push("Debe tener al menos 1 caracter especial.");
-      if (password !== confirmPassword) errors.push("Las contraseñas no coinciden.");
 
-      if (errors.length > 0) {
-        Alert.alert("Error de contraseña", errors.join("\n"));
+
+  const validateData = () => {
+    if (selectedRole === "Cliente") {
+      if (!formData.user.name.trim()) {
+        Alert.alert("Error", "Por favor ingrese su nombre completo");
         return false;
       }
-      return true;
-    };
+
+      const cedulaValidation = validarIdentificacionEcuatoriana(formData.user.cedula);
+      if (!cedulaValidation.isValid || cedulaValidation.type !== TipoIdentificacionEnum.CEDULA) {
+        Alert.alert("Error", "Cédula inválida");
+        return false;
+      }
+
+      if (!validateEmail(formData.user.email)) {
+        Alert.alert("Error", "Formato de correo inválido");
+        return false;
+      }
+
+      if (!validatePassword(formData.user.password, formData.user.confirmPassword)) {
+        return false;
+      }
+
+      if (!formData.user.city.trim()) {
+        Alert.alert("Error", "Por favor ingrese su ciudad");
+        return false;
+      }
+
+      if (!validateDate(formData.user.day, formData.user.month, formData.user.year)) {
+        Alert.alert("Error", "Fecha de nacimiento inválida");
+        return false;
+      }
+
+    } else if (selectedRole === "Restaurante") {
+      const rucValidation = validarIdentificacionEcuatoriana(formData.restaurant.ruc);
+      if (!rucValidation.isValid ||
+        (rucValidation.type !== TipoIdentificacionEnum.RUC_SOCIEDAD_PRIVADA &&
+          rucValidation.type !== TipoIdentificacionEnum.RUC_SOCIEDAD_PUBLICA)) {
+        Alert.alert("Error", "RUC inválido");
+        return false;
+      }
+
+      if (!formData.restaurant.name.trim()) {
+        Alert.alert("Error", "Por favor ingrese el nombre del restaurante");
+        return false;
+      }
+
+      if (!validateEmail(formData.restaurant.email)) {
+        Alert.alert("Error", "Formato de correo inválido");
+        return false;
+      }
+
+      if (!validatePassword(formData.restaurant.password, formData.restaurant.confirmPassword)) {
+        return false;
+      }
+
+      if (!formData.restaurant.city.trim()) {
+        Alert.alert("Error", "Por favor ingrese la ciudad");
+        return false;
+      }
+    }
 
     return true;
   };
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Formato de correo inválido")
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-
-  const handleRegister = () => {
-    if (selectedRole == "Restaurante") {
-      confirmPassword(formData.restaurant.password, formData.restaurant.password);
-    } else {
-      console.log(formData.user.name);
-      console.log(formData.user.email);
-      console.log(formData.user.password);
-      console.log(formData.user.confirmPassword);
-      console.log(formData.user.city);
-      console.log(formData.user.day);
-      console.log(formData.user.month);
-      console.log(formData.user.year);
-      confirmPassword(formData.user.password, formData.user.confirmPassword)
-      setFormData((prevData) => ({
-        ...prevData,
-        user: {
-          name: "",
-          cedula: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          city: "",
-          day: "",
-          month: "",
-          year: "",
+  const handleRegister = async () => {
+    if (!validateData()) return;
+  
+    try {
+      const isRestaurant = selectedRole === "Restaurante";
+      const userData = isRestaurant ? formData.restaurant : formData.user;
+  
+      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+      const user = userCredential.user;
+      const token = await user.getIdToken();
+  
+      const payload = {
+        rol: selectedRole.toUpperCase(),
+        firebaseUid: user.uid,
+        correo: userData.email,
+        ...(isRestaurant
+          ? {
+              cedulaRUC: formData.restaurant.ruc,
+              ciudad: formData.restaurant.city.toUpperCase(),
+              direccion: formData.restaurant.location,
+              nombre: formData.restaurant.name,
+              alergenos: selectedAllergens
+            }
+          : {
+              cedulaRUC: formData.user.cedula,
+              ciudad: formData.user.city.toUpperCase(),
+              fechaNacimiento: `${formData.user.day}-${formData.user.month}-${formData.user.year}`,
+              nombre: formData.user.name
+            }),
+      };
+  
+      const response = await fetch("https://hambrosia.onrender.com/api/usuarios/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      }));
-
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text(); 
+        throw new Error(`Backend registration failed: ${response.status} - ${errorText}`);
+      }
+  
+      Alert.alert("Éxito", "Registro completado correctamente 🎉");
+      setToNull();
+      router.replace("/");
+  
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      Alert.alert("Error", `Registro fallido: ${error.message}`);
     }
-
   };
+  
+
+const testConnection = async () => {
+  try {
+    const test = await fetch('https://hambrosia.onrender.com/api/usuarios');
+    console.log('Connection test:', await test.json());
+  } catch (e) {
+    console.log('Connection completely broken:', e);
+  }
+};
 
 
   return (
@@ -210,7 +349,7 @@ export default function Register() {
           </View>
           {/* Input */}
           <View style={{ width: '100%' }}>
-            {selectedRole === "Usuario" ? (
+            {selectedRole === "Cliente" ? (
               <>
                 <View style={styles.inputContainer}>
                   <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
@@ -231,6 +370,8 @@ export default function Register() {
                     placeholderTextColor="gray"
                     value={formData.user.cedula}
                     onChangeText={(text) => handleChange("user", "cedula", text)}
+                    keyboardType="numeric"
+                    maxLength={10}
                   />
                 </View>
 
@@ -242,6 +383,7 @@ export default function Register() {
                     placeholderTextColor="gray"
                     value={formData.user.email}
                     onChangeText={(text) => handleChange("user", "email", text)}
+                    autoCapitalize="none"
                   />
                 </View>
 
@@ -291,6 +433,8 @@ export default function Register() {
                       placeholderTextColor="gray"
                       value={formData.user.day}
                       onChangeText={(text) => handleChange("user", "day", text)}
+                      keyboardType="numeric"
+                      maxLength={2}
                     />
                   </View>
                   <View style={styles.date}>
@@ -301,6 +445,8 @@ export default function Register() {
                       placeholderTextColor="gray"
                       value={formData.user.month}
                       onChangeText={(text) => handleChange("user", "month", text)}
+                      keyboardType="numeric"
+                      maxLength={2}
                     />
                   </View>
                   <View style={styles.date}>
@@ -311,6 +457,8 @@ export default function Register() {
                       placeholderTextColor="gray"
                       value={formData.user.year}
                       onChangeText={(text) => handleChange("user", "year", text)}
+                      keyboardType="numeric"
+                      maxLength={4}
                     />
                   </View>
                 </View>
@@ -347,6 +495,8 @@ export default function Register() {
                     placeholderTextColor="gray"
                     value={formData.restaurant.ruc}
                     onChangeText={(text) => handleChange("restaurant", "ruc", text)}
+                    keyboardType="numeric"
+                    maxLength={13}
                   />
                 </View>
 
@@ -570,7 +720,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     width: '31%',
     height: 45,
-    
+
   },
   dateContainer: {
     flexDirection: "row",

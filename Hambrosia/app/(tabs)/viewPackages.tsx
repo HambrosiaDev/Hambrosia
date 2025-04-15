@@ -1,11 +1,24 @@
 // ViewPackages.tsx
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Button, Pressable } from 'react-native';
 import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
+import { useUserStore } from '../user';
 
 const cities = ['Todos', 'Floresta', 'Cumbayá', 'Iñaquito', 'Valle de los Chillos'];
 
+type Package = {
+  id: number,
+  name: string,
+  description: string,
+  discount: number,
+  currentPrice: string,
+  oldPrice: string,
+  city: string,
+  location: string,
+  time: string,
+  icon: string
+}
 const packages = [
   {
     id: 1,
@@ -57,16 +70,20 @@ const packages = [
   },
 ];
 
+
 export default function ViewPackages() {
+  const rol = useUserStore((state) => state.role)
+
   const [selectedCity, setSelectedCity] = useState('Todos');
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
   const handleSignOut = () => {
     auth.signOut();
   };
 
-  const filteredPackages = selectedCity === 'Todos' 
-    ? packages 
+  const filteredPackages = selectedCity === 'Todos'
+    ? packages
     : packages.filter(pkg => pkg.city === selectedCity);
 
   return (
@@ -77,14 +94,17 @@ export default function ViewPackages() {
           <Text style={styles.title}>HAMBROSÍA</Text>
           <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
         </View>
+        {rol === "RESTAURANTE" && (
+          <Button title="Agregar" onPress={() => {/* navigate to form */ }} />
+        )}
         <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
           <Text style={styles.logOutText}>Salir</Text>
         </TouchableOpacity>
       </View>
 
       {/* City Selector */}
-      <TouchableOpacity 
-        style={styles.citySelector} 
+      <TouchableOpacity
+        style={styles.citySelector}
         onPress={() => setModalVisible(true)}
       >
         <FontAwesome5 name="map-marker-alt" size={16} color="#D97706" />
@@ -94,8 +114,8 @@ export default function ViewPackages() {
 
       {/* City Selection Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
           onPress={() => setModalVisible(false)}
           activeOpacity={1}
         >
@@ -127,42 +147,49 @@ export default function ViewPackages() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
         {filteredPackages.length > 0 ? (
           filteredPackages.map((pkg) => (
-            <View key={pkg.id} style={styles.card}>
-              <View style={styles.iconContainer}>
-                <FontAwesome5 name={pkg.icon} size={24} color="#D97706" />
+            <Pressable onPress={() => setSelectedPackage(pkg)}>
+              <View key={pkg.id} style={styles.card}>
+                <View style={styles.iconContainer}>
+                  <FontAwesome5 name={pkg.icon} size={24} color="#D97706" />
+                </View>
+
+                <View style={styles.cardContent}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.name}>{pkg.name}</Text>
+                    <View style={styles.discountBadge}>
+                      <Text style={styles.discountText}>{pkg.discount}%</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.description}>{pkg.description}</Text>
+
+                  <View style={styles.priceRow}>
+                    <Text style={styles.currentPrice}>{pkg.currentPrice}</Text>
+                    <Text style={styles.oldPrice}>{pkg.oldPrice}</Text>
+                  </View>
+
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaItem}>
+                      <FontAwesome name="map-marker" size={12} color="#6B7280" />
+                      <Text style={styles.metaText}>{pkg.location}</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <FontAwesome5 name="stopwatch" size={12} color="#6B7280" />
+                      <Text style={styles.metaText}>{pkg.time}</Text>
+                    </View>
+                  </View>
+                  {rol === "CLIENTE" && (
+                      <TouchableOpacity style={styles.addToCartButton} onPress={()=>console.log(pkg.id)}>
+                        <FontAwesome name='cart-plus'  size={20} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                </View>
               </View>
-
-              <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.name}>{pkg.name}</Text>
-                  <View style={styles.discountBadge}>
-                    <Text style={styles.discountText}>{pkg.discount}%</Text>
-                  </View>
-                </View>
-                
-                <Text style={styles.description}>{pkg.description}</Text>
-
-                <View style={styles.priceRow}>
-                  <Text style={styles.currentPrice}>{pkg.currentPrice}</Text>
-                  <Text style={styles.oldPrice}>{pkg.oldPrice}</Text>
-                </View>
-
-                <View style={styles.metaRow}>
-                  <View style={styles.metaItem}>
-                    <FontAwesome name="map-marker" size={12} color="#6B7280" />
-                    <Text style={styles.metaText}>{pkg.location}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <FontAwesome5 name="stopwatch" size={12} color="#6B7280" />
-                    <Text style={styles.metaText}>{pkg.time}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
+            </Pressable>
           ))
         ) : (
           <View style={styles.emptyState}>
-            <FontAwesome5 name="map-marked-alt" size={48} color="#D1D5DB" />
+            <FontAwesome5 name="map-marked-alt" size={48} color="#303030" />
             <Text style={styles.emptyText}>No hay paquetes disponibles en {selectedCity}</Text>
           </View>
         )}
@@ -183,7 +210,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     bottom: 24,
-    padding:10
+    padding: 10
   },
   headerLeft: {
     flexDirection: 'row',
@@ -280,6 +307,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  addToCartButton: {
+    backgroundColor: '#D97706',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   iconContainer: {
     width: 48,
