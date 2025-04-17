@@ -3,6 +3,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from "@/app/firebaseConfig"; 
+import { useUserStore } from '@/app/user';
+
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,24 +34,25 @@ export default function RootLayout() {
   }, []);
   
 
-  useEffect(() => {
-    if (initializing) return;
-  
-    const inAuthGroup = segments[0] === '(auth)';
-    const inAppGroup = segments[0] === '(tabs)';
-    const currentPage = segments[1]; // e.g., 'register' or 'login'
-  
-    SplashScreen.hideAsync();
-  
-    if (user && inAppGroup) {
-      router.replace('/(tabs)/viewPackages'); 
-    } else if (
-      !user &&
-      inAppGroup // trying to go to the app while unauthenticated
-    ) {
-      router.replace('/');
-    }
-  }, [user, initializing, segments]);
+  const role = useUserStore((state) => state.role);
+
+useEffect(() => {
+  if (initializing) return;
+
+  SplashScreen.hideAsync();
+
+  const inAuthGroup = segments[0] === '(auth)';
+  const inTabsGroup = segments[0] === '(tabs)';
+
+  if (user && inTabsGroup) {
+    router.replace('/(tabs)/viewPackages');
+  }
+
+  if (!user && inTabsGroup) {
+    router.replace('/');
+  }
+}, [user, initializing]);
+
   
 
   return (

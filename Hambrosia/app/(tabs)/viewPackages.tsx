@@ -4,6 +4,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput,
 import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useUserStore } from '../user';
+import { useRouter } from 'expo-router';
 
 const cities = ['Todos', 'Floresta', 'Cumbayá', 'Iñaquito', 'Valle de los Chillos'];
 
@@ -73,6 +74,7 @@ const packages = [
 
 export default function ViewPackages() {
   const rol = useUserStore((state) => state.role)
+  const router = useRouter();
 
   const [selectedCity, setSelectedCity] = useState('Todos');
   const [modalVisible, setModalVisible] = useState(false);
@@ -81,6 +83,10 @@ export default function ViewPackages() {
   const handleSignOut = () => {
     auth.signOut();
   };
+
+  useEffect(() => {
+      console.log(rol)
+    }, [])
 
   const filteredPackages = selectedCity === 'Todos'
     ? packages
@@ -95,7 +101,9 @@ export default function ViewPackages() {
           <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
         </View>
         {rol === "RESTAURANTE" && (
-          <Button title="Agregar" onPress={() => {/* navigate to form */ }} />
+          <TouchableOpacity style={styles.addToCartButton} onPress={()=>router.replace('/(tabs)/createPackage')}>
+            <FontAwesome5 name='plus-circle' size={20} color="#fff" />
+          </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
           <Text style={styles.logOutText}>Salir</Text>
@@ -179,10 +187,10 @@ export default function ViewPackages() {
                     </View>
                   </View>
                   {rol === "CLIENTE" && (
-                      <TouchableOpacity style={styles.addToCartButton} onPress={()=>console.log(pkg.id)}>
-                        <FontAwesome name='cart-plus'  size={20} color="#fff" />
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity style={styles.addToCartButton} onPress={() => console.log(pkg.id)}>
+                      <FontAwesome name='cart-plus' size={20} color="#fff" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </Pressable>

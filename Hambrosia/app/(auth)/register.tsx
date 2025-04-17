@@ -53,13 +53,15 @@ export default function Register() {
     }));
   };
 
-  const [selectedAllergens, setSelectedAllergens] = useState<Record<string, boolean>>({});
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const toggleAllergen = (allergen: string) => {
-    setSelectedAllergens((prev) => ({
-      ...prev,
-      [allergen]: !prev[allergen],
-    }));
+    setSelectedAllergens((prev) =>
+      prev.includes(allergen)
+        ? prev.filter((item) => item !== allergen)
+        : [...prev, allergen]
+    );
   };
+
   const allergensList = [
     'Crustáceos/Mariscos', 'Pescado', 'Leche', 'Huevo', 'Frutos Secos',
     'Maní/Cacahuate', 'Trigo', 'Granos de Soya', 'Sésamo'
@@ -174,18 +176,20 @@ export default function Register() {
       }
 
     } else if (selectedRole === "Restaurante") {
-      const rucValidation = validarIdentificacionEcuatoriana(formData.restaurant.ruc);
+      /*const rucValidation = validarIdentificacionEcuatoriana(formData.restaurant.ruc);
       if (!rucValidation.isValid ||
         (rucValidation.type !== TipoIdentificacionEnum.RUC_SOCIEDAD_PRIVADA &&
           rucValidation.type !== TipoIdentificacionEnum.RUC_SOCIEDAD_PUBLICA)) {
         Alert.alert("Error", "RUC inválido");
         return false;
-      }
+      }*/
 
       if (!formData.restaurant.name.trim()) {
         Alert.alert("Error", "Por favor ingrese el nombre del restaurante");
         return false;
       }
+
+
 
       if (!validateEmail(formData.restaurant.email)) {
         Alert.alert("Error", "Formato de correo inválido");
@@ -207,35 +211,40 @@ export default function Register() {
 
   const handleRegister = async () => {
     if (!validateData()) return;
-  
+
     try {
       const isRestaurant = selectedRole === "Restaurante";
       const userData = isRestaurant ? formData.restaurant : formData.user;
-  
+
       const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
       const user = userCredential.user;
       const token = await user.getIdToken();
-  
+
       const payload = {
         rol: selectedRole.toUpperCase(),
         firebaseUid: user.uid,
         correo: userData.email,
         ...(isRestaurant
           ? {
-              cedulaRUC: formData.restaurant.ruc,
-              ciudad: formData.restaurant.city.toUpperCase(),
-              direccion: formData.restaurant.location,
-              nombre: formData.restaurant.name,
-              alergenos: selectedAllergens
-            }
+            cedulaRUC: formData.restaurant.ruc,
+            ciudad: formData.restaurant.city.toUpperCase(),
+            direccion: formData.restaurant.location,
+            nombre: formData.restaurant.name,
+            alergenos: selectedAllergens.map(a =>
+              a.normalize("NFD")
+               .replace(/[\u0300-\u036f]/g, "")  
+               .replace(/[\s\/]/g, '_')          
+               .toUpperCase()
+            )      
+          }
           : {
-              cedulaRUC: formData.user.cedula,
-              ciudad: formData.user.city.toUpperCase(),
-              fechaNacimiento: `${formData.user.day}-${formData.user.month}-${formData.user.year}`,
-              nombre: formData.user.name
-            }),
+            cedulaRUC: formData.user.cedula,
+            ciudad: formData.user.city.toUpperCase(),
+            fechaNacimiento: `${formData.user.day}-${formData.user.month}-${formData.user.year}`,
+            nombre: formData.user.name
+          }),
       };
-  
+
       const response = await fetch("https://hambrosia.onrender.com/api/usuarios/register", {
         method: "POST",
         headers: {
@@ -244,31 +253,31 @@ export default function Register() {
         },
         body: JSON.stringify(payload),
       });
-  
+
       if (!response.ok) {
-        const errorText = await response.text(); 
+        const errorText = await response.text();
         throw new Error(`Backend registration failed: ${response.status} - ${errorText}`);
       }
-  
+
       Alert.alert("Éxito", "Registro completado correctamente 🎉");
       setToNull();
       router.replace("/");
-  
+
     } catch (error: any) {
       console.error("Registration error:", error);
       Alert.alert("Error", `Registro fallido: ${error.message}`);
     }
   };
-  
 
-const testConnection = async () => {
-  try {
-    const test = await fetch('https://hambrosia.onrender.com/api/usuarios');
-    console.log('Connection test:', await test.json());
-  } catch (e) {
-    console.log('Connection completely broken:', e);
-  }
-};
+
+  const testConnection = async () => {
+    try {
+      const test = await fetch('https://hambrosia.onrender.com/api/usuarios');
+      console.log('Connection test:', await test.json());
+    } catch (e) {
+      console.log('Connection completely broken:', e);
+    }
+  };
 
 
   return (
@@ -484,6 +493,9 @@ const testConnection = async () => {
                     placeholderTextColor="gray"
                     value={formData.restaurant.email}
                     onChangeText={(text) => handleChange("restaurant", "email", text)}
+                    autoCapitalize="none"
+                    keyboardType='email-address'
+
                   />
                 </View>
 
@@ -550,10 +562,11 @@ const testConnection = async () => {
                     {allergensList.map((allergen) => (
                       <View key={allergen} style={styles.allergenItem}>
                         <Checkbox
-                          value={selectedAllergens[allergen] || false}
+                          value={selectedAllergens.includes(allergen)}
                           onValueChange={() => toggleAllergen(allergen)}
-                          color={selectedAllergens[allergen] ? '#E74C3C' : undefined}
-                        />
+                          color={selectedAllergens.includes(allergen) ? '#E74C3C' : undefined}
+                          />
+
                         <Text style={styles.allergenText}>{allergen}</Text>
                       </View>
                     ))}

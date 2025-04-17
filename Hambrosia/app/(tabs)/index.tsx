@@ -110,9 +110,6 @@ export default function HomeScreen() {
   };
 
 
-
-
-
   useEffect(() => {
     Animated.timing(translation, {
       toValue: -100,
