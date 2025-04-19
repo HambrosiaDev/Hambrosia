@@ -39,19 +39,40 @@ export const publicarPaquete = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const parsedhoraRetiro = new Date(horaRetiro);
-    if (isNaN(parsedhoraRetiro.getTime())) {
-      res.status(400).json({ success: false, error: ERROR_MESSAGES.INVALID_DATE });
+    const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timePattern.test(horaRetiro)) {
+      res.status(400).json({ success: false, error: 'Formato de hora inválido. Debe ser HH:MM (ej: 21:00)' });
+      return;
+    }
+    
+    // Parse the time
+    const [hours, minutes] = horaRetiro.split(':').map(Number);
+    
+    // Create a date for today with the specified time
+    const today = new Date();
+    const horaRetiroDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      hours,
+      minutes,
+      0,
+      0
+    );
+    
+    // Check if the time is in the past
+    const now = new Date();
+    if (horaRetiroDate < now) {
+      res.status(400).json({ success: false, error: 'La hora de retiro no puede ser en el pasado' });
       return;
     }
 
-    const hashedCedula = hashCedula(cedRuc);
-    const resultado = await paqueteService.publicarPaquete(hashedCedula, {
+    const resultado = await paqueteService.publicarPaquete(cedRuc, {
       descripcion,
       precio,
       precioDescuento,
       unidades,
-      horaRetiro: parsedhoraRetiro.toISOString(),
+      horaRetiro: horaRetiroDate.toISOString(),
       imagenURL,
     });
 
