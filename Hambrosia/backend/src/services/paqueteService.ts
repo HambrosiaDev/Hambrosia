@@ -47,7 +47,7 @@ export class PaqueteService {
       precio: number;
       precioDescuento: number;
       unidades: number;
-      fechaRetiro: string;
+      horaRetiro: string;
       imagenURL?: string | null;
     }
   ): Promise<Paquete> {
@@ -83,7 +83,7 @@ export class PaqueteService {
         agotado: false,
         imagenURL: dataPaquete.imagenURL || null,
         fechaPublicacion: new Date(),
-        fechaRetiro: new Date(dataPaquete.fechaRetiro),
+        horaRetiro: new Date(dataPaquete.horaRetiro),
         ciudad: ciudadRestaurante,
       };
 

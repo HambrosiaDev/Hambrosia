@@ -16,7 +16,6 @@ export enum Alergeno {
   PESCADO = 'PESCADO',
   CRUSTACEOS_MARISCOS = 'CRUSTACEOS_MARISCOS',
   FRUTOS_SECOS = 'FRUTOS_SECOS',
-  MARISCOS = 'MARISCOS',
   MANI_CACAHUATE = 'MANI_CACAHUATE',
   TRIGO = 'TRIGO',
   GRANOS_DE_SOYA ='GRANOS_DE_SOYA',
@@ -91,7 +90,7 @@ export interface Paquete {
   agotado?: boolean;
   imagenURL?: string | null;
   fechaPublicacion: Date;
-  fechaRetiro?: Date;
+  horaRetiro?: Date;
   ciudad: string;
 }
 

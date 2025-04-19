@@ -26,10 +26,10 @@ const getPaqueteOrError = async (res: Response, paqueteId: string) => {
 
 export const publicarPaquete = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { descripcion, precio, precioDescuento, unidades, fechaRetiro, imagenURL } = req.body;
+    const { descripcion, precio, precioDescuento, unidades, horaRetiro, imagenURL } = req.body;
     const { cedRuc } = req.params;
 
-    if (!descripcion || !precio || !precioDescuento || !unidades || !fechaRetiro) {
+    if (!descripcion || !precio || !precioDescuento || !unidades || !horaRetiro) {
       res.status(400).json({ success: false, error: ERROR_MESSAGES.MISSING_FIELDS });
       return;
     }
@@ -39,8 +39,8 @@ export const publicarPaquete = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    const parsedFechaRetiro = new Date(fechaRetiro);
-    if (isNaN(parsedFechaRetiro.getTime())) {
+    const parsedhoraRetiro = new Date(horaRetiro);
+    if (isNaN(parsedhoraRetiro.getTime())) {
       res.status(400).json({ success: false, error: ERROR_MESSAGES.INVALID_DATE });
       return;
     }
@@ -51,7 +51,7 @@ export const publicarPaquete = async (req: Request, res: Response): Promise<void
       precio,
       precioDescuento,
       unidades,
-      fechaRetiro: parsedFechaRetiro.toISOString(),
+      horaRetiro: parsedhoraRetiro.toISOString(),
       imagenURL,
     });
 
