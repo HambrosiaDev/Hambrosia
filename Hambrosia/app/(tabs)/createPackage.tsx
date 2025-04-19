@@ -14,6 +14,9 @@ import { useNavigation } from '@react-navigation/native';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useRouter } from 'expo-router';
+import { useUserStore } from '../user';
+
+
 
 const iconOptions = [
     'hamburger',
@@ -31,44 +34,109 @@ export default function CreatePackageScreen() {
     const navigation = useNavigation();
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
-    const [normalPrice, setNormalPrice] = useState('');
+    const [discountedPrice, setDiscountedPrice] = useState('');
     const [units, setUnits] = useState('');
-    const [pickupTime, setPickupTime] = useState('');
+    const [pickupTimeHour, setPickupTimeHour] = useState('');
+    const [pickupTimeMin, setPickupTimeMin] = useState('');
     const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
     const router = useRouter();
+    const { cedRuc } = useUserStore();
+    const [isLoading, setIsLoading] = useState(false);
+
 
     const handleSignOut = () => auth.signOut();
 
-    const handleSubmit = () => {
-        if (!description || !price || !units || !pickupTime || !selectedIcon) {
+    const setToNull = () => {
+        setDescription("");
+        setPrice("");
+        setDiscountedPrice("");
+        setUnits("");
+        setSelectedIcon("");
+        setPickupTimeHour("");
+        setPickupTimeMin("");
+    }
+
+    const validateData = () => {
+        if (!description || !price || !discountedPrice || !units || !pickupTimeHour || !pickupTimeMin || !selectedIcon) {
             Alert.alert('Campos incompletos', 'Por favor completa todos los campos');
-            return;
+            return false;
         }
+    
+        if (Number(discountedPrice) >= Number(price)) {
+            Alert.alert('Precios incorrectos', 'El precio con descuento debe ser menor al PVP');
+            return false;
+        }
+    
+        if (Number(price) <= 0 || Number(discountedPrice) <= 0) {
+            Alert.alert('Precio inválido', 'Los precios deben ser mayores que 0');
+            return false;
+        }
+    
+        if (Number(units) <= 0) {
+            Alert.alert('Unidades inválidas', 'Debes ingresar al menos una unidad');
+            return false;
+        }
+    
+        if (isNaN(Number(pickupTimeHour)) || isNaN(Number(pickupTimeMin)) || Number(pickupTimeHour) < 0 || Number(pickupTimeHour) > 23 || Number(pickupTimeMin) < 0 || Number(pickupTimeMin) > 59) {
+            Alert.alert('Hora inválida', 'Ingresa una hora válida (0-23) y minutos válidos (0-59)');
+            return false;
+        }
+        return true;
+    };
+    
 
-        const newPackage = {
-            description,
-            price: Number(price),
-            normalPrice: Number(normalPrice),
-            units: Number(units),
-            pickupTime: pickupTime,
-            imageIcon: selectedIcon,
+    const handleSubmit = async () => {
+        validateData();
+        const payload = {
+            descripcion: description,
+            precioDescuento: Number(discountedPrice),
+            precio: Number(price),
+            unidades: Number(units),
+            horaRetiro: pickupTimeHour+":"+pickupTimeMin,
+            imagenURL: selectedIcon,
         };
+       try {
+            const payload = {
+                descripcion: description,
+                precioDescuento: Number(discountedPrice),
+                precio: Number(price),
+                unidades: Number(units),
+                horaRetiro: pickupTimeHour+":"+pickupTimeMin,
+                imagenURL: selectedIcon,
+            };
 
-        console.log('Package to submit:', newPackage);
-        Alert.alert('Éxito', 'El paquete fue creado correctamente');
-        navigation.goBack();
+            const response = await fetch(`https://hambrosia.onrender.com/api/paquetes/${cedRuc}/crearPaquete`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+            
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Backend registration package failed: ${response.status} - ${errorText}`);
+            }
+            Alert.alert("Éxito", "Registro completado correctamente 🎉");
+            setToNull();
+        } catch (e: any) {
+            console.error("Package registration error:", e);
+            Alert.alert("Error", `Registro del paquete fallido: ${e.message}`);
+        }
+       console.log(payload)
     };
 
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
         >
-            <ScrollView 
-                contentContainerStyle={{ 
-                    backgroundColor: '#f7ccbe', 
+            <ScrollView
+                contentContainerStyle={{
+                    backgroundColor: '#f7ccbe',
                     flexGrow: 1,
-                    paddingBottom: 30 
+                    paddingBottom: 30
                 }}
                 keyboardShouldPersistTaps="handled"
             >
@@ -80,8 +148,8 @@ export default function CreatePackageScreen() {
                             <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
                         </View>
                         <View style={styles.headerRight}>
-                            <TouchableOpacity 
-                                style={styles.goBackButton} 
+                            <TouchableOpacity
+                                style={styles.goBackButton}
                                 onPress={() => router.replace('/(tabs)/viewPackages')}
                             >
                                 <FontAwesome5 name='chevron-left' size={20} color="#fff" />
@@ -92,7 +160,7 @@ export default function CreatePackageScreen() {
                         </View>
                     </View>
 
-                    <View style={styles.formContainer}>                        
+                    <View style={styles.formContainer}>
                         <View style={styles.inputContainer}>
                             <FontAwesome name="comment" size={16} color="#D97706" style={styles.icon} />
                             <TextInput
@@ -126,8 +194,8 @@ export default function CreatePackageScreen() {
                                     <TextInput
                                         placeholder="Descuento"
                                         placeholderTextColor="#999"
-                                        value={normalPrice}
-                                        onChangeText={setNormalPrice}
+                                        value={discountedPrice}
+                                        onChangeText={setDiscountedPrice}
                                         keyboardType="numeric"
                                         style={styles.priceInput}
                                     />
@@ -146,19 +214,40 @@ export default function CreatePackageScreen() {
                                     keyboardType="numeric"
                                     style={styles.textInput}
                                 />
+                                
                             </View>
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <View style={styles.inputWithIcon}>
+                        <Text style={styles.sectionTitle}>Hora límite del retiro</Text>
+                        <View style={styles.priceRow}>
+                            <View style={styles.priceInputContainer}>
+                                <View style={styles.inputWithIcon}>
                                 <FontAwesome name="clock-o" size={16} color="#D97706" />
                                 <TextInput
-                                    placeholder="Hora límite (ej: 21:00)"
+                                    placeholder="HH"
                                     placeholderTextColor="#999"
-                                    value={pickupTime}
-                                    onChangeText={setPickupTime}
+                                    value={pickupTimeHour}
+                                    onChangeText={setPickupTimeHour}
                                     style={styles.textInput}
+                                    keyboardType="numeric"
                                 />
+                                </View>
+                            </View>
+
+                            <Text style={styles.sectionTitle}>:</Text>
+
+                            <View style={styles.priceInputContainer}>
+                                <View style={styles.inputWithIcon}>
+                                <FontAwesome name="clock-o" size={16} color="#D97706" />
+                                <TextInput
+                                    placeholder="MM"
+                                    placeholderTextColor="#999"
+                                    value={pickupTimeMin}
+                                    onChangeText={setPickupTimeMin}
+                                    style={styles.textInput}
+                                    keyboardType="numeric"
+                                />
+                                </View>
                             </View>
                         </View>
 
@@ -177,17 +266,17 @@ export default function CreatePackageScreen() {
                                         selectedIcon === icon && styles.selectedIconButton
                                     ]}
                                 >
-                                    <FontAwesome5 
-                                        name={icon as any} 
-                                        size={35} 
-                                        color={selectedIcon === icon ? '#fff' : '#D97706'} 
+                                    <FontAwesome5
+                                        name={icon as any}
+                                        size={35}
+                                        color={selectedIcon === icon ? '#fff' : '#D97706'}
                                     />
                                 </TouchableOpacity>
                             ))}
                         </View>
 
-                        <TouchableOpacity 
-                            onPress={handleSubmit} 
+                        <TouchableOpacity
+                            onPress={handleSubmit}
                             style={styles.submitButton}
                             activeOpacity={0.8}
                         >

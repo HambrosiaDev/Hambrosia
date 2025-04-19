@@ -71,6 +71,9 @@ export default function HomeScreen() {
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
         useUserStore.getState().setRole(userData.rol);
+        useUserStore.getState().setCedRuc(userData.cedulaRUC);
+
+
 
         console.log("User data from Firestore:", userData);
 

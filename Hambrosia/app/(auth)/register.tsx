@@ -8,6 +8,7 @@ import Checkbox from 'expo-checkbox';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from "@/app/firebaseConfig";
 import { validarIdentificacionEcuatoriana, TipoIdentificacionEnum } from "@/components/testId";
+import { useUserStore } from '../user';
 
 
 const roles = ["Cliente", "Restaurante"];
@@ -232,10 +233,10 @@ export default function Register() {
             nombre: formData.restaurant.name,
             alergenos: selectedAllergens.map(a =>
               a.normalize("NFD")
-               .replace(/[\u0300-\u036f]/g, "")  
-               .replace(/[\s\/]/g, '_')          
-               .toUpperCase()
-            )      
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[\s\/]/g, '_')
+                .toUpperCase()
+            )
           }
           : {
             cedulaRUC: formData.user.cedula,
@@ -244,6 +245,8 @@ export default function Register() {
             nombre: formData.user.name
           }),
       };
+
+
 
       const response = await fetch("https://hambrosia.onrender.com/api/usuarios/register", {
         method: "POST",
@@ -259,338 +262,348 @@ export default function Register() {
         throw new Error(`Backend registration failed: ${response.status} - ${errorText}`);
       }
 
-      Alert.alert("Éxito", "Registro completado correctamente 🎉");
-      setToNull();
-      router.replace("/");
+      if(isRestaurant){
+        useUserStore.getState().setCedRuc(formData.restaurant.ruc);
+        useUserStore.getState().setRole("RESTAURANTE");
+      }else{
+        useUserStore.getState().setCedRuc(formData.user.cedula);
+        useUserStore.getState().setRole("CLIENTE");
 
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      Alert.alert("Error", `Registro fallido: ${error.message}`);
-    }
+      }
+
+
+  Alert.alert("Éxito", "Registro completado correctamente 🎉");
+  setToNull();
+  router.replace("/");
+
+} catch (error: any) {
+  console.error("Registration error:", error);
+  Alert.alert("Error", `Registro fallido: ${error.message}`);
+}
   };
 
 
-  const testConnection = async () => {
-    try {
-      const test = await fetch('https://hambrosia.onrender.com/api/usuarios');
-      console.log('Connection test:', await test.json());
-    } catch (e) {
-      console.log('Connection completely broken:', e);
-    }
-  };
+const testConnection = async () => {
+  try {
+    const test = await fetch('https://hambrosia.onrender.com/api/usuarios');
+    console.log('Connection test:', await test.json());
+  } catch (e) {
+    console.log('Connection completely broken:', e);
+  }
+};
 
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-        {/* Header Image */}
-        <Image
-          source={{
-            uri: 'https://studyadelaide.com/storage/app/media/life/discover-adelaide/food/food-1300x1300.jpg',
-          }}
-          style={styles.headerImage}
-        />
+return (
+  <KeyboardAvoidingView
+    style={styles.container}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+      {/* Header Image */}
+      <Image
+        source={{
+          uri: 'https://studyadelaide.com/storage/app/media/life/discover-adelaide/food/food-1300x1300.jpg',
+        }}
+        style={styles.headerImage}
+      />
 
-        {/* Formulario */}
-        <View style={styles.formContainer}>
-          <Image source={require('@/assets/images/Logo-2-orange.png')} style={styles.logo_1} />
+      {/* Formulario */}
+      <View style={styles.formContainer}>
+        <Image source={require('@/assets/images/Logo-2-orange.png')} style={styles.logo_1} />
 
-          <Text style={styles.title}>Seleccione</Text>
-          <View style={{ width: '100%', alignItems: 'center', display: "flex", flexDirection: "row" }}>
-            <View style={styles.roleSelectorContainer}>
-              <TouchableOpacity
-                style={styles.roleSelectorButton}
-                onPress={() => setModalVisible(true)}
-              >
-                <View style={styles.roleSelectorContent}>
-                  <FontAwesome5
-                    name="user-tag"
-                    size={16}
-                    color="#C2410C"
-                    style={styles.roleIcon}
-                  />
-                  <Text style={styles.roleSelectorText}>
-                    {selectedRole}
-                  </Text>
-                  <FontAwesome5
-                    name="chevron-down"
-                    size={14}
-                    color="#6B7280"
-                    style={styles.chevronIcon}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Modal con la lista de opciones */}
-            <Modal visible={modalVisible} transparent animationType="fade">
-              <TouchableOpacity
-                style={styles.modalOverlay}
-                onPress={() => setModalVisible(false)}
-                activeOpacity={1}
-              >
-                <View style={styles.modalContainer}>
-                  <Text style={styles.modalTitle}>Selecciona un rol para tu cuenta</Text>
-                  <FlatList
-                    data={roles}
-                    keyExtractor={(item) => item}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.modalItem}
-                        onPress={() => {
-                          setSelectedRole(item);
-                          setModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.modalItemText}>{item}</Text>
-                        {selectedRole === item && (
-                          <FontAwesome name="check" size={16} color="#D97706" />
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              </TouchableOpacity>
-            </Modal>
-          </View>
-          {/* Input */}
-          <View style={{ width: '100%' }}>
-            {selectedRole === "Cliente" ? (
-              <>
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nombre completo"
-                    placeholderTextColor="gray"
-                    value={formData.user.name}
-                    onChangeText={(text) => handleChange("user", "name", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="id-badge" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Cédula"
-                    placeholderTextColor="gray"
-                    value={formData.user.cedula}
-                    onChangeText={(text) => handleChange("user", "cedula", text)}
-                    keyboardType="numeric"
-                    maxLength={10}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="gray"
-                    value={formData.user.email}
-                    onChangeText={(text) => handleChange("user", "email", text)}
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.user.password}
-                    onChangeText={(text) => handleChange("user", "password", text)}
-                    secureTextEntry
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirmar Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.user.confirmPassword}
-                    onChangeText={(text) => handleChange("user", "confirmPassword", text)}
-                    secureTextEntry
-                  />
-                </View>
-
-                <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ciudad ej. Quito"
-                    placeholderTextColor="gray"
-                    value={formData.user.city}
-                    onChangeText={(text) => handleChange("user", "city", text)}
-                  />
-                </View>
-
-                <View style={styles.dateContainer}>
-                  <View style={styles.date}>
-                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Día"
-                      placeholderTextColor="gray"
-                      value={formData.user.day}
-                      onChangeText={(text) => handleChange("user", "day", text)}
-                      keyboardType="numeric"
-                      maxLength={2}
-                    />
-                  </View>
-                  <View style={styles.date}>
-                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Mes"
-                      placeholderTextColor="gray"
-                      value={formData.user.month}
-                      onChangeText={(text) => handleChange("user", "month", text)}
-                      keyboardType="numeric"
-                      maxLength={2}
-                    />
-                  </View>
-                  <View style={styles.date}>
-                    <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Año"
-                      placeholderTextColor="gray"
-                      value={formData.user.year}
-                      onChangeText={(text) => handleChange("user", "year", text)}
-                      keyboardType="numeric"
-                      maxLength={4}
-                    />
-                  </View>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nombre del restaurante"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.name}
-                    onChangeText={(text) => handleChange("restaurant", "name", text)}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Correo electrónico"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.email}
-                    onChangeText={(text) => handleChange("restaurant", "email", text)}
-                    autoCapitalize="none"
-                    keyboardType='email-address'
-
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="id-badge" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="RUC"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.ruc}
-                    onChangeText={(text) => handleChange("restaurant", "ruc", text)}
-                    keyboardType="numeric"
-                    maxLength={13}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.password}
-                    onChangeText={(text) => handleChange("restaurant", "password", text)}
-                    secureTextEntry
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirmar Contraseña"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.confirmPassword}
-                    onChangeText={(text) => handleChange("restaurant", "confirmPassword", text)}
-                    secureTextEntry
-                  />
-                </View>
-                <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="map" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Dirección"
-                    placeholderTextColor="gray"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ciudad ej. Quito"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.city}
-                    onChangeText={(text) => handleChange("restaurant", "city", text)}
-                  />
-                </View>
-
-                <View style={styles.containerAllergens}>
-                  <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
-                  <View style={styles.allergenList}>
-                    {allergensList.map((allergen) => (
-                      <View key={allergen} style={styles.allergenItem}>
-                        <Checkbox
-                          value={selectedAllergens.includes(allergen)}
-                          onValueChange={() => toggleAllergen(allergen)}
-                          color={selectedAllergens.includes(allergen) ? '#E74C3C' : undefined}
-                          />
-
-                        <Text style={styles.allergenText}>{allergen}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-
-              </>
-            )}
-            <Text style={styles.title}>He leído y acepto los términos y condiciones</Text>
+        <Text style={styles.title}>Seleccione</Text>
+        <View style={{ width: '100%', alignItems: 'center', display: "flex", flexDirection: "row" }}>
+          <View style={styles.roleSelectorContainer}>
+            <TouchableOpacity
+              style={styles.roleSelectorButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <View style={styles.roleSelectorContent}>
+                <FontAwesome5
+                  name="user-tag"
+                  size={16}
+                  color="#C2410C"
+                  style={styles.roleIcon}
+                />
+                <Text style={styles.roleSelectorText}>
+                  {selectedRole}
+                </Text>
+                <FontAwesome5
+                  name="chevron-down"
+                  size={14}
+                  color="#6B7280"
+                  style={styles.chevronIcon}
+                />
+              </View>
+            </TouchableOpacity>
           </View>
 
-
-
-          {/* Botón Registrarme */}
-          <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => handleRegister()}>
-            <Text style={styles.buttonText}>Registrarme</Text>
-          </TouchableOpacity>
-
+          {/* Modal con la lista de opciones */}
+          <Modal visible={modalVisible} transparent animationType="fade">
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={1}
+            >
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Selecciona un rol para tu cuenta</Text>
+                <FlatList
+                  data={roles}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.modalItem}
+                      onPress={() => {
+                        setSelectedRole(item);
+                        setModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.modalItemText}>{item}</Text>
+                      {selectedRole === item && (
+                        <FontAwesome name="check" size={16} color="#D97706" />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        {/* Input */}
+        <View style={{ width: '100%' }}>
+          {selectedRole === "Cliente" ? (
+            <>
+              <View style={styles.inputContainer}>
+                <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nombre completo"
+                  placeholderTextColor="gray"
+                  value={formData.user.name}
+                  onChangeText={(text) => handleChange("user", "name", text)}
+                />
+              </View>
 
-  );
+              <View style={styles.inputContainer}>
+                <FontAwesome name="id-badge" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Cédula"
+                  placeholderTextColor="gray"
+                  value={formData.user.cedula}
+                  onChangeText={(text) => handleChange("user", "cedula", text)}
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Correo electrónico"
+                  placeholderTextColor="gray"
+                  value={formData.user.email}
+                  onChangeText={(text) => handleChange("user", "email", text)}
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contraseña"
+                  placeholderTextColor="gray"
+                  value={formData.user.password}
+                  onChangeText={(text) => handleChange("user", "password", text)}
+                  secureTextEntry
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirmar Contraseña"
+                  placeholderTextColor="gray"
+                  value={formData.user.confirmPassword}
+                  onChangeText={(text) => handleChange("user", "confirmPassword", text)}
+                  secureTextEntry
+                />
+              </View>
+
+              <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ciudad ej. Quito"
+                  placeholderTextColor="gray"
+                  value={formData.user.city}
+                  onChangeText={(text) => handleChange("user", "city", text)}
+                />
+              </View>
+
+              <View style={styles.dateContainer}>
+                <View style={styles.date}>
+                  <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Día"
+                    placeholderTextColor="gray"
+                    value={formData.user.day}
+                    onChangeText={(text) => handleChange("user", "day", text)}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                </View>
+                <View style={styles.date}>
+                  <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Mes"
+                    placeholderTextColor="gray"
+                    value={formData.user.month}
+                    onChangeText={(text) => handleChange("user", "month", text)}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                </View>
+                <View style={styles.date}>
+                  <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Año"
+                    placeholderTextColor="gray"
+                    value={formData.user.year}
+                    onChangeText={(text) => handleChange("user", "year", text)}
+                    keyboardType="numeric"
+                    maxLength={4}
+                  />
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.inputContainer}>
+                <FontAwesome name="user" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nombre del restaurante"
+                  placeholderTextColor="gray"
+                  value={formData.restaurant.name}
+                  onChangeText={(text) => handleChange("restaurant", "name", text)}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="envelope" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Correo electrónico"
+                  placeholderTextColor="gray"
+                  value={formData.restaurant.email}
+                  onChangeText={(text) => handleChange("restaurant", "email", text)}
+                  autoCapitalize="none"
+                  keyboardType='email-address'
+
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="id-badge" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="RUC"
+                  placeholderTextColor="gray"
+                  value={formData.restaurant.ruc}
+                  onChangeText={(text) => handleChange("restaurant", "ruc", text)}
+                  keyboardType="numeric"
+                  maxLength={13}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Contraseña"
+                  placeholderTextColor="gray"
+                  value={formData.restaurant.password}
+                  onChangeText={(text) => handleChange("restaurant", "password", text)}
+                  secureTextEntry
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="lock" size={18} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirmar Contraseña"
+                  placeholderTextColor="gray"
+                  value={formData.restaurant.confirmPassword}
+                  onChangeText={(text) => handleChange("restaurant", "confirmPassword", text)}
+                  secureTextEntry
+                />
+              </View>
+              <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
+              <View style={styles.inputContainer}>
+                <FontAwesome name="map" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Dirección"
+                  placeholderTextColor="gray"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ciudad ej. Quito"
+                  placeholderTextColor="gray"
+                  value={formData.restaurant.city}
+                  onChangeText={(text) => handleChange("restaurant", "city", text)}
+                />
+              </View>
+
+              <View style={styles.containerAllergens}>
+                <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
+                <View style={styles.allergenList}>
+                  {allergensList.map((allergen) => (
+                    <View key={allergen} style={styles.allergenItem}>
+                      <Checkbox
+                        value={selectedAllergens.includes(allergen)}
+                        onValueChange={() => toggleAllergen(allergen)}
+                        color={selectedAllergens.includes(allergen) ? '#E74C3C' : undefined}
+                      />
+
+                      <Text style={styles.allergenText}>{allergen}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+
+            </>
+          )}
+          <Text style={styles.title}>He leído y acepto los términos y condiciones</Text>
+        </View>
+
+
+
+        {/* Botón Registrarme */}
+        <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={() => handleRegister()}>
+          <Text style={styles.buttonText}>Registrarme</Text>
+        </TouchableOpacity>
+
+      </View>
+    </ScrollView>
+  </KeyboardAvoidingView>
+
+);
 }
 
 const styles = StyleSheet.create({
