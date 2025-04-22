@@ -85,6 +85,8 @@ export class PaqueteService {
         fechaPublicacion: new Date(),
         horaRetiro: new Date(dataPaquete.horaRetiro),
         ciudad: ciudadRestaurante,
+        alergenos: usuario.alergenos || [],
+        direccion: usuario.direccion || null,
       };
 
       const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);

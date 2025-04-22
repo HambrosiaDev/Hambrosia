@@ -1,9 +1,10 @@
-import { Request, Response } from 'express';
+import { request, Request, response, Response } from 'express';
 import { CompraService } from '../services/compraService';
 import { PaqueteService } from '../services/paqueteService';
 import { verificarCodigo } from '../utils/HELPER';
 import { Compra } from '../models/interfaces';
 import { UsuarioService } from '../services/usuarioService';
+import { reporteService } from '../services/reporteService';
 import { generarCodigoAleatorioSeguro, hashCedula } from '../utils/HELPER';
 
 const compraService = new CompraService();
@@ -126,7 +127,6 @@ export const cancelarCompra = async (req: Request, res: Response): Promise<void>
     const { compraId } = req.params;
     const compra = await getCompraOrError(res, compraId);
     if (!compra) return;
-
     await usuarioService.incrementarStrike(compra.clienteId);
     await paqueteService.aumentarUnidadesPaquete(compra.paqueteId, compra.cantidadComprada);
     const compraCancelada = await compraService.actualizarCompra(compraId, {
@@ -137,11 +137,14 @@ export const cancelarCompra = async (req: Request, res: Response): Promise<void>
       cantidadComprada: 0,
     });
 
+    await reporteService.crearReporte(compraId, 'Compra cancelada por el cliente');
+
     res.status(200).json({
       success: true,
       message: 'Compra cancelada exitosamente',
       data: compraCancelada,
     });
+
   } catch (error: any) {
     console.error(ERROR_MESSAGES.CANCELING_ERROR, error.message || error);
     res.status(500).json({ success: false, error: ERROR_MESSAGES.CANCELING_ERROR });

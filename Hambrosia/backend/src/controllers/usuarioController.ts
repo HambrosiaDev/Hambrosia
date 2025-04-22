@@ -235,7 +235,7 @@ export const deleteUsuario = async (req: Request, res: Response, next: NextFunct
 };
 
 // Incrementar strike
-export const incrementarStrike = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const incrementarStrike = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
     const hashedId = hashCedula(userId);
@@ -259,19 +259,6 @@ export const incrementarStrike = async (req: Request, res: Response, next: NextF
     
     // Incrementar strike
     const nuevosStrikes = await usuarioService.incrementarStrike(hashedId);
-    
-    // Verificar si se debe bloquear al usuario
-    if (nuevosStrikes >= 5) {
-      const duracionBloqueo = 30 * 24; // 30 días en horas
-      const fechaDesbloqueo = new Date(Date.now() + duracionBloqueo * 60 * 60 * 1000).toLocaleDateString();
-      const motivoBloqueo = `Su cuenta ha sido bloqueada por acumulación de strikes (${nuevosStrikes}/5). Estará bloqueada hasta el ${fechaDesbloqueo}.`;
-      
-      // Bloquear usuario
-      await usuarioService.bloquearUsuario(hashedId, duracionBloqueo, motivoBloqueo);
-      
-      // Enviar notificación
-      await usuarioService.enviarNotificacion(hashedId, motivoBloqueo);
-    }
     
     // Obtener el usuario actualizado para verificar su estado
     const usuarioActualizado = await usuarioService.getById(userId);

@@ -13,8 +13,6 @@ export class ReporteController {
         res.status(400).json({ error: 'compraId y descripcion son obligatorios' });
         return;
       }
-
-      // Call the service to create the report
       const nuevoReporte = await reporteService.crearReporte(compraId, descripcion);
 
       // Return the created report
@@ -55,6 +53,7 @@ export class ReporteController {
       res.status(500).json({ error: 'Error interno del servidor' });
     }
   }
+  
 }
 
 export const reporteController = new ReporteController();

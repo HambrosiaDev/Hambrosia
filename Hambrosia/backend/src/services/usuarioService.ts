@@ -176,10 +176,21 @@ export class UsuarioService {
     if (!usuario) {
       throw new Error('Usuario no encontrado');
     }
-    
     const strikesActuales = usuario.strikes || 0;
     const nuevosStrikes = strikesActuales + 1;
     
+    // Verificar si se debe bloquear al usuario
+    if (nuevosStrikes >= 5) {
+      const duracionBloqueo = 30 * 24; // 30 días en horas
+      const fechaDesbloqueo = new Date(Date.now() + duracionBloqueo * 60 * 60 * 1000).toLocaleDateString();
+      const motivoBloqueo = `Su cuenta ha sido bloqueada por acumulación de strikes (${nuevosStrikes}/5). Estará bloqueada hasta el ${fechaDesbloqueo}.`;
+      
+      // Bloquear usuario
+      await usuarioService.bloquearUsuario(id, duracionBloqueo, motivoBloqueo);
+      
+      // Enviar notificación
+      await usuarioService.enviarNotificacion(id, motivoBloqueo);
+    }
     await this.update(id, { strikes: nuevosStrikes });
     return nuevosStrikes;
   }
