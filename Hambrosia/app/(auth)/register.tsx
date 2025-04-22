@@ -265,9 +265,11 @@ export default function Register() {
       if(isRestaurant){
         useUserStore.getState().setCedRuc(formData.restaurant.ruc);
         useUserStore.getState().setRole("RESTAURANTE");
+        useUserStore.getState().setCiudad(formData.restaurant.city.toUpperCase());  
       }else{
         useUserStore.getState().setCedRuc(formData.user.cedula);
         useUserStore.getState().setRole("CLIENTE");
+        useUserStore.getState().setCiudad(formData.user.city.toUpperCase());  
 
       }
 

@@ -1,96 +1,128 @@
 // ViewPackages.tsx
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Button, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useUserStore } from '../user';
 import { useRouter } from 'expo-router';
 
-const cities = ['Todos', 'Floresta', 'Cumbayá', 'Iñaquito', 'Valle de los Chillos'];
+const cities = ['Floresta', 'Quito', 'Iñaquito', 'Valle de los Chillos'];
 
 type Package = {
-  id: number,
-  name: string,
-  description: string,
-  discount: number,
-  currentPrice: string,
-  oldPrice: string,
-  city: string,
-  location: string,
-  time: string,
-  icon: string
-}
-const packages = [
-  {
-    id: 1,
-    name: 'Burguer King',
-    description: 'Algo sustancioso y una bebida',
-    discount: 50,
-    currentPrice: '$2.50',
-    oldPrice: '$5.00',
-    city: 'Floresta',
-    location: 'Av. Amazonas',
-    time: '22:00',
-    icon: 'hamburger',
-  },
-  {
-    id: 2,
-    name: 'Freshii',
-    description: 'Algo refrescante y saludable',
-    discount: 60,
-    currentPrice: '$2.80',
-    oldPrice: '$7.00',
-    city: 'Cumbayá',
-    location: 'Av. Naciones Unidas',
-    time: '21:30',
-    icon: 'leaf',
-  },
-  {
-    id: 3,
-    name: 'Pan Casero',
-    description: 'Algo francés y algo dulce',
-    discount: 30,
-    currentPrice: '$3.15',
-    oldPrice: '$4.50',
-    city: 'Floresta',
-    location: 'Av. 6 de Diciembre',
-    time: '20:00',
-    icon: 'bread-slice',
-  },
-  {
-    id: 4,
-    name: 'Cinnabon',
-    description: 'Algo dulce',
-    discount: 30,
-    currentPrice: '$4.20',
-    oldPrice: '$6.00',
-    city: 'Iñaquito',
-    location: 'Centro Comercial Iñaquito',
-    time: '21:00',
-    icon: 'cookie',
-  },
-];
-
+  id: string;
+  restauranteId: string;
+  nombreRestaurante: string;
+  descripcion: string;
+  precio: number;
+  descuento: number;
+  precioDescuento: number;
+  imagenURL: string;
+  fechaPublicacion?: { _seconds: number; _nanoseconds: number } | string | null;
+  horaRetiro?: string | null;
+  ciudad: string;
+  agotado: boolean;
+  unidades: number;
+};
 
 export default function ViewPackages() {
-  const rol = useUserStore((state) => state.role)
+  const role = useUserStore((state) => state.role);
+  const ciudad = useUserStore((state) => state.ciudad);
   const router = useRouter();
 
-  const [selectedCity, setSelectedCity] = useState('Todos');
+  const [selectedCity, setSelectedCity] = useState(ciudad);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [packagesFetched, setPackagesFetched] = useState<Package[]>([]);
+
+  useEffect(() => {
+    console.log(selectedCity?.toUpperCase(), "ciudad desde el store");
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`https://hambrosia.onrender.com/api/paquetes/${selectedCity?.toUpperCase()}/`);
+        const data = await response.json();
+
+        console.log(data, "data desde el fetch")
+        
+        if (data.success && Array.isArray(data.data)) {
+          setPackagesFetched(data.data.map((pkg: Package) => ({
+            ...pkg,
+            imagenURL: pkg.imagenURL && typeof pkg.imagenURL === 'string' ? 
+              pkg.imagenURL.trim().toLowerCase() : 
+              'hamburger'
+          })));
+        } else {
+          console.warn("No packages found or error in API:", data.message);
+          setPackagesFetched([]);
+        }
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+        setPackagesFetched([]);
+      }
+    };
+
+    fetchPackages();
+  }, [selectedCity?.toUpperCase()]);
 
   const handleSignOut = () => {
     auth.signOut();
   };
 
-  useEffect(() => {
-      console.log(rol)
-    }, [])
 
-  const filteredPackages = selectedCity === 'Todos'
-    ? packages
-    : packages.filter(pkg => pkg.city === selectedCity);
+  const formatPrice = (price: number) => {
+    return price.toPrecision(2);
+  };
+
+  const capitalizeFirstLetter = (str: string) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  const renderIcon = (iconName: string) => {
+    const validIcons = ['hamburger',
+    'cookie',
+    'pizza-slice',
+    'leaf',
+    'drumstick-bite',
+    'apple-alt',
+    'coffee',
+    'ice-cream',
+    'bread-slice'];
+    const safeIconName = validIcons.includes(iconName) ? iconName : 'hamburger';
+    return <FontAwesome5 name={safeIconName} size={35} color="#D97706" />;
+  };
+
+  const formatFirestoreTimestamp = (
+    timestamp: { _seconds: number; _nanoseconds: number } | string | undefined | null
+  ): string => {
+    // Handle undefined/null cases
+    if (!timestamp) return 'Hora no disponible';
+  
+    // If it's already a string, return as-is
+    if (typeof timestamp === 'string') return timestamp;
+  
+    // Handle invalid timestamp objects
+    if (typeof timestamp !== 'object' || typeof timestamp._seconds !== 'number') {
+      console.warn('Formato de timestamp inválido:', timestamp);
+      return 'Hora inválida';
+    }
+  
+    try {
+      const date = new Date(
+        timestamp._seconds * 1000 +
+        Math.floor(timestamp._nanoseconds / 1000000)
+      );
+  
+      return date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch (error) {
+      console.error('Error al formatear la hora:', error);
+      return 'Error en hora';
+    }
+  };
+  
 
   return (
     <View style={styles.container}>
@@ -100,8 +132,8 @@ export default function ViewPackages() {
           <Text style={styles.title}>HAMBROSÍA</Text>
           <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
         </View>
-        {rol === "RESTAURANTE" && (
-          <TouchableOpacity style={styles.addToCartButton} onPress={()=>router.replace('/(tabs)/createPackage')}>
+        {role === "RESTAURANTE" && (
+          <TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/createPackage')}>
             <FontAwesome5 name='plus-circle' size={20} color="#fff" />
           </TouchableOpacity>
         )}
@@ -153,40 +185,44 @@ export default function ViewPackages() {
 
       {/* Packages List */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-        {filteredPackages.length > 0 ? (
-          filteredPackages.map((pkg) => (
-            <Pressable onPress={() => setSelectedPackage(pkg)}>
-              <View key={pkg.id} style={styles.card}>
+        {packagesFetched.length > 0 ? (
+          packagesFetched.map((pkg) => (
+            <Pressable key={pkg.id} onPress={() => setSelectedPackage(pkg)}>
+              <View style={styles.card}>
                 <View style={styles.iconContainer}>
-                  <FontAwesome5 name={pkg.icon} size={24} color="#D97706" />
+                  {renderIcon(pkg.imagenURL)}
                 </View>
 
                 <View style={styles.cardContent}>
                   <View style={styles.cardHeader}>
-                    <Text style={styles.name}>{pkg.name}</Text>
-                    <View style={styles.discountBadge}>
-                      <Text style={styles.discountText}>{pkg.discount}%</Text>
-                    </View>
+                    <Text style={styles.name}>{pkg.nombreRestaurante}</Text>
+                    {pkg.descuento > 0 && (
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountText}>{formatPrice(Number(pkg.descuento))}%</Text>
+                      </View>
+                    )}
                   </View>
 
-                  <Text style={styles.description}>{pkg.description}</Text>
+                  <Text style={styles.description}>{pkg.descripcion}</Text>
 
                   <View style={styles.priceRow}>
-                    <Text style={styles.currentPrice}>{pkg.currentPrice}</Text>
-                    <Text style={styles.oldPrice}>{pkg.oldPrice}</Text>
+                    <Text style={styles.currentPrice}>${pkg.precioDescuento}</Text>
+                    {pkg.descuento > 0 && (
+                      <Text style={styles.oldPrice}>${formatPrice(Number(pkg.precio))}</Text>
+                    )}
                   </View>
 
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
                       <FontAwesome name="map-marker" size={12} color="#6B7280" />
-                      <Text style={styles.metaText}>{pkg.location}</Text>
+                      <Text style={styles.metaText}>{capitalizeFirstLetter(pkg.ciudad)}</Text>
                     </View>
                     <View style={styles.metaItem}>
                       <FontAwesome5 name="stopwatch" size={12} color="#6B7280" />
-                      <Text style={styles.metaText}>{pkg.time}</Text>
+                      <Text style={styles.metaText}>{formatFirestoreTimestamp(pkg.horaRetiro)}</Text>
                     </View>
                   </View>
-                  {rol === "CLIENTE" && (
+                  {role === "CLIENTE" && (
                     <TouchableOpacity style={styles.addToCartButton} onPress={() => console.log(pkg.id)}>
                       <FontAwesome name='cart-plus' size={20} color="#fff" />
                     </TouchableOpacity>
@@ -354,9 +390,10 @@ const styles = StyleSheet.create({
   discountBadge: {
     backgroundColor: '#2A7C04',
     borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 15,
     marginLeft: 8,
+    justifyContent: 'center', 
   },
   discountText: {
     color: 'white',

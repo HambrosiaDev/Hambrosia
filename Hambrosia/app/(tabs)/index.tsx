@@ -57,9 +57,13 @@ export default function HomeScreen() {
   const signIn = async () => {
     setLoading(true);
     try {
+      if (email === "" || password === "") {
+        alert("Por favor, completa todos los campos.");
+        return;
+      }
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+      console.log("User signed in:", user.uid);
 
       const usuariosQuery = query(
         collection(firestore, "usuarios"),
@@ -72,9 +76,7 @@ export default function HomeScreen() {
         const userData = userDoc.data();
         useUserStore.getState().setRole(userData.rol);
         useUserStore.getState().setCedRuc(userData.cedulaRUC);
-
-
-
+        useUserStore.getState().setCiudad(userData.ciudad); 
         console.log("User data from Firestore:", userData);
 
       } else {
@@ -86,7 +88,7 @@ export default function HomeScreen() {
 
 
     } catch (e: any) {
-      alert("Ingreso fallido" );
+      alert("Ingreso fallido" + e.message);
       try {
         const payload = {
           correo: email
@@ -127,6 +129,8 @@ export default function HomeScreen() {
     }, 3000);
   }, []);
   if (loadingPage) return <Loading />
+
+  
 
   return (
     <KeyboardAvoidingView
