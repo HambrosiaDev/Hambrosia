@@ -1,24 +1,12 @@
-import { Router } from 'express';
-import * as reporteController from '../controllers/reporteController';
+import express from 'express';
+import { reporteController } from '../controllers/reporteController';
 
-const router = Router();
+const router = express.Router();
 
-// Get all reportes
-router.get('/', reporteController.getAllReportes);
+// Route to create a new report
+router.post('/crearReporte/:compraId', reporteController.crearReporte);
 
-// Get reportes by tipo
-router.get('/tipo/:tipo', reporteController.getReportesByTipo);
-
-// Create reporte
-router.post('/', reporteController.createReporte);
-
-// Get reporte by ID
-router.get('/:id', reporteController.getReporteById);
-
-// Update reporte
-router.put('/:id', reporteController.updateReporte);
-
-// Delete reporte
-router.delete('/:id', reporteController.deleteReporte);
+// Route to get a report by ID
+router.get('/:reporteId', reporteController.getReporteById);
 
 export default router;

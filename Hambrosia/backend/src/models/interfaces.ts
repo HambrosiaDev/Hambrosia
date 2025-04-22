@@ -114,9 +114,16 @@ export interface Compra {
 }
 
 export interface Reporte {
-  id: string;
-  tipo: TipoReporte;
-  // Add other properties as needed
+  id?: string;
+  compraId: string;
+  descripcion: string;
+  nombreRestaurante: string;
+  precio: number;
+  precioDescuento: number;
+  comision:number;
+  fechaCompra: Date;
+  correo?: string;
+  cedulaRUC?: string;
 }
 
 export interface Comision {

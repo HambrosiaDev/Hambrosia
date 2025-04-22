@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
 import { paqueteService } from '../services/paqueteService';
-import { hashCedula } from '../utils/HELPER';
-import { Paquete } from '../models/interfaces';
 
 // Centralized error messages
 const ERROR_MESSAGES = {
