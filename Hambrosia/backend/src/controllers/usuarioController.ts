@@ -130,7 +130,8 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
             ciudad,          // ciudad
             rol,             // rol
             req.body.firebaseUid, // firebaseUid (asegúrate de usar el valor correcto del payload)
-            fechaNacimiento  // fechaNacimiento
+            fechaNacimiento, // fechaNacimiento
+            alergenos
         );
 
           res.status(201).json({ success: true, data: newUsuario });

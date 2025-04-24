@@ -62,9 +62,18 @@ export class UsuarioService {
 ): Promise<Usuario> {
     // Convertir fechaNacimiento a Date si existe
     let parsedFechaNacimiento: Date | undefined = undefined;
-    if (fechaNacimiento) {
-        const [day, month, year] = fechaNacimiento.split('-').map(Number);
-        parsedFechaNacimiento = new Date(year, month - 1, day); // Mes empieza en 0 en JavaScript
+    if (fechaNacimiento && typeof fechaNacimiento === 'string') {
+        const parts = fechaNacimiento.split('-');
+        if (parts.length === 3) {
+            const [day, month, year] = parts.map(Number);
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                parsedFechaNacimiento = new Date(year, month - 1, day); // Mes empieza en 0 en JavaScript
+            } else {
+                throw new Error('Formato de fecha de nacimiento inválido. Debe ser DD-MM-YYYY.');
+            }
+        } else {
+            throw new Error('Formato de fecha de nacimiento inválido. Debe ser DD-MM-YYYY.');
+        }
     }
 
     // Crear el usuario
