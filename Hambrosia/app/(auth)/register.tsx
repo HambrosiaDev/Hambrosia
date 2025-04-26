@@ -177,13 +177,13 @@ export default function Register() {
       }
 
     } else if (selectedRole === "Restaurante") {
-      /*const rucValidation = validarIdentificacionEcuatoriana(formData.restaurant.ruc);
+      const rucValidation = validarIdentificacionEcuatoriana(formData.restaurant.ruc);
       if (!rucValidation.isValid ||
         (rucValidation.type !== TipoIdentificacionEnum.RUC_SOCIEDAD_PRIVADA &&
           rucValidation.type !== TipoIdentificacionEnum.RUC_SOCIEDAD_PUBLICA)) {
         Alert.alert("Error", "RUC inválido");
         return false;
-      }*/
+      }
 
       if (!formData.restaurant.name.trim()) {
         Alert.alert("Error", "Por favor ingrese el nombre del restaurante");
@@ -211,6 +211,7 @@ export default function Register() {
   };
 
   const handleRegister = async () => {
+
     if (!validateData()) return;
 
     try {
@@ -557,6 +558,8 @@ return (
                   style={styles.input}
                   placeholder="Dirección"
                   placeholderTextColor="gray"
+                  value={formData.restaurant.location}
+                  onChangeText={(text) => handleChange("restaurant", "location", text)}
                 />
               </View>
 

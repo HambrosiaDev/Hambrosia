@@ -43,8 +43,9 @@ useEffect(() => {
 
   const inAuthGroup = segments[0] === '(auth)';
   const inTabsGroup = segments[0] === '(tabs)';
+  console.log(segments[0]);
 
-  if (user && inTabsGroup) {
+  if (user) {
     router.replace('/(tabs)/viewPackages');
   }
 

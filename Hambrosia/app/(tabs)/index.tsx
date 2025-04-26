@@ -8,7 +8,6 @@ import Loading from '@/components/Loading';
 
 import { auth, firestore } from "@/app/firebaseConfig";
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { FirebaseError } from "firebase/app"
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useUserStore } from '../user';
 
@@ -20,38 +19,11 @@ export default function HomeScreen() {
   const [loadingPage, setLoadingPage] = useState(true);
   const router = useRouter();
   const translation = useRef(new Animated.Value(0)).current;
+  const role = useUserStore((state) => state.role);
+  const ciudad = useUserStore((state) => state.ciudad);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  /*const signIn = async () => {
-    setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-  
-      setEmail("");
-      setPassword("");
-  
-      const userDocRef = doc(firestore, "usuarios", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-  
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        console.log("User data from Firestore:", userData);
-        
-
-      } else {
-        console.log("No user data found in Firestore");
-      }
-  
-    } catch (e: any) {
-      const err = e as FirebaseError;
-      alert('Sign in failed: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };*/
 
 
   const signIn = async () => {
@@ -61,11 +33,11 @@ export default function HomeScreen() {
         alert("Por favor, completa todos los campos.");
         return;
       }
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password); //Ingresar a F. Authenticator
+      const user = userCredential.user; //Guardar datos del usuario
       console.log("User signed in:", user.uid);
 
-      const usuariosQuery = query(
+      const usuariosQuery = query( //Busqueda en la colección con el usuario ingresado
         collection(firestore, "usuarios"),
         where("firebaseUid", "==", user.uid)
       );
@@ -74,9 +46,9 @@ export default function HomeScreen() {
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
-        useUserStore.getState().setRole(userData.rol);
+        useUserStore.getState().setRole(userData.rol); //guardar en user.ts
         useUserStore.getState().setCedRuc(userData.cedulaRUC);
-        useUserStore.getState().setCiudad(userData.ciudad); 
+        useUserStore.getState().setCiudad(userData.ciudad);
         console.log("User data from Firestore:", userData);
 
       } else {
@@ -86,6 +58,7 @@ export default function HomeScreen() {
       setEmail("");
       setPassword("");
 
+      
 
     } catch (e: any) {
       alert("Ingreso fallido" + e.message);
@@ -93,7 +66,7 @@ export default function HomeScreen() {
         const payload = {
           correo: email
         }
-        const response = await fetch("https://hambrosia.onrender.com/api/usuarios/login/intentoFallido", {
+        const response = await fetch("https://hambrosia.onrender.com/api/usuarios/login/intentoFallido", { //Strike por intento fallido
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -130,7 +103,7 @@ export default function HomeScreen() {
   }, []);
   if (loadingPage) return <Loading />
 
-  
+
 
   return (
     <KeyboardAvoidingView
@@ -171,7 +144,7 @@ export default function HomeScreen() {
               value={password}
               onChangeText={setPassword}
               autoCapitalize="none"
-              
+
             />
           </View>
 

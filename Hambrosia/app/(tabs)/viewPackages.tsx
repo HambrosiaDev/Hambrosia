@@ -5,6 +5,8 @@ import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useUserStore } from '../user';
 import { useRouter } from 'expo-router';
+import Loading from '@/components/Loading';
+
 
 const cities = ['Floresta', 'Quito', 'Iñaquito', 'Valle de los Chillos'];
 
@@ -29,39 +31,56 @@ export default function ViewPackages() {
   const ciudad = useUserStore((state) => state.ciudad);
   const router = useRouter();
 
-  const [selectedCity, setSelectedCity] = useState(ciudad);
+  const [selectedCity, setSelectedCity] = useState(ciudad || 'Quito');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [packagesFetched, setPackagesFetched] = useState<Package[]>([]);
+  const [loadingPage, setLoadingPage] = useState(true);
+
 
   useEffect(() => {
-    console.log(selectedCity?.toUpperCase(), "ciudad desde el store");
-    const fetchPackages = async () => {
-      try {
-        const response = await fetch(`https://hambrosia.onrender.com/api/paquetes/${selectedCity?.toUpperCase()}/`);
-        const data = await response.json();
+    if (selectedCity === undefined) {
+      setLoadingPage(true);
+    }
+    else {
+      console.log(selectedCity?.toUpperCase(), "ciudad desde el store");
+      setLoadingPage(true);
+      const fetchPackages = async () => {
+        try {
+          const response = await fetch(`https://hambrosia.onrender.com/api/paquetes/${selectedCity.toUpperCase()}/`);
+          const data = await response.json();
 
-        console.log(data, "data desde el fetch")
-        
-        if (data.success && Array.isArray(data.data)) {
-          setPackagesFetched(data.data.map((pkg: Package) => ({
-            ...pkg,
-            imagenURL: pkg.imagenURL && typeof pkg.imagenURL === 'string' ? 
-              pkg.imagenURL.trim().toLowerCase() : 
-              'hamburger'
-          })));
-        } else {
-          console.warn("No packages found or error in API:", data.message);
+          console.log(data, "data desde el fetch")
+
+          if (data.success && Array.isArray(data.data)) {
+            setPackagesFetched(data.data.map((pkg: Package) => ({
+              ...pkg,
+              imagenURL: pkg.imagenURL && typeof pkg.imagenURL === 'string' ?
+                pkg.imagenURL.trim().toLowerCase() :
+                'hamburger'
+            })));
+          } else {
+            console.warn("No packages found or error in API:", data.message);
+            setPackagesFetched([]);
+          }
+        } catch (error) {
+          console.error('Error fetching packages:', error);
           setPackagesFetched([]);
+        } finally {
+          setLoadingPage(false);
         }
-      } catch (error) {
-        console.error('Error fetching packages:', error);
-        setPackagesFetched([]);
-      }
-    };
+      };
 
-    fetchPackages();
+      fetchPackages();
+    }
   }, [selectedCity?.toUpperCase()]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLoadingPage(false);
+    }, 3000);
+  }, []);
+  if (loadingPage) return <Loading />
 
   const handleSignOut = () => {
     auth.signOut();
@@ -77,16 +96,20 @@ export default function ViewPackages() {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
+  if (selectedCity === undefined) {
+    return <Loading />;
+  }
+
   const renderIcon = (iconName: string) => {
     const validIcons = ['hamburger',
-    'cookie',
-    'pizza-slice',
-    'leaf',
-    'drumstick-bite',
-    'apple-alt',
-    'coffee',
-    'ice-cream',
-    'bread-slice'];
+      'cookie',
+      'pizza-slice',
+      'leaf',
+      'drumstick-bite',
+      'apple-alt',
+      'coffee',
+      'ice-cream',
+      'bread-slice'];
     const safeIconName = validIcons.includes(iconName) ? iconName : 'hamburger';
     return <FontAwesome5 name={safeIconName} size={35} color="#D97706" />;
   };
@@ -94,35 +117,29 @@ export default function ViewPackages() {
   const formatFirestoreTimestamp = (
     timestamp: { _seconds: number; _nanoseconds: number } | string | undefined | null
   ): string => {
-    // Handle undefined/null cases
     if (!timestamp) return 'Hora no disponible';
-  
-    // If it's already a string, return as-is
+
     if (typeof timestamp === 'string') return timestamp;
-  
-    // Handle invalid timestamp objects
+
     if (typeof timestamp !== 'object' || typeof timestamp._seconds !== 'number') {
       console.warn('Formato de timestamp inválido:', timestamp);
       return 'Hora inválida';
     }
-  
+
     try {
-      const date = new Date(
-        timestamp._seconds * 1000 +
-        Math.floor(timestamp._nanoseconds / 1000000)
-      );
-  
-      return date.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
+      const date = new Date(0);
+      date.setUTCSeconds(timestamp._seconds);
+
+      const hours = date.getUTCHours().toString().padStart(2, '0');
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+
+      return `${hours}:${minutes}`;
     } catch (error) {
       console.error('Error al formatear la hora:', error);
       return 'Error en hora';
     }
   };
-  
+
 
   return (
     <View style={styles.container}>
@@ -133,9 +150,12 @@ export default function ViewPackages() {
           <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
         </View>
         {role === "RESTAURANTE" && (
-          <TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/createPackage')}>
+          <><TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/createPackage')}>
             <FontAwesome5 name='plus-circle' size={20} color="#fff" />
           </TouchableOpacity>
+          <TouchableOpacity style={styles.checkCodeButton} onPress={() => router.replace('/(tabs)/createPackage')}>
+              <FontAwesome5 name='spell-check' size={18} color="#fff" />
+            </TouchableOpacity></>
         )}
         <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
           <Text style={styles.logOutText}>Salir</Text>
@@ -198,7 +218,7 @@ export default function ViewPackages() {
                     <Text style={styles.name}>{pkg.nombreRestaurante}</Text>
                     {pkg.descuento > 0 && (
                       <View style={styles.discountBadge}>
-                        <Text style={styles.discountText}>{formatPrice(Number(pkg.descuento))}%</Text>
+                        <Text style={styles.discountText}>{formatPrice(Number(pkg.descuento))}% OFF</Text>
                       </View>
                     )}
                   </View>
@@ -261,7 +281,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#C2410C',
     marginRight: 10,
@@ -353,8 +373,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   addToCartButton: {
+    top: 5,
     backgroundColor: '#D97706',
     paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  checkCodeButton: {
+    top: 5,
+    backgroundColor: '#D97706',
+    paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
     alignItems: 'center',
@@ -393,7 +422,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 15,
     marginLeft: 8,
-    justifyContent: 'center', 
+    justifyContent: 'center',
   },
   discountText: {
     color: 'white',

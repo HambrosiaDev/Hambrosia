@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Hambrosia",
+    "assetBundlePatterns":["**/*"],
     "slug": "Hambrosia",
     "version": "1.0.0",
     "orientation": "portrait",
