@@ -1,5 +1,5 @@
 export const compraSwagger = {
-    "/compra/{paqueteId}": {
+    "/api/compra/{paqueteId}": {
       post: {
         tags: ["Compra"],
         summary: "Crear una nueva compra",
@@ -136,7 +136,7 @@ export const compraSwagger = {
         },
       },
     },
-    "/compra/confirmar/{compraId}": {
+    "/api/compra/confirmar/{compraId}": {
       post: {
         tags: ["Compra"],
         summary: "Confirmar una compra",
@@ -263,7 +263,7 @@ export const compraSwagger = {
         },
       },
     },
-    "/compra/cancelar/{compraId}": {
+    "/api/compra/cancelar/{compraId}": {
       put: {
         tags: ["Compra"],
         summary: "Cancelar una compra",
@@ -347,7 +347,7 @@ export const compraSwagger = {
         },
       },
     },
-      "/compra/notificacion/{compraId}": {
+      "/api/compra/notificacion/{compraId}": {
       get: {
         tags: ["Compra"],
         summary: "Obtener la notificación de una compra",

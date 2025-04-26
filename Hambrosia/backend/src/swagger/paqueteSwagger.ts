@@ -1,5 +1,5 @@
 export const paqueteSwagger = {
-    "/paquete/{cedRuc}/crearPaquete": {
+    "/api/paquete/{cedRuc}/crearPaquete": {
       post: {
         tags: ["Paquete"],
         summary: "Crear un nuevo paquete",
@@ -127,7 +127,7 @@ export const paqueteSwagger = {
         },
       },
     },
-    "/paquete/{ciudad}": {
+    "/api/paquete/{ciudad}": {
       get: {
         tags: ["Paquete"],
         summary: "Obtener paquetes por ciudad",

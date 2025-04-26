@@ -36,12 +36,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Routes
-app.use('/api/usuarios', usuarioRoutes);
-app.use('/api/paquetes', paqueteRoutes);
-app.use('/api/compras', compraRoutes);
-app.use('/api/reportes', reporteRoutes);
-
 // Configuration for swagger documentation
 const swaggerDocument = {
   openapi: '3.0.0',
@@ -57,6 +51,13 @@ const swaggerDocument = {
     ...paqueteSwagger
   },
 };
+
+// Routes
+app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/paquetes', paqueteRoutes);
+app.use('/api/compras', compraRoutes);
+app.use('/api/reportes', reporteRoutes);
+
 
 // Routes for the API documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

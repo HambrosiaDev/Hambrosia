@@ -1,5 +1,5 @@
 export const usuarioSwagger = {
-    "/usuario/register": {
+    "/api/usuarios/register": {
       post: {
         tags: ["Usuario"],
         summary: "Registrar un nuevo usuario",
@@ -97,7 +97,7 @@ export const usuarioSwagger = {
         },
       },
     },
-    "/usuario/login/intentoFallido": {
+    "/api/usuarios/login/intentoFallido": {
       post: {
         tags: ["Usuario"],
         summary: "Registrar un intento fallido de inicio de sesión",
@@ -180,7 +180,7 @@ export const usuarioSwagger = {
         },
       },
     },
-    "/usuario/login/resetearIntentos": {
+    "/api/usuarios/login/resetearIntentos": {
       post: {
         tags: ["Usuario"],
         summary: "Resetear intentos fallidos",
@@ -250,7 +250,7 @@ export const usuarioSwagger = {
         },
       },
     },
-      "/usuario/login/resetearStrikes": {
+      "/api/usuarios/login/resetearStrikes": {
       post: {
         tags: ["Usuario"],
         summary: "Resetear Strikes",
@@ -320,7 +320,7 @@ export const usuarioSwagger = {
         },
       },
     },
-      "/usuario/desbloquear": {
+      "/api/usuarios/desbloquear": {
       post: {
         tags: ["Usuario"],
         summary: "Desbloquear Usuario",
@@ -390,7 +390,7 @@ export const usuarioSwagger = {
         },
       },
     },
-    "/usuario/restaurantes": {
+    "/api/usuarios/restaurantes": {
       get: {
         tags: ["Usuario"],
         summary: "Obtener todos los restaurantes",
@@ -413,7 +413,7 @@ export const usuarioSwagger = {
         },
       },
     },
-    "/usuario/{id}": {
+    "/api/usuarios/{id}": {
       get: {
         tags: ["Usuario"],
         summary: "Obtener un usuario por ID",
@@ -607,7 +607,7 @@ export const usuarioSwagger = {
         },
       },
     },
-    "/usuario": {
+    "/api/usuarios": {
       get: {
         tags: ["Usuario"],
         summary: "Obtener todos los usuarios",
@@ -630,7 +630,7 @@ export const usuarioSwagger = {
         },
       },
     },
-    "/usuario/{id}/incrementar-strike": {
+    "/api/usuarios/{id}/incrementar-strike": {
       post: {
         tags: ["Usuario"],
         summary: "Incrementar strike a un usuario",
@@ -692,7 +692,7 @@ export const usuarioSwagger = {
         },
       },
     },
-     "/usuario/{id}/Verificar-bloqueo": {
+     "/api/usuarios/{id}/Verificar-bloqueo": {
       get: {
         tags: ["Usuario"],
         summary: "Verificar si el usuario está bloqueado",
