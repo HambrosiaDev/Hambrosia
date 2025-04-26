@@ -1,6 +1,6 @@
 // ViewPackages.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Pressable, TextInput } from 'react-native';
 import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useUserStore } from '../user';
@@ -32,11 +32,13 @@ export default function ViewPackages() {
   const router = useRouter();
 
   const [selectedCity, setSelectedCity] = useState(ciudad || 'Quito');
-  const [modalVisible, setModalVisible] = useState(false);
+  const [cityModalVisible, setCityModalVisible] = useState(false);
+  const [packageModalVisible, setPackageModalVisible] = useState(false);
+  const [validationModalVisible, setValidationModalVisible] = useState(false);
+  const [validationCode, setValidationCode] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [packagesFetched, setPackagesFetched] = useState<Package[]>([]);
   const [loadingPage, setLoadingPage] = useState(true);
-
 
   useEffect(() => {
     if (selectedCity === undefined) {
@@ -140,6 +142,13 @@ export default function ViewPackages() {
     }
   };
 
+  const openPackageDetails = (pkg: Package) => {
+    setSelectedPackage(pkg);
+    setPackageModalVisible(true);
+  };
+
+
+
 
   return (
     <View style={styles.container}>
@@ -153,7 +162,7 @@ export default function ViewPackages() {
           <><TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/createPackage')}>
             <FontAwesome5 name='plus-circle' size={20} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.checkCodeButton} onPress={() => router.replace('/(tabs)/createPackage')}>
+            <TouchableOpacity style={styles.checkCodeButton} onPress={() => setValidationModalVisible(true)}>
               <FontAwesome5 name='spell-check' size={18} color="#fff" />
             </TouchableOpacity></>
         )}
@@ -165,7 +174,7 @@ export default function ViewPackages() {
       {/* City Selector */}
       <TouchableOpacity
         style={styles.citySelector}
-        onPress={() => setModalVisible(true)}
+        onPress={() => setCityModalVisible(true)}
       >
         <FontAwesome5 name="map-marker-alt" size={16} color="#D97706" />
         <Text style={styles.cityText}>{selectedCity}</Text>
@@ -173,10 +182,10 @@ export default function ViewPackages() {
       </TouchableOpacity>
 
       {/* City Selection Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
+      <Modal visible={cityModalVisible} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalOverlay}
-          onPress={() => setModalVisible(false)}
+          onPress={() => setCityModalVisible(false)}
           activeOpacity={1}
         >
           <View style={styles.modalContainer}>
@@ -190,7 +199,7 @@ export default function ViewPackages() {
                 ]}
                 onPress={() => {
                   setSelectedCity(city);
-                  setModalVisible(false);
+                  setCityModalVisible(false);
                 }}
               >
                 <Text style={styles.modalItemText}>{city}</Text>
@@ -207,7 +216,7 @@ export default function ViewPackages() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
         {packagesFetched.length > 0 ? (
           packagesFetched.map((pkg) => (
-            <Pressable key={pkg.id} onPress={() => setSelectedPackage(pkg)}>
+            <Pressable key={pkg.id} onPress={() => openPackageDetails(pkg)}>
               <View style={styles.card}>
                 <View style={styles.iconContainer}>
                   {renderIcon(pkg.imagenURL)}
@@ -258,6 +267,145 @@ export default function ViewPackages() {
           </View>
         )}
       </ScrollView>
+
+      {/* Package Details Modal */}
+      <Modal visible={packageModalVisible} transparent animationType="slide">
+        <View style={styles.packageModalOverlay}>
+          <View style={styles.packageModalContainer}>
+            {selectedPackage && (
+              <>
+                <View style={styles.packageModalHeader}>
+                  <Text style={styles.packageModalTitle}>{selectedPackage.nombreRestaurante}</Text>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setPackageModalVisible(false)}
+                  >
+                    <FontAwesome5 name="times" size={20} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.packageModalContent}>
+                  <View style={styles.packageIconContainer}>
+                    {renderIcon(selectedPackage.imagenURL)}
+                  </View>
+
+                  <Text style={styles.packageDescription}>{selectedPackage.descripcion}</Text>
+
+                  <View style={styles.packageDetailsRow}>
+                    <View style={styles.detailItem}>
+                      <FontAwesome5 name="map-marker-alt" size={16} color="#D97706" />
+                      <Text style={styles.detailText}>{capitalizeFirstLetter(selectedPackage.ciudad)}</Text>
+                    </View>
+
+                    <View style={styles.detailItem}>
+                      <FontAwesome5 name="clock" size={16} color="#D97706" />
+                      <Text style={styles.detailText}>
+                        {formatFirestoreTimestamp(selectedPackage.horaRetiro)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.packageDetailsRow}>
+                    <View style={styles.detailItem}>
+                      <FontAwesome5 name="box-open" size={16} color="#D97706" />
+                      <Text style={styles.detailText}>
+                        {selectedPackage.unidades} {selectedPackage.unidades === 1 ? 'unidad' : 'unidades'} disponible
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.priceContainer}>
+                    {selectedPackage.descuento > 0 && (
+                      <Text style={styles.originalPrice}>${formatPrice(Number(selectedPackage.precio))}</Text>
+                    )}
+                    <Text style={styles.finalPrice}>${selectedPackage.precioDescuento}</Text>
+                    {selectedPackage.descuento > 0 && (
+                      <View style={styles.discountTag}>
+                        <Text style={styles.discountTagText}>{formatPrice(selectedPackage.descuento)}% OFF</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {role === "CLIENTE" && (
+                    <TouchableOpacity
+                      style={styles.buyButton}
+                      onPress={() => {
+                        // Add to cart logic here
+                        setPackageModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.buyButtonText}>Añadir al carrito</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Package Details Modal */}
+      <Modal visible={validationModalVisible} transparent animationType="slide">
+        <View style={styles.packageModalOverlay}>
+          <View style={styles.packageModalContainer}>
+            <View style={styles.packageModalHeader}>
+              <FontAwesome5 name="check-circle" size={24} color="#D97706" style={styles.icon} />
+              <Text style={styles.packageModalTitle}>Validación Código</Text>
+              <TouchableOpacity
+                onPress={() => setValidationModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <FontAwesome5 name="times" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.packageModalContent}>
+              <Text style={styles.packageDescription}>Ingresa el código de validación proporcionado por el cliente.</Text>
+              <TextInput
+                value={validationCode}
+                onChangeText={setValidationCode}
+                placeholder="Ej: ABCD1234"
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                keyboardType="default"
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#D97706',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginTop: 10,
+                  backgroundColor: '#fff',
+                  color: '#1F2937',
+                  fontSize: 16,
+                  fontWeight: '500',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                }}
+
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.buyButton}
+              onPress={() => {
+                //Logic to validate the code here
+                setValidationModalVisible(false);
+              }} >
+              <Text style={styles.buyButtonText}>Validar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.logOutButton, { marginTop: 10 }]}
+              onPress={() => {
+                //Logic to report a client here
+                setValidationModalVisible(false);
+              }} >
+              <Text style={styles.buyButtonText}>Reportar a un cliente</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+
     </View>
   );
 }
@@ -474,5 +622,104 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  packageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  packageModalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: '80%',
+  },
+  packageModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  packageModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  packageModalContent: {
+    paddingBottom: 20,
+  },
+  packageIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  packageDescription: {
+    fontSize: 16,
+    color: '#4B5563',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  packageDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginLeft: 8,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  originalPrice: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+    marginRight: 8,
+  },
+  finalPrice: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginRight: 12,
+  },
+  discountTag: {
+    backgroundColor: '#2A7C04',
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  discountTagText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  buyButton: {
+    backgroundColor: '#D97706',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  buyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -277,7 +277,7 @@ export default function Register() {
 
   Alert.alert("Éxito", "Registro completado correctamente 🎉");
   setToNull();
-  router.replace("/");
+  router.replace("/viewPackages");
 
 } catch (error: any) {
   console.error("Registration error:", error);
