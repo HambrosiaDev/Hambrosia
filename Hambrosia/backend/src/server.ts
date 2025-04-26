@@ -10,7 +10,6 @@ import usuarioRoutes from './routes/usuarioRoutes';
 import paqueteRoutes from './routes/paqueteRoutes';
 import compraRoutes from './routes/compraRoutes';
 import reporteRoutes from './routes/reporteRoutes';
-import comisionRoutes from './routes/comisionRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -30,7 +29,6 @@ app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/paquetes', paqueteRoutes);
 app.use('/api/compras', compraRoutes);
 app.use('/api/reportes', reporteRoutes);
-app.use('/api/comisiones', comisionRoutes);
 
 app.get('/api', (req: Request, res: Response) => {
   res.json({

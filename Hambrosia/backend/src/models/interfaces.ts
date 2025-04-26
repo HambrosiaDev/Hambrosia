@@ -126,8 +126,9 @@ export interface Reporte {
   cedulaRUC?: string;
 }
 
-export interface Comision {
+export interface Notificaciones {
   id: string;
-  restauranteId: string;
-  // Add other properties as needed
+  nombreCliente: string;
+  nombrePaquete: string;
+  cancelado: boolean;
 }

@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { Compra } from '../models/interfaces';
+import { Compra, Notificaciones } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import { paqueteService } from './paqueteService';
 
@@ -11,6 +11,7 @@ const ERROR_MESSAGES = {
   CONFIRMING_COMPRA_ERROR: 'Error confirmando la compra',
   UPDATING_COMPRA_ERROR: 'Error actualizando la compra',
   GETTING_COMPRA_ERROR: 'Error obteniendo la compra',
+  INVALID_COMPRA_ID: 'ID de compra inválido',
 };
 
 export class CompraService {
@@ -19,6 +20,10 @@ export class CompraService {
   // Helper method to get a compraRef
   private compraRef(compraId: string) {
     return this.collection.doc(compraId);
+  }
+
+  private notificacionRef(compraId: string) {
+    return db.collection('notificaciones').doc(compraId).withConverter(converterFactory<Compra>());
   }
 
   async crearCompra(paqueteId: string, compra: Compra): Promise<Compra> {
@@ -75,4 +80,62 @@ export class CompraService {
         throw error;
     }
 }
+
+async crearNotificacionCompra(compraId: string, body: any): Promise<Notificaciones> {
+  try {
+    // Validar que el ID de compra no esté vacío
+    if (!compraId) {
+      throw new Error(ERROR_MESSAGES.INVALID_COMPRA_ID);
+    }
+
+    const notificacionRef = this.notificacionRef(compraId);
+
+    // Actualizar la notificación
+    await notificacionRef.create(body);
+
+    // Obtener la notificación actualizada
+    const notificacionSnapshot = await notificacionRef.get();
+    if (!notificacionSnapshot.exists) {
+      throw new Error(ERROR_MESSAGES.COMPRA_NOT_FOUND);
+    }
+
+    // Retornar la notificación formateada
+    return { id: notificacionSnapshot.id, ...notificacionSnapshot.data() } as Notificaciones;
+
+  } catch (error) {
+    console.error(ERROR_MESSAGES.UPDATING_COMPRA_ERROR, error);
+    throw error; // Propagar el error para que el controlador lo maneje
+  }
+}
+async actualizarNotificacionCompra(compraId: string, body: Partial<Notificaciones>): Promise<Notificaciones> {
+  try {
+    const notificacionRef = this.notificacionRef(compraId);
+    await notificacionRef.update(body);
+
+    const notificacionSnapshot = await notificacionRef.get();
+    if (!notificacionSnapshot.exists) {
+      throw new Error(ERROR_MESSAGES.COMPRA_NOT_FOUND);
+    }
+
+    return { id: notificacionSnapshot.id, ...notificacionSnapshot.data() } as Notificaciones;
+  }
+  catch (error) {
+    console.error(ERROR_MESSAGES.UPDATING_COMPRA_ERROR, error);
+    throw new Error(ERROR_MESSAGES.UPDATING_COMPRA_ERROR);
+  }
+}
+async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
+  try {
+    const notificacionSnapshot = await this.notificacionRef(compraId).get();
+    if (!notificacionSnapshot.exists) {
+      return null;
+    }
+    return { id: notificacionSnapshot.id, ...notificacionSnapshot.data() } as Notificaciones;
+  }
+  catch (error) {
+    console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+    throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+  }
+}
+  // Dos tipos de notificaciones: cuando reserva y cuando cancela
 }
