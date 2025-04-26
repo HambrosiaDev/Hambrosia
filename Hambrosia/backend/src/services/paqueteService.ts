@@ -69,7 +69,7 @@ export class PaqueteService {
         throw { statusCode: 403, message: ERROR_MESSAGES.UNAUTHORIZED_PUBLISH };
       }
 
-      const { nombre: nombreRestaurante, ciudad: ciudadRestaurante } = usuario;
+      const { nombre: nombreRestaurante, ciudad: ciudadRestaurante, direccion: direccion} = usuario;
       const descuento = ((dataPaquete.precio - dataPaquete.precioDescuento) / dataPaquete.precio) * 100;
 
       const nuevoPaquete = {
@@ -86,7 +86,7 @@ export class PaqueteService {
         horaRetiro: new Date(dataPaquete.horaRetiro),
         ciudad: ciudadRestaurante,
         alergenos: usuario.alergenos || [],
-        direccion: usuario.direccion || null,
+        direccion: direccion || null,
       };
 
       const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);

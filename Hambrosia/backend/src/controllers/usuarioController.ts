@@ -54,7 +54,7 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
 // Register new user with authentication
 export const registerUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos } = req.body;
+      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos, direccion } = req.body;
 
       // Validar campos requeridos
       if (!correo || !cedulaRUC || !nombre || !rol || !ciudad) {
@@ -99,6 +99,7 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
                   return;
               }
           }
+          const direccion = req.body.direccion || null; // Dirección es opcional para usuarios
       }
 
       // Validar el formato de la cédula/RUC
@@ -131,7 +132,8 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
             rol,             // rol
             req.body.firebaseUid, // firebaseUid (asegúrate de usar el valor correcto del payload)
             fechaNacimiento, // fechaNacimiento
-            alergenos
+            alergenos,
+            direccion
         );
 
           res.status(201).json({ success: true, data: newUsuario });

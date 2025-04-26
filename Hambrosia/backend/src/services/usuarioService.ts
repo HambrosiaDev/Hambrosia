@@ -58,7 +58,8 @@ export class UsuarioService {
     rol: Rol,
     firebaseUid: string,
     fechaNacimiento?: string | undefined, // Fecha de nacimiento es opcional
-    alergenos?: Alergeno[]
+    alergenos?: Alergeno[],
+    direccion?: string // Dirección es opcional
 ): Promise<Usuario> {
     // Convertir fechaNacimiento a Date si existe
     let parsedFechaNacimiento: Date | undefined = undefined;
@@ -86,11 +87,12 @@ export class UsuarioService {
         rol: rol,
         firebaseUid: firebaseUid,
         intentosFallidos: 0,
-        activo: true
+        activo: true,
     };
 
     if (rol === Rol.RESTAURANTE) {
-        userData.alergenos = alergenos || []; // Inicializar alérgenos como un array vacío si no se proporciona
+        userData.alergenos = alergenos || [];
+        userData.direccion = direccion // Inicializar alérgenos como un array vacío si no se proporciona
     }
 
     // Agregar fecha de nacimiento si está definida
@@ -102,6 +104,7 @@ export class UsuarioService {
     if (rol === Rol.CLIENTE) {
         userData.strikes = 0;
     }
+
 
     // Guardar en Firestore
     const hashedId = hashCedula(cedulaRUC);
