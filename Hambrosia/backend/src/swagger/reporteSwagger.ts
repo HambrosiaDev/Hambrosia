@@ -1,5 +1,5 @@
 export const reporteSwagger = {
-    "/api/reporte/crearReporte/{compraId}": {
+    "/api/reportes/crearReporte/{compraId}": {
       post: {
         tags: ["Reporte"],
         summary: "Crear un nuevo reporte",
@@ -148,7 +148,7 @@ export const reporteSwagger = {
         },
       },
     },
-    "/api/reporte/{reporteId}": {
+    "/api/reportes/{reporteId}": {
       get: {
         tags: ["Reporte"],
         summary: "Obtener un reporte por ID",
