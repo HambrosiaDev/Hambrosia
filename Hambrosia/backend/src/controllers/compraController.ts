@@ -98,7 +98,15 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    const Paquete = await paqueteService.obtenerPaquetePorId(paqueteId);
+    if (!Paquete) {
+      res.status(404).json({ success: false, error: 'El paquete no existe' });
+      return;
+    }
+    const totalPaquete = Paquete.precioDescuento * cantidadComprada;
+
     const codigo =  generarCodigoAleatorioSeguro();
+
     console.log('Código generado:', codigo);
     const compraData: Compra = {
       clienteId,
@@ -110,6 +118,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       pagado: false,
       confirmacionCodigo: false,
       retirado: false,
+      precioApagar: totalPaquete,
     };
     const nuevaCompra = await compraService.crearCompra(paqueteId, compraData);
     if (nuevaCompra.id !== undefined) {

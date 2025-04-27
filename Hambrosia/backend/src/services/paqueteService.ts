@@ -163,7 +163,7 @@ export class PaqueteService {
       if (!paquete) {
         throw { statusCode: 404, message: ERROR_MESSAGES.PACKAGE_NOT_FOUND };
       }
-      const precioUnitario = paquete.precio || 0;
+      const precioUnitario = paquete.precioDescuento || 0;
       const comision = 0.1; // 10% de comisión
       return cantidadComprada * precioUnitario * comision;
     } catch (error: any) {

@@ -111,6 +111,7 @@ export interface Compra {
   cantidadComprada: number; // Cantidad comprada del paquete
   cancelado?: boolean; // true = compra cancelada, false = compra no cancelada
   metodoPago: "EFECTIVO" | "TARJETA"; // Método de pago (opcional)
+  precioApagar: number; // Precio a pagar por el cliente (unidad * cantidad comprada)
 }
 
 export interface Reporte {
