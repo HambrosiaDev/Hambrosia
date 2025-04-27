@@ -138,4 +138,46 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
   }
 }
   // Dos tipos de notificaciones: cuando reserva y cuando cancela
+  async getComisionMensualByRestauranteId(mes: string, restauranteId: string): Promise<number> {
+    try {
+      // Obtenemos todas las compras del restaurante específico
+      const comprasSnapshot = await this.collection.where('restauranteId', '==', restauranteId).get();
+  
+      // Convertimos los documentos en objetos Compra
+      const compras: Compra[] = comprasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Compra));
+  
+      // Variable para acumular las comisiones
+      let comisionAcumulada = 0;
+  
+      // Filtramos las compras por el mes proporcionado y sumamos las comisiones
+      compras.forEach(compra => {
+        const fechaCompra = compra.fechaCompra;
+  
+        if (fechaCompra) {
+          // Extraemos el mes, ya sea desde un Timestamp o un Date
+          let mesCompra: string;
+  
+          if (typeof fechaCompra === 'object' && 'seconds' in fechaCompra && 'nanoseconds' in fechaCompra) {
+            // Si es un Timestamp, creamos un Date usando seconds y nanoseconds
+            const fechaComoDate = new Date((fechaCompra as any).seconds * 1000 + (fechaCompra as any).nanoseconds / 1_000_000);
+            mesCompra = fechaComoDate.toLocaleString('es', { month: 'long' });
+          } else {
+            // Si ya es un Date, lo usamos directamente
+            const fechaComoDate = new Date(fechaCompra);
+            mesCompra = fechaComoDate.toLocaleString('es', { month: 'long' });
+          }
+          // Verificamos si el mes coincide y si la compra está pagada
+          if (mesCompra === mes && compra.pagado === true) {
+            comisionAcumulada += compra.valorComision || 0; // Sumamos la comisión (si existe)
+          }
+        }
+      });
+  
+      // Retornamos la comisión acumulada
+      return comisionAcumulada;
+    } catch (error) {
+      console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+      throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+    }
+  }
 }

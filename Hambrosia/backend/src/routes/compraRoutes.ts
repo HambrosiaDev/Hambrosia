@@ -13,4 +13,6 @@ router.post('/confirmar/:compraId', compraController.confirmarCompra);
 router.put('/cancelar/:compraId', compraController.cancelarCompra);
 
 router.get('/notificacion/:compraId', compraController.getNotificacionByCompraId);
+
+router.get('/comisionMensual/:mes/:restauranteId', compraController.getComisionMensualByRestauranteId);
 export default router;

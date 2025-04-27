@@ -447,4 +447,112 @@ export const compraSwagger = {
         },
       },
     },
+    "/api/compras/comisionMensual/{mes}/{restauranteId}": {
+      get: {
+        tags: ["Compra"],
+        summary: "Obtener la comisión mensual de un restaurante",
+        description: "Obtiene la comisión mensual acumulada para un restaurante específico.",
+        parameters: [
+          {
+            name: "mes",
+            in: "path",
+            required: true,
+            description: "Mes para el cual se desea obtener la comisión",
+            schema: {
+              type: "string",
+            },
+          },
+          {
+            name: "restauranteId",
+            in: "path",
+            required: true,
+            description: "ID del restaurante",
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Comisión mensual obtenida exitosamente",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: true,
+                    },
+                    data: {
+                      type: "object",
+                      description: "Datos de la comisión mensual",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Solicitud incorrecta",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: false,
+                    },
+                    error: {
+                      type: "string",
+                      example: "Faltan datos obligatorios",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Comisión no encontrada para el restaurante en el mes especificado",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: false,
+                    },
+                    error: {
+                      type: "string",
+                      example:
+                        "No hay comisiones para este restaurante en este mes.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description:
+              "Error interno del servidor al obtener la comisión mensual.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    error:{
+                      type:"string",
+                      example: "Error al obtener la comisión mensual",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   };
