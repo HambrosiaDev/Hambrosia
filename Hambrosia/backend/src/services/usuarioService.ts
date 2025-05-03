@@ -1,5 +1,5 @@
 import { db, auth } from '../config/firebase';
-import { Usuario, Rol, Alergeno, Ciudad } from '../models/interfaces';
+import { Usuario, Rol, Alergeno, Ciudad, MetodoPago } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
 import { hashCedula } from '../utils/HELPER';
@@ -59,7 +59,8 @@ export class UsuarioService {
     firebaseUid: string,
     fechaNacimiento?: string | undefined, // Fecha de nacimiento es opcional
     alergenos?: Alergeno[],
-    direccion?: string // Dirección es opcional
+    direccion?: string, // Dirección es opcional
+    metodoPago?: MetodoPago[] // Método de pago es opcional
 ): Promise<Usuario> {
     // Convertir fechaNacimiento a Date si existe
     let parsedFechaNacimiento: Date | undefined = undefined;
@@ -93,6 +94,7 @@ export class UsuarioService {
     if (rol === Rol.RESTAURANTE) {
         userData.alergenos = alergenos || [];
         userData.direccion = direccion // Inicializar alérgenos como un array vacío si no se proporciona
+        userData.metodoPago = metodoPago || []; // Inicializar método de pago como un array vacío si no se proporciona
     }
 
     // Agregar fecha de nacimiento si está definida

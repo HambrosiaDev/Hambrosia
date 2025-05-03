@@ -49,6 +49,13 @@ export enum Ciudad {
   PUERTO_BAQUERIZO_MORENO = 'PUERTO BAQUERIZO MORENO' // Galápagos
 }
 
+export enum MetodoPago {
+    TARJETA_CREDITO = 'TARJETA_CREDITO',
+    TARJETA_DEBITO = 'TARJETA_DEBITO',
+    EFECTIVO = 'EFECTIVO',
+    TRANSFERENCIA = 'TRANSFERENCIA',
+    DEUNA = 'DEUNA'
+}
 
 // Interfaces
 export interface Usuario {
@@ -76,6 +83,7 @@ export interface Usuario {
 
   // Solo Restaurantes
   alergenos?: Alergeno[];
+  metodoPago?: MetodoPago[]; 
 }
 
 export interface Paquete {

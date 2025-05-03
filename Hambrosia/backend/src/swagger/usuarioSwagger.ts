@@ -52,13 +52,24 @@ export const usuarioSwagger = {
                     items: {
                       type: "string",
                     },
-                    example: ["GLUTEN", "LACTEOS"],
+                    example: ["LECHE", "HUEVO", "PESCADO", "CRUSTACEOS_MARISCOS", 
+                    "FRUTOS_SECOS", "MANI_CACAHUATE", "TRIGO", 
+                    "GRANOS_DE_SOYA", "SESAMO"],
                   },
                    direccion: {
                     type: "string",
                     description: "Direccion del usuario o restaurante (opcional)",
                     example: "Calle 123",
-                  }
+                  },
+                  metodoPago: {
+                    type: "array",
+                    description: "Métodos de pago del restaurante (opcional, solo para restaurantes)",
+                    items: {
+                      type: "string",
+                      enum: ["TARJETA_CREDITO", "TARJETA_DEBITO", "EFECTIVO", "TRANSFERENCIA", "DEUNA"],
+                    },
+                    example: ["TARJETA_CREDITO", "EFECTIVO"],
+                  },
                 },
                 required: ["correo", "cedulaRUC", "nombre", "ciudad", "rol", "firebaseUid"],
               },

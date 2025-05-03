@@ -1,5 +1,5 @@
 
-import * as crypto from "crypto";
+import * as CryptoJS from 'crypto-js';
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -14,12 +14,10 @@ const SECRET_KEY =
  * @returns El hash de la cédula que puede usarse como identificador
  */
 export function hashCedula(cedula: string): string {
-    const hash = crypto
-        .createHash("sha256")
-        .update(`${cedula}${SECRET_KEY}`)
-        .digest("hex");
-
-    return hash;
+  return CryptoJS.HmacSHA256(
+    `${cedula}:${SECRET_KEY}`, 
+    SECRET_KEY
+  ).toString(CryptoJS.enc.Hex);
 }
 
 
@@ -384,10 +382,17 @@ export class ValidacionCedulaRuc {
 }
 
 export function generarCodigoAleatorioSeguro(): string {
-  // Generar un número aleatorio seguro de 6 dígitos
-  const buffer = crypto.randomBytes(3); // 3 bytes = 24 bits
-  const numero = (buffer.readUIntBE(0, 3) % 1000000).toString().padStart(6, "0");
-  return numero;
+  // Generar bytes aleatorios con CryptoJS (3 bytes = 24 bits)
+  const randomWordArray = CryptoJS.lib.WordArray.random(3);
+  
+  // Convertir a hexadecimal y luego a un número
+  const hexString = randomWordArray.toString(CryptoJS.enc.Hex);
+  const decimalValue = parseInt(hexString, 16);
+  
+  // Obtener un número de 6 dígitos (módulo 1000000)
+  const numeroSeisDígitos = (decimalValue % 1000000).toString().padStart(6, "0");
+  
+  return numeroSeisDígitos;
 }
 
 export function verificarCodigo(codigoIngresado: string, codigoAlmacenado: string): boolean {

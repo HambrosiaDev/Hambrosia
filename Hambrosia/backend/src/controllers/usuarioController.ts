@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UsuarioService } from '../services/usuarioService';
-import { Rol, Alergeno } from '../models/interfaces';
+import { Rol, Alergeno, MetodoPago } from '../models/interfaces';
 import { ValidacionCedulaRuc } from '../utils/HELPER';
 import { hashCedula } from '../utils/HELPER';
 
@@ -54,7 +54,7 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
 // Register new user with authentication
 export const registerUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos, direccion } = req.body;
+      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos, direccion, metodoPago } = req.body;
 
       // Validar campos requeridos
       if (!correo || !cedulaRUC || !nombre || !rol || !ciudad) {
@@ -82,25 +82,38 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
 
       // Validar alergenos si es restaurante
       if (rol === Rol.RESTAURANTE) {
-          // Permitir un array vacío o un array con valores válidos
-          if (!Array.isArray(alergenos)) {
-              res.status(400).json({
-                  success: false,
-                  error: 'Los alérgenos deben ser un array',
-              });
-              return;
-          }
-
-          // Verificar que los alérgenos son válidos (si no está vacío)
-          if (alergenos.length > 0) {
-              const alergenosValidos = alergenos.every((a) => Object.values(Alergeno).includes(a));
-              if (!alergenosValidos) {
-                  res.status(400).json({ success: false, error: 'Uno o más alérgenos no son válidos' });
-                  return;
-              }
-          }
-          const direccion = req.body.direccion || null; // Dirección es opcional para usuarios
-      }
+        // Validar que alergenos sea un array (puede estar vacío)
+        if (!Array.isArray(alergenos)) {
+            res.status(400).json({ success: false, error: 'Los alérgenos deben ser un array' });
+            return;
+        }
+    
+        // Validar que los alérgenos son válidos (si no está vacío)
+        if (alergenos.length > 0) {
+            const alergenosValidos = alergenos.every((a) => Object.values(Alergeno).includes(a));
+            if (!alergenosValidos) {
+                res.status(400).json({ success: false, error: 'Uno o más alérgenos no son válidos' });
+                return;
+            }
+        }
+    
+        // Validar metodoPago
+        if (metodoPago && !Array.isArray(metodoPago)) {
+            res.status(400).json({ success: false, error: 'El método de pago debe ser un array' });
+            return;
+        }
+    
+        // Validar que los métodos de pago sean válidos según el enum
+        if (metodoPago && metodoPago.length > 0) {
+            const metodosValidos = metodoPago.every((m: unknown) =>
+                Object.values(MetodoPago).includes(m as MetodoPago)
+            );
+            if (!metodosValidos) {
+                res.status(400).json({ success: false, error: 'Uno o más métodos de pago no son válidos' });
+                return;
+            }
+        }
+    }
 
       // Validar el formato de la cédula/RUC
       if (!ValidacionCedulaRuc.esIdentificacionValida(cedulaRUC)) {
@@ -123,28 +136,28 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
       }
 
       try {
-          // Registrar el usuario utilizando el servicio
-          const newUsuario = await usuarioService.register(
+        // Registrar el usuario utilizando el servicio
+        const newUsuario = await usuarioService.register(
             correo,          // email
             cedulaRUC,       // cedulaRUC
             nombre,          // nombre
             ciudad,          // ciudad
             rol,             // rol
-            req.body.firebaseUid, // firebaseUid (asegúrate de usar el valor correcto del payload)
+            req.body.firebaseUid, // firebaseUid
             fechaNacimiento, // fechaNacimiento
-            alergenos,
-            direccion
+            alergenos,       // alergenos
+            direccion,       // direccion
+            metodoPago       // metodoPago (nuevo parámetro)
         );
-
-          res.status(201).json({ success: true, data: newUsuario });
-      } catch (error: any) {
-          // Manejar errores específicos de Firebase
-          if (error.code === 'auth/email-already-in-use') {
-              res.status(400).json({ success: false, error: 'El correo electrónico ya está en uso' });
-          } else {
-              res.status(400).json({ success: false, error: error.message });
-          }
-      }
+    
+        res.status(201).json({ success: true, data: newUsuario });
+    } catch (error: any) {
+        if (error.code === 'auth/email-already-in-use') {
+            res.status(400).json({ success: false, error: 'El correo electrónico ya está en uso' });
+        } else {
+            res.status(400).json({ success: false, error: error.message });
+        }
+    }
   } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
   }
