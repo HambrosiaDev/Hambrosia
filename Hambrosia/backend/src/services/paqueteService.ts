@@ -1,6 +1,6 @@
 import { db } from '../config/firebase';
 import { converterFactory } from '../utils/converterFactory';
-import { Paquete, Rol } from '../models/interfaces';
+import { MetodoPago, Paquete, Rol } from '../models/interfaces';
 import { hashCedula } from '../utils/HELPER';
 
 // Centralized error messages
@@ -49,6 +49,7 @@ export class PaqueteService {
       unidades: number;
       horaRetiro: string;
       imagenURL?: string | null;
+      metodoPago?: string[];
     }
   ): Promise<Paquete> {
     try {
@@ -71,7 +72,6 @@ export class PaqueteService {
 
       const { nombre: nombreRestaurante, ciudad: ciudadRestaurante, direccion: direccion} = usuario;
       const descuento = ((dataPaquete.precio - dataPaquete.precioDescuento) / dataPaquete.precio) * 100;
-
       const nuevoPaquete = {
         restauranteId: hashedCedula,
         nombreRestaurante,
@@ -85,6 +85,7 @@ export class PaqueteService {
         fechaPublicacion: new Date(),
         horaRetiro: new Date(dataPaquete.horaRetiro),
         ciudad: ciudadRestaurante,
+        metodoPago: usuario.metodoPago || [],
         alergenos: usuario.alergenos || [],
         direccion: direccion || null,
       };

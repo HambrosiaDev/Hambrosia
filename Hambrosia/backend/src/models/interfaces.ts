@@ -118,7 +118,7 @@ export interface Compra {
   valorComision?: number; // Valor de la comision
   cantidadComprada: number; // Cantidad comprada del paquete
   cancelado?: boolean; // true = compra cancelada, false = compra no cancelada
-  metodoPago: MetodoPago[] ; // Método de pago (opcional)
+  metodoElegido: MetodoPago ; // Método de pago (opcional)
   precioApagar: number; // Precio a pagar por el cliente (unidad * cantidad comprada)
 }
 

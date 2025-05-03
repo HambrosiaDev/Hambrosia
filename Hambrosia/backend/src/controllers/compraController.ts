@@ -2,7 +2,7 @@ import { request, Request, response, Response } from 'express';
 import { CompraService } from '../services/compraService';
 import { PaqueteService } from '../services/paqueteService';
 import { verificarCodigo } from '../utils/HELPER';
-import { Compra, Paquete, Usuario } from '../models/interfaces';
+import { Compra, Paquete, Usuario , MetodoPago} from '../models/interfaces';
 import { UsuarioService } from '../services/usuarioService';
 import { reporteService } from '../services/reporteService';
 import { generarCodigoAleatorioSeguro, hashCedula } from '../utils/HELPER';
@@ -79,9 +79,9 @@ export const confirmarCompra = async (req: Request, res: Response): Promise<void
 export const crearCompra = async (req: Request, res: Response): Promise<void> => {
   try {
     const { paqueteId } = req.params;
-    const { clienteId, restauranteId, cantidadComprada } = req.body;
+    const { clienteId, restauranteId, cantidadComprada, metodoElegido } = req.body;
 
-    if (!clienteId || !restauranteId || !cantidadComprada ) {
+    if (!clienteId || !restauranteId || !cantidadComprada || !metodoElegido) {
       res.status(400).json({ success: false, error: ERROR_MESSAGES.MISSING_DATA });
       return;
     }
@@ -103,8 +103,13 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       res.status(404).json({ success: false, error: 'El paquete no existe' });
       return;
     }
+// comparar paquete.metodoPago con metodoElegido
+    if (!restaurante.metodoPago || !restaurante.metodoPago.includes(metodoElegido)) {
+      res.status(400).json({ success: false, error: 'Método de pago no disponible para este paquete' });
+      return;
+    }
+
     const totalPaquete = Paquete.precioDescuento * cantidadComprada;
-    const metodoPago = restaurante.metodoPago || [];
     const codigo =  generarCodigoAleatorioSeguro();
 
     console.log('Código generado:', codigo);
@@ -114,7 +119,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       paqueteId,
       codigo: hashCedula(codigo), 
       cantidadComprada,
-      metodoPago: metodoPago,
+      metodoElegido: metodoElegido,
       pagado: false,
       confirmacionCodigo: false,
       retirado: false,
