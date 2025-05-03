@@ -79,9 +79,9 @@ export const confirmarCompra = async (req: Request, res: Response): Promise<void
 export const crearCompra = async (req: Request, res: Response): Promise<void> => {
   try {
     const { paqueteId } = req.params;
-    const { clienteId, restauranteId, cantidadComprada, metodoPago } = req.body;
+    const { clienteId, restauranteId, cantidadComprada } = req.body;
 
-    if (!clienteId || !restauranteId || !cantidadComprada || !metodoPago) {
+    if (!clienteId || !restauranteId || !cantidadComprada ) {
       res.status(400).json({ success: false, error: ERROR_MESSAGES.MISSING_DATA });
       return;
     }
@@ -104,7 +104,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       return;
     }
     const totalPaquete = Paquete.precioDescuento * cantidadComprada;
-
+    const metodoPago = restaurante.metodoPago || [];
     const codigo =  generarCodigoAleatorioSeguro();
 
     console.log('Código generado:', codigo);
@@ -114,7 +114,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       paqueteId,
       codigo: hashCedula(codigo), 
       cantidadComprada,
-      metodoPago,
+      metodoPago: metodoPago,
       pagado: false,
       confirmacionCodigo: false,
       retirado: false,
