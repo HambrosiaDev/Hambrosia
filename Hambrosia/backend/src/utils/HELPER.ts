@@ -396,6 +396,8 @@ export function generarCodigoAleatorioSeguro(): string {
 }
 
 export function verificarCodigo(codigoIngresado: string, codigoAlmacenado: string): boolean {
-  const codigoVerif = hashCedula(codigoIngresado);
-  return codigoVerif === codigoAlmacenado;
+  if (!codigoIngresado || !codigoAlmacenado) {
+    return false;
+  }
+  return codigoIngresado === codigoAlmacenado;
 }
