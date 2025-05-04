@@ -656,5 +656,211 @@ export const compraSwagger = {
           }
         }
       }
-    }
+    },
+    "/api/compras/activas/{clienteId}": {
+      get: {
+        tags: ["Compra"],
+        summary: "Obtener compras activas de un cliente",
+        description: "Obtiene todas las compras activas de un cliente específico.",
+        parameters: [
+          {
+            name: "clienteId",
+            in: "path",
+            required: true,
+            description: "ID del cliente para obtener sus compras activas",
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Compras activas obtenidas exitosamente",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success:{
+                      type:"boolean",
+                      example:true,
+                    },
+                    data:{
+                      type:"array",
+                      items:{
+                        type:"object",
+                        description:"Lista de compras activas del cliente.",
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            description:"Solicitud incorrecta",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Faltan datos obligatorios.",
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            description:"Compras no encontradas para el cliente especificado.",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"No hay compras activas para este cliente.",
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            description:"Error interno del servidor al obtener las compras activas.",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Error al obtener las compras activas.",
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+    },
+    "/api/compras/completadas/{clienteId}": {
+      get: {
+        tags: ["Compra"],
+        summary: "Obtener compras completadas de un cliente",
+        description: "Obtiene todas las compras completadas de un cliente específico.",
+        parameters: [
+          {
+            name: "clienteId",
+            in: "path",
+            required: true,
+            description: "ID del cliente para obtener sus compras completadas",
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Compras completadas obtenidas exitosamente",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success:{
+                      type:"boolean",
+                      example:true,
+                    },
+                    data:{
+                      type:"array",
+                      items:{
+                        type:"object",
+                        description:"Lista de compras completadas del cliente.",
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            description:"Solicitud incorrecta",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Faltan datos obligatorios.",
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            description:"Compras no encontradas para el cliente especificado.",
+            content:{ 
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"No hay compras completadas para este cliente.",
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            description:"Error interno del servidor al obtener las compras completadas.",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Error al obtener las compras completadas.",
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+    },
   };

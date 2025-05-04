@@ -193,4 +193,80 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
       throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
     }
   }
+
+  async getComprasActivasByClienteId(
+    clienteId: string,
+    cursor: string | null = null
+  ): Promise<{ compras: Array<{ codigo: string; fechaCompra: Date; precioApagar: number }>; nextCursor: string | null }> {
+    try {
+      let query = this.collection
+        .where('clienteId', '==', clienteId)
+        .where('confirmacionCodigo', '==', false)
+        .where('pagado', '==', false)
+        .orderBy('fechaCompra')
+        .limit(10)
+        .select('codigo', 'fechaCompra', 'precioApagar'); // ← Aquí seleccionamos solo los campos necesarios
+  
+      if (cursor) {
+        query = query.startAfter(cursor);
+      }
+  
+      const snapshot = await query.get();
+  
+      const compras = snapshot.docs.map(doc => ({
+        codigo: doc.data().codigo,
+        fechaCompra: doc.data().fechaCompra,
+        precioApagar: doc.data().precioApagar,
+      }));
+  
+      const nextCursor = snapshot.docs.length > 0
+        ? snapshot.docs[snapshot.docs.length - 1].id
+        : null;
+  
+      return { compras, nextCursor };
+    } catch (error) {
+      console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+      throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+    }
+  }
+
+  async getComprasCompletadasByClienteId(
+    clienteId: string,
+    cursor: string | null = null
+  ): Promise<{
+    compras: Array<{ codigo: string; fechaCompra: Date; precioApagar: number }>;
+    nextCursor: string | null;
+  }> {
+    try {
+      let query = this.collection
+        .where('clienteId', '==', clienteId)
+        .where('confirmacionCodigo', '==', true)
+        .where('pagado', '==', true)
+        .orderBy('fechaCompra')
+        .limit(10)
+        .select('codigo', 'fechaCompra', 'precioApagar');
+  
+      if (cursor) {
+        query = query.startAfter(cursor);
+      }
+  
+      const snapshot = await query.get();
+  
+      const compras = snapshot.docs.map(doc => ({
+        codigo: doc.data().codigo,
+        fechaCompra: doc.data().fechaCompra,
+        precioApagar: doc.data().precioApagar,
+      }));
+  
+      const nextCursor = snapshot.docs.length > 0
+        ? snapshot.docs[snapshot.docs.length - 1].id
+        : null;
+  
+      return { compras, nextCursor };
+    } catch (error) {
+      console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+      throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+    }
+  }
+  
 }

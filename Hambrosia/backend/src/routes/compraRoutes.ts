@@ -18,4 +18,8 @@ router.get('/comisionMensual/:mes/:restauranteId', compraController.getComisionM
 
 router.get('/codigoConf/:compraId', compraController.getCodigoByCompraId);
 
+router.get('/activas/:clienteId', compraController.getComprasActivasByClienteId);
+
+router.get('/completadas/:clienteId', compraController.getComprasCompletadasByClienteId);
+
 export default router;

@@ -58,7 +58,6 @@ export const confirmarCompra = async (req: Request, res: Response): Promise<void
       pagado: true,
       confirmacionCodigo: true,
       retirado: true,
-      fechaCompra: new Date(),
       comision,
       valorComision: compra.cantidadComprada * comision,
       calificacion,
@@ -121,6 +120,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       cantidadComprada,
       metodoElegido: metodoElegido,
       pagado: false,
+      fechaCompra: new Date(),
       confirmacionCodigo: false,
       retirado: false,
       precioApagar: totalPaquete,
@@ -287,4 +287,65 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
     }
   }
 
+  export const getComprasActivasByClienteId = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { clienteId } = req.params;
+      const { cursor } = req.query;
+  
+      if (!clienteId) {
+        res.status(400).json({ success: false, error: "No hay un cliente con ese ID" });
+        return;
+      }
+  
+      const { compras, nextCursor } = await compraService.getComprasActivasByClienteId(clienteId, cursor as string | null);
+  
+      if (!compras.length) {
+        res.status(404).json({ success: false, error: "No hay compras activas para este cliente" });
+        return;
+      }
+  
+      res.status(200).json({
+        success: true,
+        data: compras,
+        nextCursor,
+      });
+    } catch (error: any) {
+      console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
+      res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
+    }
+  };
+
+  export const getComprasCompletadasByClienteId = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const { clienteId } = req.params;
+      const { cursor } = req.query;
+  
+      if (!clienteId) {
+        res.status(400).json({ success: false, error: "No hay un cliente con ese ID" });
+        return;
+      }
+  
+      const { compras, nextCursor } = await compraService.getComprasCompletadasByClienteId(
+        clienteId,
+        cursor as string | null
+      );
+  
+      if (!compras.length) {
+        res.status(404).json({ success: false, error: "No hay compras completadas para este cliente" });
+        return;
+      }
+  
+      res.status(200).json({
+        success: true,
+        data: compras,
+        nextCursor,
+      });
+    } catch (error: any) {
+      console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
+      res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
+    }
+  };
 
