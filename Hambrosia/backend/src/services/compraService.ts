@@ -180,4 +180,17 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
       throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
     }
   }
+
+  async getCodigoConfirmacion(compraId: string): Promise<string | null> {
+    try {
+      const compraSnapshot = await this.compraRef(compraId).get();
+      if (!compraSnapshot.exists) {
+        return null;
+      }
+      return compraSnapshot.data()?.codigo|| null;
+    } catch (error) {
+      console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+      throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+    }
+  }
 }

@@ -117,7 +117,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       clienteId,
       restauranteId,
       paqueteId,
-      codigo: hashCedula(codigo), 
+      codigo: codigo, 
       cantidadComprada,
       metodoElegido: metodoElegido,
       pagado: false,
@@ -256,6 +256,31 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
             success: true,
             data: comisionMensual,
         });
+    } catch (error: any) {
+        console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
+        res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
+    }
+  }
+
+  export const getCodigoByCompraId = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { compraId } = req.params;
+        if (!compraId) {
+            res.status(400).json({ success: false, error: "No hay una compra con ese ID" });
+            return;
+        }
+
+        const codigo = await compraService.getCodigoConfirmacion(compraId);
+        if (!codigo) {
+            res.status(404).json({ success: false, error: "No hay compra con ese ID" });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: codigo
+        });
+
     } catch (error: any) {
         console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
         res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });

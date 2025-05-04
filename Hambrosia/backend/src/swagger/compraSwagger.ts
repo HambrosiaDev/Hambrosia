@@ -555,4 +555,106 @@ export const compraSwagger = {
         },
       },
     },
+    "/api/compras/codigoConf/{compraId}": {
+      get: {
+        tags: ["Compra"],
+        summary: "Obtener el código de confirmación de una compra",
+        description: "Obtiene el código de confirmación asociado a una compra específica.",
+        parameters: [
+          {
+            name: "compraId",
+            in: "path",
+            required: true,
+            description: "ID de la compra para obtener el código de confirmación",
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Código de confirmación obtenido exitosamente",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: true,
+                    },
+                    data: {
+                      type: "object",
+                      description: "Datos del código de confirmación",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Solicitud incorrecta",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"No hay una compra con ese ID.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description:
+              "Código de confirmación no encontrado para la compra especificada.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"No hay código de confirmación para esta compra.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description:
+              "Error interno del servidor al obtener el código de confirmación.",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Error al obtener el código de confirmación.",
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   };
