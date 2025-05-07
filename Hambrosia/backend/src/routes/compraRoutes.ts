@@ -22,4 +22,6 @@ router.get('/activas/:clienteId', compraController.getComprasActivasByClienteId)
 
 router.get('/completadas/:clienteId', compraController.getComprasCompletadasByClienteId);
 
+router.get('/getCompras/:restauranteId/:fechaCompra', compraController.getComprasByRestauranteId);
+
 export default router;

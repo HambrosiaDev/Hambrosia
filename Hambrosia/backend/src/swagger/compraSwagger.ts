@@ -863,4 +863,117 @@ export const compraSwagger = {
         }
       },
     },
+    "/api/compras/getCompras/{restauranteId}/{fechaCompra}": {
+      get: {
+        tags: ["Compra"],
+        summary: "Obtener compras por restaurante y fecha",
+        description: "Obtiene todas las compras realizadas en un restaurante específico en una fecha dada.",
+        parameters: [
+          {
+            name: "restauranteId",
+            in: "path",
+            required: true,
+            description: "ID del restaurante para obtener sus compras",
+            schema: {
+              type: "string",
+            },
+          },
+          {
+            name: "fechaCompra",
+            in: "path",
+            required: true,
+            description: "Fecha de la compra en formato YYYY-MM-DD",
+            schema: {
+              type: "string",
+              format: "date",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Compras obtenidas exitosamente",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success:{
+                      type:"boolean",
+                      example:true,
+                    },
+                    data:{
+                      type:"array",
+                      items:{
+                        type:"object",
+                        description:"Lista de compras del restaurante en la fecha especificada.",
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            description:"Solicitud incorrecta",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Faltan datos obligatorios.",
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            description:"Compras no encontradas para el restaurante y fecha especificados.",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"No hay compras para este restaurante en esta fecha.",
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            description:"Error interno del servidor al obtener las compras.",
+            content:{
+              "application/json":{
+                schema:{
+                  type:"object",
+                  properties:{
+                    success:{
+                      type:"boolean",
+                      example:false,
+                    },
+                    error:{
+                      type:"string",
+                      example:"Error al obtener las compras.",
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+    },
   };

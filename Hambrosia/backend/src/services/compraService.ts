@@ -197,7 +197,10 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
   async getComprasActivasByClienteId(
     clienteId: string,
     cursor: string | null = null
-  ): Promise<{ compras: Array<{ codigo: string; fechaCompra: Date; precioApagar: number }>; nextCursor: string | null }> {
+  ): Promise<{
+    compras: Array<{ codigo: string; fechaCompra: Date; precioApagar: number; paqueteId: string }>;
+    nextCursor: string | null;
+  }> {
     try {
       let query = this.collection
         .where('clienteId', '==', clienteId)
@@ -205,7 +208,7 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
         .where('pagado', '==', false)
         .orderBy('fechaCompra')
         .limit(10)
-        .select('codigo', 'fechaCompra', 'precioApagar'); // ← Aquí seleccionamos solo los campos necesarios
+        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido');
   
       if (cursor) {
         query = query.startAfter(cursor);
@@ -213,11 +216,16 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
   
       const snapshot = await query.get();
   
-      const compras = snapshot.docs.map(doc => ({
-        codigo: doc.data().codigo,
-        fechaCompra: doc.data().fechaCompra,
-        precioApagar: doc.data().precioApagar,
-      }));
+      const compras = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          codigo: data.codigo,
+          fechaCompra: data.fechaCompra,
+          precioApagar: data.precioApagar,
+          paqueteId: data.paqueteId,
+          metodoElegido: data.metodoElegido,
+        };
+      });
   
       const nextCursor = snapshot.docs.length > 0
         ? snapshot.docs[snapshot.docs.length - 1].id
@@ -234,17 +242,23 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
     clienteId: string,
     cursor: string | null = null
   ): Promise<{
-    compras: Array<{ codigo: string; fechaCompra: Date; precioApagar: number }>;
+    compras: Array<{
+      codigo: string;
+      fechaCompra: Date;
+      precioApagar: number;
+      paqueteId: string;
+      metodoElegido: string;
+    }>;
     nextCursor: string | null;
   }> {
     try {
       let query = this.collection
         .where('clienteId', '==', clienteId)
-        .where('confirmacionCodigo', '==', true)
+        .where('confirmacionCodigo', '==', true) 
         .where('pagado', '==', true)
-        .orderBy('fechaCompra')
+        .orderBy('fechaCompra', 'desc')
         .limit(10)
-        .select('codigo', 'fechaCompra', 'precioApagar');
+        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido');
   
       if (cursor) {
         query = query.startAfter(cursor);
@@ -252,11 +266,16 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
   
       const snapshot = await query.get();
   
-      const compras = snapshot.docs.map(doc => ({
-        codigo: doc.data().codigo,
-        fechaCompra: doc.data().fechaCompra,
-        precioApagar: doc.data().precioApagar,
-      }));
+      const compras = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          codigo: data.codigo,
+          fechaCompra: data.fechaCompra,
+          precioApagar: data.precioApagar,
+          paqueteId: data.paqueteId,
+          metodoElegido: data.metodoElegido,
+        };
+      });
   
       const nextCursor = snapshot.docs.length > 0
         ? snapshot.docs[snapshot.docs.length - 1].id
@@ -268,5 +287,28 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
       throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
     }
   }
+
+  // Compra por RestauranteId y fechaCompra, trae fechaCompra, MetodoPago, CedulaCliente(Usar Hash a la inversa), precioApagar
+  async getComprasByRestauranteId(restauranteId: string, fechaCompra: Date): Promise<Compra[]> {
+    try {
+        const startOfDay = new Date(fechaCompra);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(fechaCompra);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const comprasSnapshot = await this.collection
+            .where('restauranteId', '==', restauranteId)
+            .where('fechaCompra', '>=', startOfDay)
+            .where('fechaCompra', '<=', endOfDay)
+            .get();
+
+        return comprasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Compra));
+    } catch (error) {
+        console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+        throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+    }
+}
+
   
 }

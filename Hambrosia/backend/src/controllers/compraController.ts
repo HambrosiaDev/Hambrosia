@@ -287,13 +287,16 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
     }
   }
 
-  export const getComprasActivasByClienteId = async (req: Request, res: Response): Promise<void> => {
+  export const getComprasActivasByClienteId = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const { clienteId } = req.params;
       const { cursor } = req.query;
   
       if (!clienteId) {
-        res.status(400).json({ success: false, error: "No hay un cliente con ese ID" });
+        res.status(400).json({ success: false, error: "Cliente ID no proporcionado" });
         return;
       }
   
@@ -304,9 +307,20 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
         return;
       }
   
+      // Si obtenerPaquetePorId es asíncrono:
+      const comprasConRestaurante = await Promise.all(
+        compras.map(async (compra) => {
+          const paquete = await paqueteService.obtenerPaquetePorId(compra.paqueteId);
+          return {
+            ...compra,
+            nombreRestaurante: paquete ? paquete.nombreRestaurante : null,
+          };
+        })
+      );
+  
       res.status(200).json({
         success: true,
-        data: compras,
+        data: comprasConRestaurante,
         nextCursor,
       });
     } catch (error: any) {
@@ -324,7 +338,7 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
       const { cursor } = req.query;
   
       if (!clienteId) {
-        res.status(400).json({ success: false, error: "No hay un cliente con ese ID" });
+        res.status(400).json({ success: false, error: "Cliente ID no proporcionado" });
         return;
       }
   
@@ -338,9 +352,20 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
         return;
       }
   
+      // Si necesitas incluir información adicional como el nombre del restaurante:
+      const comprasConRestaurante = await Promise.all(
+        compras.map(async (compra) => {
+          const paquete = await paqueteService.obtenerPaquetePorId(compra.paqueteId);
+          return {
+            ...compra,
+            nombreRestaurante: paquete?.nombreRestaurante || null,
+          };
+        })
+      );
+  
       res.status(200).json({
         success: true,
-        data: compras,
+        data: comprasConRestaurante,
         nextCursor,
       });
     } catch (error: any) {
@@ -349,3 +374,39 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
     }
   };
 
+
+  export const getComprasByRestauranteId = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { restauranteId, fechaCompra } = req.params;
+
+        if (!restauranteId || !fechaCompra) {
+            res.status(400).json({ success: false, error: "Faltan datos obligatorios" });
+            return;
+        }
+
+        // Validar que la fecha sea válida
+        const parsedDate = new Date(fechaCompra);
+        if (isNaN(parsedDate.getTime())) {
+            res.status(400).json({ success: false, error: "Formato de fecha inválido" });
+            return;
+        }
+
+        // const hashedId = hashCedula(restauranteId);
+
+        const compras = await compraService.getComprasByRestauranteId(restauranteId, parsedDate);
+
+        if (!compras.length) {
+            res.status(404).json({ success: false, error: "No hay compras para este restaurante en la fecha especificada" });
+            return;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: compras,
+        });
+
+    } catch (error: any) {
+        console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
+        res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
+    }
+}
