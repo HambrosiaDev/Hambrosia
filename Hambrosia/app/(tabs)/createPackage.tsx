@@ -192,7 +192,7 @@ export default function CreatePackageScreen() {
                                 <View style={styles.inputWithIcon}>
                                     <FontAwesome5 name="dollar-sign" size={16} color="#D97706" />
                                     <TextInput
-                                        placeholder="Descuento"
+                                        placeholder="Precio con descuento"
                                         placeholderTextColor="#999"
                                         value={discountedPrice}
                                         onChangeText={setDiscountedPrice}

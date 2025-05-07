@@ -35,6 +35,8 @@ export default function HomeScreen() {
       }
       const userCredential = await signInWithEmailAndPassword(auth, email, password); //Ingresar a F. Authenticator
       const user = userCredential.user; //Guardar datos del usuario
+      const token = await user.getIdToken(); //Obtener token del usuario
+      console.log("Token:", token); //Imprimir token en consola
       console.log("User signed in:", user.uid);
 
       const usuariosQuery = query( //Busqueda en la colección con el usuario ingresado

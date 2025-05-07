@@ -1,11 +1,12 @@
 // ViewPackages.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Pressable, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Pressable, TextInput, Alert } from 'react-native';
 import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useUserStore } from '../user';
 import { useRouter } from 'expo-router';
 import Loading from '@/components/Loading';
+import CryptoJS from 'crypto-js';
 
 
 const cities = ['Floresta', 'Quito', 'Iñaquito', 'Valle de los Chillos'];
@@ -24,11 +25,24 @@ type Package = {
   ciudad: string;
   agotado: boolean;
   unidades: number;
+  direccion: string;
+  alergenos: string[];
+  metodoPago: string[];
+};
+
+
+const SECRET_KEY = "ceD_haShInG$ystem!2025@Hambrosia2025";
+const hashCedula = (cedula: string) => {
+  return CryptoJS.HmacSHA256(
+    `${cedula}:${SECRET_KEY}`,
+    SECRET_KEY
+  ).toString(CryptoJS.enc.Hex);
 };
 
 export default function ViewPackages() {
   const role = useUserStore((state) => state.role);
   const ciudad = useUserStore((state) => state.ciudad);
+  const cedula = useUserStore((state) => state.cedRuc);
   const router = useRouter();
 
   const [selectedCity, setSelectedCity] = useState(ciudad || 'Quito');
@@ -39,6 +53,8 @@ export default function ViewPackages() {
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [packagesFetched, setPackagesFetched] = useState<Package[]>([]);
   const [loadingPage, setLoadingPage] = useState(true);
+  const [amountPackage, setAmountPackage] = useState(1);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedCity === undefined) {
@@ -102,6 +118,47 @@ export default function ViewPackages() {
     return <Loading />;
   }
 
+
+  const handleReserve = async (pkg: Package) => {
+    try {
+      const payload = {
+        cantidadComprada: amountPackage,
+        restauranteId: pkg.restauranteId,
+        clienteId: hashCedula(cedula || ''),
+        metodoElegido: selectedPaymentMethod
+          ?.normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, '_') 
+          .toUpperCase()
+      };
+
+      console.log("Compra payload", payload);
+
+      const response = await fetch(`https://hambrosia.onrender.com/api/compras/${pkg.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend compra failed: ${response.status} - ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log("Purchase successful:", responseData);
+
+      Alert.alert("Éxito", "Registro completado correctamente 🎉");
+      setPackageModalVisible(false);
+      setAmountPackage(1);
+    } catch (error) {
+      console.error("Error in handleReserve:", error);
+      Alert.alert("Error", "No se pudo completar la compra. Por favor intente nuevamente.");
+    }
+  };
+
   const renderIcon = (iconName: string) => {
     const validIcons = ['hamburger',
       'cookie',
@@ -146,8 +203,6 @@ export default function ViewPackages() {
     setSelectedPackage(pkg);
     setPackageModalVisible(true);
   };
-
-
 
 
   return (
@@ -292,7 +347,7 @@ export default function ViewPackages() {
                   <Text style={styles.packageDescription}>{selectedPackage.descripcion}</Text>
 
                   <View style={styles.packageDetailsRow}>
-                    <View style={styles.detailItem}>
+                    <View style={[styles.detailItem, { left: 5 }]}>
                       <FontAwesome5 name="map-marker-alt" size={16} color="#D97706" />
                       <Text style={styles.detailText}>{capitalizeFirstLetter(selectedPackage.ciudad)}</Text>
                     </View>
@@ -309,9 +364,17 @@ export default function ViewPackages() {
                     <View style={styles.detailItem}>
                       <FontAwesome5 name="box-open" size={16} color="#D97706" />
                       <Text style={styles.detailText}>
-                        {selectedPackage.unidades} {selectedPackage.unidades === 1 ? 'unidad' : 'unidades'} disponible
+                        {selectedPackage.unidades} {selectedPackage.unidades === 1 ? 'unidad disponible' : 'unidades disponibles'}
                       </Text>
                     </View>
+
+                  </View>
+
+                  <View style={styles.detailItem}>
+                    <FontAwesome name="map" size={16} color="#D97706" />
+                    <Text style={styles.detailText}>
+                      {selectedPackage.direccion}
+                    </Text>
                   </View>
 
                   <View style={styles.priceContainer}>
@@ -327,16 +390,76 @@ export default function ViewPackages() {
                   </View>
 
                   {role === "CLIENTE" && (
-                    <TouchableOpacity
-                      style={styles.buyButton}
-                      onPress={() => {
-                        // Add to cart logic here
-                        setPackageModalVisible(false);
-                      }}
-                    >
-                      <Text style={styles.buyButtonText}>Añadir al carrito</Text>
-                    </TouchableOpacity>
+                    <>
+                      <View style={styles.packageDetailsAmount}>
+                        <TouchableOpacity
+                          style={styles.detailItem}
+                          onPress={() => setAmountPackage((prev) => Math.max(prev - 1, 1))}
+                        >
+                          <FontAwesome name="minus-circle" size={25} color="#D97706" />
+                        </TouchableOpacity>
+                        <Text style={styles.detailTextAmount}>{amountPackage}</Text>
+                        <TouchableOpacity
+                          style={styles.detailItem}
+                          onPress={() => setAmountPackage((prev) => Math.min(prev + 1, selectedPackage.unidades))}
+                        >
+                          <FontAwesome5 name="plus-circle" size={25} color="#D97706" />
+                        </TouchableOpacity>
+
+                      </View>
+                      <View style={styles.paymentContainer}>
+                        <Text style={styles.detailTextCompra}>
+                          Selecciona el método de pago al momento de retirar el paquete:
+                        </Text>
+
+                        {selectedPackage.metodoPago.map((metodo, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.radioOption}
+                            onPress={() => setSelectedPaymentMethod(metodo)}
+                          >
+                            <View style={styles.radioCircle}>
+                              {selectedPaymentMethod === metodo && <View style={styles.selectedRb} />}
+                            </View>
+                            <Text style={styles.radioText}>
+                              {metodo.replace(/_/g, ' ')
+                                .toLowerCase()
+                                .replace(/(^\w|\s\w)/g, m => m.toUpperCase())}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.buyButton}
+                        onPress={() => {
+                          handleReserve(selectedPackage);
+                          setAmountPackage(1); // Reset amount after purchase
+                        }}
+                      >
+                        <Text style={styles.buyButtonText}>Comprar</Text>
+                      </TouchableOpacity>
+
+
+                    </>
                   )}
+
+                  <View style={styles.detailAlergenos}>
+                    <FontAwesome5 name="comment-medical" size={25} color="#CE2C04" />
+                    {selectedPackage.alergenos && selectedPackage.alergenos.length > 0 ? (
+                      <Text style={styles.alergenosText}>
+                        El restaurante que preparó este paquete para ti trabaja con: {selectedPackage.alergenos.join(', ')}
+                      </Text>
+                    ) : (
+                      <Text style={styles.alergenosText}>
+                        El restaurante no ha especificado alérgenos para este paquete.
+                      </Text>
+
+                    )}
+
+                  </View>
+
+
                 </View>
               </>
             )}
@@ -344,7 +467,7 @@ export default function ViewPackages() {
         </View>
       </Modal>
 
-      {/* Package Details Modal */}
+      {/* Code Validation Modal */}
       <Modal visible={validationModalVisible} transparent animationType="slide">
         <View style={styles.packageModalOverlay}>
           <View style={styles.packageModalContainer}>
@@ -633,7 +756,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
-    maxHeight: '80%',
+    maxHeight: '90%',
   },
   packageModalHeader: {
     flexDirection: 'row',
@@ -673,6 +796,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+  packageDetailsAmount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -681,6 +810,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4B5563',
     marginLeft: 8,
+  },
+  detailTextAmount: {
+    fontSize: 20,
+    color: '#4B5563',
+    marginLeft: 8,
+    marginRight: 8,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -705,6 +840,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingVertical: 4,
     paddingHorizontal: 8,
+    justifyContent: 'center',
   },
   discountTagText: {
     color: '#fff',
@@ -721,5 +857,54 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  detailAlergenos: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    padding: 15,
+    borderRadius: 8,
+  },
+  alergenosText: {
+    fontSize: 15,
+    color: '#4B5563',
+    marginLeft: 8,
+    right: 8,
+    padding: 5,
+  },
+  paymentContainer: {
+    marginTop: 5,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  radioCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D97706',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  selectedRb: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#D97706',
+  },
+  radioText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  detailTextCompra: {
+    fontSize: 16,
+    color: '#4B5563',
+    marginLeft: 5,
   },
 });
