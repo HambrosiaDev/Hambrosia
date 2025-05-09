@@ -1,3 +1,4 @@
+import { database } from 'firebase-admin';
 import { db } from '../config/firebase';
 import { Compra, Notificaciones } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
@@ -208,7 +209,7 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
         .where('pagado', '==', false)
         .orderBy('fechaCompra')
         .limit(10)
-        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido');
+        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'id');
   
       if (cursor) {
         query = query.startAfter(cursor);
@@ -218,14 +219,18 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
   
       const compras = snapshot.docs.map(doc => {
         const data = doc.data();
+        console.log(data.compraId);
+        console.log(data);
         return {
           codigo: data.codigo,
           fechaCompra: data.fechaCompra,
           precioApagar: data.precioApagar,
           paqueteId: data.paqueteId,
           metodoElegido: data.metodoElegido,
+          compraId: data.id,
         };
       });
+
   
       const nextCursor = snapshot.docs.length > 0
         ? snapshot.docs[snapshot.docs.length - 1].id
@@ -303,7 +308,7 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
             .where('fechaCompra', '<=', endOfDay)
             .get();
 
-        return comprasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Compra));
+        return comprasSnapshot.docs.map(doc => ({ compraId: doc.id, ...doc.data() } as Compra));
     } catch (error) {
         console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
         throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
