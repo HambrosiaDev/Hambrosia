@@ -217,9 +217,15 @@ export default function ViewPackages() {
           <><TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/createPackage')}>
             <FontAwesome5 name='plus-circle' size={20} color="#fff" />
           </TouchableOpacity>
-            <TouchableOpacity style={styles.checkCodeButton} onPress={() => setValidationModalVisible(true)}>
-              <FontAwesome5 name='spell-check' size={18} color="#fff" />
+            <TouchableOpacity style={styles.checkCodeButton} onPress={() => router.replace('/(tabs)/restaurantReserves')}>
+              <FontAwesome5 name='wallet' size={18} color="#fff" />
             </TouchableOpacity></>
+        )}
+        {role === "CLIENTE" && (
+          <><TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/clientReserves')}>
+            <FontAwesome5 name='shopping-basket' size={20} color="#fff" />
+          </TouchableOpacity>
+            </>
         )}
         <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
           <Text style={styles.logOutText}>Salir</Text>
@@ -434,7 +440,7 @@ export default function ViewPackages() {
                         style={styles.buyButton}
                         onPress={() => {
                           handleReserve(selectedPackage);
-                          setAmountPackage(1); // Reset amount after purchase
+                          setAmountPackage(1); 
                         }}
                       >
                         <Text style={styles.buyButtonText}>Comprar</Text>
