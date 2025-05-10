@@ -8,17 +8,23 @@ const SECRET_KEY =
   process.env.HASH_SECRET_KEY || "default_secret_key_never_use_in_production";
 
 /**
- * Genera un hash SHA-256 determinístico de una cédula usando una clave secreta
- * Esta función siempre retorna el mismo hash para la misma cédula
- * @param cedula - La cédula que se desea hashear
- * @returns El hash de la cédula que puede usarse como identificador
+ * Encripta una cédula usando AES-256-CBC
+ * @param cedula - La cédula que se desea encriptar
+ * @returns El texto cifrado en formato string (Base64)
  */
-export function hashCedula(cedula: string): string {
-  return CryptoJS.HmacSHA256(
-    `${cedula}:${SECRET_KEY}`, 
-    SECRET_KEY
-  ).toString(CryptoJS.enc.Hex);
-}
+export const encryptCedula = (cedula: string): string => {
+  return CryptoJS.AES.encrypt(cedula, SECRET_KEY).toString();
+};
+
+/**
+ * Desencripta una cédula previamente cifrada con AES-256-CBC
+ * @param encrypted - El texto cifrado en formato Base64
+ * @returns La cédula original como string
+ */
+export const decryptCedula = (encrypted: string): string => {
+  const bytes = CryptoJS.AES.decrypt(encrypted, SECRET_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+};
 
 
 /**

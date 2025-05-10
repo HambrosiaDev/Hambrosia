@@ -2,7 +2,7 @@ import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno, Ciudad, MetodoPago } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
-import { hashCedula } from '../utils/HELPER';
+import { encryptCedula } from '../utils/HELPER';
 import { FieldValue } from 'firebase-admin/firestore';
 export class UsuarioService {
   private usuariosCollection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
@@ -109,7 +109,7 @@ export class UsuarioService {
 
 
     // Guardar en Firestore
-    const hashedId = hashCedula(cedulaRUC);
+    const hashedId = encryptCedula(cedulaRUC);
     const docRef = this.usuariosCollection.doc(hashedId);
     await docRef.set(userData);
     return userData;

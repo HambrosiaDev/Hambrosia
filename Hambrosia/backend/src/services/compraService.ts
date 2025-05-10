@@ -207,6 +207,8 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
         .where('clienteId', '==', clienteId)
         .where('confirmacionCodigo', '==', false)
         .where('pagado', '==', false)
+        .where('cancelado', '==', false)
+        .where('retirado', '==', false)
         .orderBy('fechaCompra')
         .limit(10)
         .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'id');
@@ -219,8 +221,6 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
   
       const compras = snapshot.docs.map(doc => {
         const data = doc.data();
-        console.log(data.compraId);
-        console.log(data);
         return {
           codigo: data.codigo,
           fechaCompra: data.fechaCompra,
@@ -253,6 +253,7 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
       precioApagar: number;
       paqueteId: string;
       metodoElegido: string;
+      cancelado: boolean;
     }>;
     nextCursor: string | null;
   }> {
@@ -261,9 +262,10 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
         .where('clienteId', '==', clienteId)
         .where('confirmacionCodigo', '==', true) 
         .where('pagado', '==', true)
+        .where('retirado', '==', true)
         .orderBy('fechaCompra', 'desc')
         .limit(10)
-        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido');
+        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'cancelado',);
   
       if (cursor) {
         query = query.startAfter(cursor);
@@ -279,6 +281,7 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
           precioApagar: data.precioApagar,
           paqueteId: data.paqueteId,
           metodoElegido: data.metodoElegido,
+          cancelado: data.cancelado,
         };
       });
   
@@ -293,6 +296,57 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
     }
   }
 
+// getComprasCanceladasByClienteId
+async getComprasCanceladasByClienteId(
+  clienteId: string,
+  cursor: string | null = null
+): Promise<{
+  compras: Array<{
+    codigo: string;
+    fechaCompra: Date;
+    precioApagar: number;
+    paqueteId: string;
+    metodoElegido: string;
+    cancelado: boolean;
+  }>;
+  nextCursor: string | null;
+}> {
+  try {
+    let query = this.collection
+      .where('clienteId', '==', clienteId)
+      .where('cancelado', '==', true)
+      .orderBy('fechaCompra', 'desc')
+      .limit(3)
+      .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'cancelado');
+
+    if (cursor) {
+      query = query.startAfter(cursor);
+    }
+
+    const snapshot = await query.get();
+
+    const compras = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        codigo: data.codigo,
+        fechaCompra: data.fechaCompra,
+        precioApagar: data.precioApagar,
+        paqueteId: data.paqueteId,
+        metodoElegido: data.metodoElegido,
+        cancelado: data.cancelado,
+      };
+    });
+
+    const nextCursor = snapshot.docs.length > 0
+      ? snapshot.docs[snapshot.docs.length - 1].id
+      : null;
+
+    return { compras, nextCursor };
+  } catch (error) {
+    console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
+    throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
+  }
+}
   // Compra por RestauranteId y fechaCompra, trae fechaCompra, MetodoPago, CedulaCliente(Usar Hash a la inversa), precioApagar
   async getComprasByRestauranteId(restauranteId: string, fechaCompra: Date): Promise<Compra[]> {
     try {
@@ -314,6 +368,4 @@ async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
         throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
     }
 }
-
-  
 }

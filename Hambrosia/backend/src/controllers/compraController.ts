@@ -5,7 +5,7 @@ import { verificarCodigo } from '../utils/HELPER';
 import { Compra, Paquete, Usuario , MetodoPago} from '../models/interfaces';
 import { UsuarioService } from '../services/usuarioService';
 import { reporteService } from '../services/reporteService';
-import { generarCodigoAleatorioSeguro, hashCedula } from '../utils/HELPER';
+import { generarCodigoAleatorioSeguro, encryptCedula } from '../utils/HELPER';
 import { db } from '../config/firebase';
 
 
@@ -124,6 +124,7 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       confirmacionCodigo: false,
       retirado: false,
       precioApagar: totalPaquete,
+      cancelado: false,
     };
     const nuevaCompra = await compraService.crearCompra(paqueteId, compraData);
     if (nuevaCompra.id !== undefined) {
@@ -245,7 +246,7 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
             res.status(400).json({ success: false, error: "Faltan datos obligatorios" });
             return;
         }
-        const hashedId = hashCedula(restauranteId);
+        const hashedId = encryptCedula(restauranteId);
         const comisionMensual = await compraService.getComisionMensualByRestauranteId(mes, hashedId);
         if (!comisionMensual) {
             res.status(404).json({ success: false, error: "No hay comisiones para este restaurante en este mes" });
@@ -409,4 +410,49 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
         console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
         res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
     }
+}
+
+export const getComprasCanceladasByClienteId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { clienteId } = req.params;
+    const { cursor } = req.query;
+
+    if (!clienteId) {
+      res.status(400).json({ success: false, error: "Cliente ID no proporcionado" });
+      return;
+    }
+
+    const { compras, nextCursor } = await compraService.getComprasCanceladasByClienteId(
+      clienteId,
+      cursor as string | null
+    );
+
+    if (!compras.length) {
+      res.status(404).json({ success: false, error: "No hay compras canceladas para este cliente" });
+      return;
+    }
+
+    // Si necesitas incluir información adicional como el nombre del restaurante:
+    const comprasConRestaurante = await Promise.all(
+      compras.map(async (compra) => {
+        const paquete = await paqueteService.obtenerPaquetePorId(compra.paqueteId);
+        return {
+          ...compra,
+          nombreRestaurante: paquete?.nombreRestaurante || null,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: comprasConRestaurante,
+      nextCursor,
+    });
+  } catch (error: any) {
+    console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
+    res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
+  }
 }

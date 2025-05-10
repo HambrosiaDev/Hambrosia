@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { Reporte, Compra, Usuario } from '../models/interfaces';
+import { Reporte, Usuario } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import { CompraService } from './compraService';
 import { UsuarioService } from './usuarioService';

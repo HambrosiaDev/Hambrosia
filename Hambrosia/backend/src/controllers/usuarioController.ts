@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { UsuarioService } from '../services/usuarioService';
 import { Rol, Alergeno, MetodoPago } from '../models/interfaces';
 import { ValidacionCedulaRuc } from '../utils/HELPER';
-import { hashCedula } from '../utils/HELPER';
+import { encryptCedula } from '../utils/HELPER';
 
 
 const usuarioService = new UsuarioService();
@@ -37,7 +37,7 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
       return;
     }
     
-    const hashedId = hashCedula(id);
+    const hashedId = encryptCedula(id);
     const usuario = await usuarioService.getById(hashedId);
     
     if (!usuario) {
@@ -230,7 +230,7 @@ export const updateUsuario = async (req: Request, res: Response, next: NextFunct
 export const deleteUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = req.params.id;
-    const hashedId = hashCedula(id);
+    const hashedId = encryptCedula(id);
     if (!id) {
       res.status(400).json({ success: false, error: 'ID es requerido' });
       return;
@@ -254,7 +254,7 @@ export const deleteUsuario = async (req: Request, res: Response, next: NextFunct
 export const incrementarStrike = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.params.id;
-    const hashedId = hashCedula(userId);
+    const hashedId = encryptCedula(userId);
     if (!userId) {
       res.status(400).json({ success: false, error: 'ID de usuario es requerido' });
       return;
@@ -388,7 +388,7 @@ export const verificarBloqueo = async (req: Request, res: Response, next: NextFu
       res.status(400).json({ success: false, error: 'ID de usuario es requerido' });
       return;
     }
-    const hashedId = hashCedula(id);
+    const hashedId = encryptCedula(id);
     // Verificar si el usuario existe
     const usuario = await usuarioService.getById(hashedId);
     if (!usuario) {
