@@ -391,9 +391,6 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
             res.status(400).json({ success: false, error: "Formato de fecha inválido" });
             return;
         }
-
-        // const hashedId = hashCedula(restauranteId);
-
         const compras = await compraService.getComprasByRestauranteId(restauranteId, parsedDate);
 
         if (!compras.length) {
