@@ -10,6 +10,7 @@ const ERROR_MESSAGES = {
   GET_BY_CITY_ERROR: 'Error al obtener paquetes por ciudad',
   NO_PACKAGES_FOUND: 'No se encontraron paquetes para esta ciudad',
   PACKAGE_NOT_FOUND: 'Paquete no encontrado',
+  GET_PACKAGES_BY_URL_ERROR: 'Error al obtener paquetes por URL',
 };
 
 // Helper function to fetch a package or return an error
@@ -102,5 +103,25 @@ export const getPaqueteByCiudad = async (req: Request, res: Response): Promise<v
   } catch (error: any) {
     console.error(ERROR_MESSAGES.GET_BY_CITY_ERROR, error.message || error);
     res.status(500).json({ success: false, error: ERROR_MESSAGES.GET_BY_CITY_ERROR });
+  }
+};
+
+export const getPaquetesByURL = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { url } = req.params;
+    const paquetes = await paqueteService.getPaquetesByURL(url);
+
+    if (paquetes.length === 0) {
+      res.status(404).json({ success: false, message: ERROR_MESSAGES.NO_PACKAGES_FOUND });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: paquetes,
+    });
+  } catch (error: any) {
+    console.error(ERROR_MESSAGES.GET_PACKAGES_BY_URL_ERROR, error.message || error);
+    res.status(500).json({ success: false, error: ERROR_MESSAGES.GET_PACKAGES_BY_URL_ERROR });
   }
 };

@@ -1,6 +1,6 @@
 import { db } from '../config/firebase';
 import { converterFactory } from '../utils/converterFactory';
-import { MetodoPago, Paquete, Rol } from '../models/interfaces';
+import { MetodoPago, Paquete, Rol, ImagenPaquete } from '../models/interfaces';
 import { hashCedula } from '../utils/HELPER';
 
 // Centralized error messages
@@ -16,6 +16,7 @@ const ERROR_MESSAGES = {
   UPDATE_UNITS_ERROR: 'Error al actualizar unidades del paquete',
   CALCULATE_COMMISSION_ERROR: 'Error calculando la comisión',
   PUBLISH_PACKAGE_ERROR: 'Error al publicar paquete',
+  GET_PACKAGES_BY_URL_ERROR: 'Error al obtener paquetes por URL',
 };
 
 export class PaqueteService {
@@ -169,6 +170,21 @@ export class PaqueteService {
       return cantidadComprada * precioUnitario * comision;
     } catch (error: any) {
       console.error(ERROR_MESSAGES.CALCULATE_COMMISSION_ERROR, error.message || error);
+      throw error;
+    }
+  }
+
+  async getPaquetesByURL(url: string): Promise<Paquete[]> {
+    try {
+      const snapshot = await this.paquetesCollection.where('imagenURL', '==', url).get();
+      const paquetes: Paquete[] = [];
+      snapshot.forEach((doc) => {
+        const paqueteData = doc.data();
+        paquetes.push({ id: doc.id, ...paqueteData });
+      });
+      return paquetes;
+    } catch (error: any) {
+      console.error(ERROR_MESSAGES.GET_PACKAGES_BY_URL_ERROR, error.message || error);
       throw error;
     }
   }

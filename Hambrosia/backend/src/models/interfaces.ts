@@ -141,3 +141,15 @@ export interface Notificaciones {
   nombrePaquete: string;
   cancelado: boolean;
 }
+
+export interface ImagenPaquete {
+  hamburger: 'hamburger';
+  cookie: 'cookie';
+  pizzaSlice: 'pizza-slice';
+  leaf: 'leaf';
+  drumstickBite: 'drumstick-bite';
+  appleAlt: 'apple-alt';
+  coffee: 'coffee';
+  iceCream: 'ice-cream';
+  breadSlice: 'bread-slice';
+}

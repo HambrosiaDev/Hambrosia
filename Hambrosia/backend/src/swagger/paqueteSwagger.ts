@@ -210,4 +210,85 @@ export const paqueteSwagger = {
         },
       },
     },
+    "/api/paquetes/getPaquetesBy/{url}": {
+      get: {
+        summary: "Obtiene paquetes por URL de imagen",
+        tags: ["Paquete"],
+        parameters: [
+          {
+            in: "path",
+            name: "url",
+            required: true,
+            schema: {
+              type: "string",
+            },
+            description: "URL de la imagen del paquete",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Lista de paquetes encontrados",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: true,
+                    },
+                    data: {
+                      type: "array",
+                      items: {
+                        $ref: "#/components/schemas/Paquete",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "No se encontraron paquetes",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: false,
+                    },
+                    error: {
+                      type: "string",
+                      example: "No se encontraron paquetes con esa imagen",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Error del servidor",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: {
+                      type: "boolean",
+                      example: false,
+                    },
+                    error: {
+                      type: "string",
+                      example: "Error al obtener los paquetes",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   };
