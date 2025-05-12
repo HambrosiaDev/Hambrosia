@@ -1,7 +1,7 @@
 import { db } from '../config/firebase';
 import { converterFactory } from '../utils/converterFactory';
 import { MetodoPago, Paquete, Rol } from '../models/interfaces';
-import { encryptCedula } from '../utils/HELPER';
+import { hashCedula } from '../utils/HELPER';
 
 // Centralized error messages
 const ERROR_MESSAGES = {
@@ -53,7 +53,7 @@ export class PaqueteService {
     }
   ): Promise<Paquete> {
     try {
-      const hashedCedula = encryptCedula(cedulaRUC);
+      const hashedCedula = hashCedula(cedulaRUC);
       const usuarioRef = db.collection('usuarios').doc(hashedCedula);
       const usuarioSnapshot = await usuarioRef.get();
 

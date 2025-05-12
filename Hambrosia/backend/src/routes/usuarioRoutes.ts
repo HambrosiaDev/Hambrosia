@@ -13,12 +13,6 @@ router.post('/login/resetearStrikes', usuarioController.resetearStrikes);
 router.get('/restaurantes', usuarioController.getRestaurantes);
 router.get('/:id', usuarioController.getUsuarioById);
 
-// Rutas que requieren autenticación y rol de administrador
-router.get('/',  usuarioController.getAllUsuarios);
-// router.post('/',  usuarioController.createUsuario);
-router.put('/:id',  usuarioController.updateUsuario);
-router.delete('/:id',  usuarioController.deleteUsuario);
-
 // Ruta para manejo de strikes
 router.post('/:id/incrementar-strike',  usuarioController.incrementarStrike);
 router.get('/:id/Verificar-bloqueo',  usuarioController.verificarBloqueo);

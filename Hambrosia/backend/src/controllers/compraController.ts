@@ -5,7 +5,7 @@ import { verificarCodigo } from '../utils/HELPER';
 import { Compra, Paquete, Usuario , MetodoPago} from '../models/interfaces';
 import { UsuarioService } from '../services/usuarioService';
 import { reporteService } from '../services/reporteService';
-import { generarCodigoAleatorioSeguro, encryptCedula } from '../utils/HELPER';
+import { generarCodigoAleatorioSeguro, hashCedula } from '../utils/HELPER';
 import { db } from '../config/firebase';
 
 
@@ -246,7 +246,7 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
             res.status(400).json({ success: false, error: "Faltan datos obligatorios" });
             return;
         }
-        const hashedId = encryptCedula(restauranteId);
+        const hashedId = hashCedula(restauranteId);
         const comisionMensual = await compraService.getComisionMensualByRestauranteId(mes, hashedId);
         if (!comisionMensual) {
             res.status(404).json({ success: false, error: "No hay comisiones para este restaurante en este mes" });

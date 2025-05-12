@@ -261,7 +261,7 @@ export const usuarioSwagger = {
         },
       },
     },
-      "/api/usuarios/login/resetearStrikes": {
+    "/api/usuarios/login/resetearStrikes": {
       post: {
         tags: ["Usuario"],
         summary: "Resetear Strikes",
@@ -331,7 +331,7 @@ export const usuarioSwagger = {
         },
       },
     },
-      "/api/usuarios/desbloquear": {
+    "/api/usuarios/desbloquear": {
       post: {
         tags: ["Usuario"],
         summary: "Desbloquear Usuario",
@@ -485,161 +485,6 @@ export const usuarioSwagger = {
           },
         },
       },
-        put: {
-        tags: ["Usuario"],
-        summary: "Actualizar un usuario por ID",
-        description: "Actualiza un usuario específico por su ID.",
-        parameters: [
-          {
-            name: "id",
-            in: "path",
-            required: true,
-            description: "ID del usuario",
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                  type: "object",
-                   description: "data of user",
-              },
-            },
-          },
-        },
-        responses: {
-          "200": {
-            description: "Usuario actualizado",
-            content: {
-              "application/json": {
-                 schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    data: { type: "object", description: "Datos del usuario" },
-                  },
-                },
-              },
-            },
-          },
-          "400": {
-            description: "Error en la solicitud",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    error: { type: "string", example: "ID es requerido" },
-                  },
-                },
-              },
-            },
-          },
-          "404": {
-            description: "Usuario no encontrado",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    error: { type: "string", example: "Usuario no encontrado" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-       delete: {
-        tags: ["Usuario"],
-        summary: "Eliminar un usuario por ID",
-        description: "Elimina un usuario específico por su ID.",
-        parameters: [
-          {
-            name: "id",
-            in: "path",
-            required: true,
-            description: "ID del usuario",
-            schema: {
-              type: "string",
-            },
-          },
-        ],
-       
-        responses: {
-          "200": {
-            description: "Usuario eliminado",
-            content: {
-              "application/json": {
-                 schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    message: { type: "string", example: "Usuario eliminado correctamente" },
-                  },
-                },
-              },
-            },
-          },
-          "400": {
-            description: "Error en la solicitud",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    error: { type: "string", example: "ID es requerido" },
-                  },
-                },
-              },
-            },
-          },
-          "404": {
-            description: "Usuario no encontrado",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    error: { type: "string", example: "Usuario no encontrado" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    "/api/usuarios": {
-      get: {
-        tags: ["Usuario"],
-        summary: "Obtener todos los usuarios",
-        description: "Obtiene una lista de todos los usuarios.",
-        responses: {
-          "200": {
-            description: "Lista de usuarios",
-            content: {
-              "application/json": {
-                 schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    data: { type: "array", description: "Lista de usuarios" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     },
     "/api/usuarios/{id}/incrementar-strike": {
       post: {
@@ -703,7 +548,7 @@ export const usuarioSwagger = {
         },
       },
     },
-     "/api/usuarios/{id}/Verificar-bloqueo": {
+    "/api/usuarios/{id}/Verificar-bloqueo": {
       get: {
         tags: ["Usuario"],
         summary: "Verificar si el usuario está bloqueado",
@@ -748,21 +593,7 @@ export const usuarioSwagger = {
               },
             },
           },
-           "404": {
-            description: "Usuario no encontrado",
-            content: {
-              "application/json": {
-                   schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    error: { type: "string", example: "Usuario no encontrado" },
-                  },
-                },
-              },
-            },
-          },
         },
       },
     },
-  };
+};

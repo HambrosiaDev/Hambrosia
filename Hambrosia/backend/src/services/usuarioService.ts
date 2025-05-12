@@ -2,7 +2,7 @@ import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno, Ciudad, MetodoPago } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
-import { encryptCedula } from '../utils/HELPER';
+import { hashCedula } from '../utils/HELPER';
 import { FieldValue } from 'firebase-admin/firestore';
 export class UsuarioService {
   private usuariosCollection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
@@ -109,7 +109,7 @@ export class UsuarioService {
 
 
     // Guardar en Firestore
-    const hashedId = encryptCedula(cedulaRUC);
+    const hashedId = hashCedula(cedulaRUC);
     const docRef = this.usuariosCollection.doc(hashedId);
     await docRef.set(userData);
     return userData;
@@ -118,20 +118,6 @@ export class UsuarioService {
   // Actualizar los datos de un usuario
   async update(id: string, data: Partial<Usuario>): Promise<void> {
     await this.usuariosCollection.doc(id).update(data);
-  }
-
-  // Eliminar un usuario
-  async delete(id: string): Promise<void> {
-    // Obtener el usuario primero para obtener el firebaseUid
-    const usuario = await this.getById(id);
-    
-    if (usuario && usuario.firebaseUid) {
-      // Eliminar el usuario de Firebase Authentication
-      await auth.deleteUser(usuario.firebaseUid);
-    }
-    
-    // Eliminar el documento de Firestore
-    await this.usuariosCollection.doc(id).delete();
   }
 
   // Obtener usuarios que son restaurantes
