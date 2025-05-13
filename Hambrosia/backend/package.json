@@ -4,7 +4,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
-    "test": "jest"
+    "test": "jest",
+    "test:unit": "jest",
+    "build:k6": "tsc src/k6/paquetes.test.ts src/k6/compras.test.ts --outDir dist/k6",
+    "test:load": "k6 run src/k6/usuarios.test.js && k6 run src/k6/reportes.test.js && k6 run src/k6/paquetes.test.js && k6 run src/k6/compras.test.js",
+    "test:all": "npm run test:unit && npm run test:load"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +28,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.1",
     "@types/jest": "^29.5.14",
+    "@types/k6": "^1.0.2",
     "@types/node": "^22.13.11",
     "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
