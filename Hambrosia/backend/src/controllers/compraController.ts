@@ -398,6 +398,7 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
             return;
         }
 
+
         res.status(200).json({
             success: true,
             data: compras,

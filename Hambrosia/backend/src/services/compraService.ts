@@ -2,6 +2,7 @@ import { db } from '../config/firebase';
 import { Compra, Notificaciones } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import { paqueteService } from './paqueteService';
+import { usuarioService } from './usuarioService';
 
 
 // Centralized error messages
@@ -328,6 +329,7 @@ export class CompraService {
     metodoElegido: string;
     fechaCompra: Date;
     clienteId: string;
+    nombreCliente: string;
   }>> {
     try {
       const startOfDay = new Date(fechaCompra);
@@ -343,15 +345,19 @@ export class CompraService {
         .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId')
         .get();
 
-      const compras = comprasSnapshot.docs.map(doc => {
+      const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
         const data = doc.data();
+        // Obtener información del cliente usando usuarioService
+        const cliente = await usuarioService.getById(data.clienteId);
+        
         return {
           precioApagar: data.precioApagar,
           metodoElegido: data.metodoElegido,
           fechaCompra: data.fechaCompra,
-          clienteId: data.clienteId
+          clienteId: data.clienteId,
+          nombreCliente: cliente?.nombre || 'Cliente no encontrado'
         };
-      });
+      }));
 
       return compras;
     } catch (error) {
