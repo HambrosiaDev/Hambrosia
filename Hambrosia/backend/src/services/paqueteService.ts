@@ -1,3 +1,4 @@
+import { Timestamp } from 'firebase-admin/firestore';
 import { db } from '../config/firebase';
 import { Paquete, Rol } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
@@ -48,7 +49,7 @@ export class PaqueteService {
       precio: number;
       precioDescuento: number;
       unidades: number;
-      horaRetiro: string;
+      horaRetiro: string; // Formato esperado "HH:mm" ejemplo "23:00"
       imagenURL?: string | null;
       metodoPago?: string[];
     }
@@ -71,8 +72,34 @@ export class PaqueteService {
         throw { statusCode: 403, message: ERROR_MESSAGES.UNAUTHORIZED_PUBLISH };
       }
 
+      // Validar formato de hora
+      const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timePattern.test(dataPaquete.horaRetiro)) {
+        throw { statusCode: 400, message: 'Formato de hora inválido. Debe ser HH:mm (ej: 23:00)' };
+      }
+
       const { nombre: nombreRestaurante, ciudad: ciudadRestaurante, direccion: direccion} = usuario;
       const descuento = ((dataPaquete.precio - dataPaquete.precioDescuento) / dataPaquete.precio) * 100;
+
+      // Obtener fecha actual en timezone de Ecuador
+      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      
+      // Procesar horaRetiro
+      const [hours, minutes] = dataPaquete.horaRetiro.split(':').map(Number);
+      
+      // Crear fecha con la hora especificada
+      const horaRetiroDate = new Date(ecuadorTZ);
+      horaRetiroDate.setHours(hours, minutes, 0, 0);
+
+      // Si la hora ya pasó hoy, establecerla para mañana
+      if (horaRetiroDate < ecuadorTZ) {
+        horaRetiroDate.setDate(horaRetiroDate.getDate() + 1);
+      }
+
+      // Convertir a timestamp de Firestore
+      const fechaPublicacionTimestamp = Timestamp.fromDate(ecuadorTZ);
+      const horaRetiroTimestamp = Timestamp.fromDate(horaRetiroDate);
+
       const nuevoPaquete = {
         restauranteId: hashedCedula,
         nombreRestaurante,
@@ -83,8 +110,8 @@ export class PaqueteService {
         unidades: dataPaquete.unidades,
         agotado: false,
         imagenURL: dataPaquete.imagenURL || null,
-        fechaPublicacion: new Date(),
-        horaRetiro: new Date(dataPaquete.horaRetiro),
+        fechaPublicacion: fechaPublicacionTimestamp,
+        horaRetiro: horaRetiroTimestamp,
         ciudad: ciudadRestaurante,
         metodoPago: usuario.metodoPago || [],
         alergenos: usuario.alergenos || [],
@@ -92,7 +119,14 @@ export class PaqueteService {
       };
 
       const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);
-      return { id: paqueteRef.id, ...nuevoPaquete };
+      
+      // Convertir timestamps a Date para la respuesta
+      return { 
+        id: paqueteRef.id, 
+        ...nuevoPaquete,
+        fechaPublicacion: ecuadorTZ,
+        horaRetiro: horaRetiroDate
+      };
     } catch (error: any) {
       console.error(ERROR_MESSAGES.PUBLISH_PACKAGE_ERROR, error.message || error);
       throw error;
@@ -119,7 +153,32 @@ export class PaqueteService {
 
       snapshot.forEach((doc) => {
         const paqueteData = doc.data();
-        const paquete = { id: doc.id, ...paqueteData };
+        // Convertir las fechas del Timestamp de Firestore a Date
+        let fechaPublicacion = new Date();
+        let horaRetiro = new Date();
+
+        if (paqueteData.fechaPublicacion) {
+          if (paqueteData.fechaPublicacion instanceof Date) {
+            fechaPublicacion = paqueteData.fechaPublicacion;
+          } else if ('toDate' in paqueteData.fechaPublicacion) {
+            fechaPublicacion = (paqueteData.fechaPublicacion as Timestamp).toDate();
+          }
+        }
+
+        if (paqueteData.horaRetiro) {
+          if (paqueteData.horaRetiro instanceof Date) {
+            horaRetiro = paqueteData.horaRetiro;
+          } else if ('toDate' in paqueteData.horaRetiro) {
+            horaRetiro = (paqueteData.horaRetiro as Timestamp).toDate();
+          }
+        }
+
+        const paquete = { 
+          id: doc.id, 
+          ...paqueteData,
+          fechaPublicacion,
+          horaRetiro
+        };
         
         if (paquete.agotado) {
           paquetesAgotados.push(paquete);
@@ -128,7 +187,6 @@ export class PaqueteService {
         }
       });
 
-      // Take first 2 sold-out pachttps://ejemplo.com/imagen.jpgkages and combine with available packages
       return [
         ...paquetesAgotados.slice(0, 2),
         ...paquetesDisponibles
@@ -217,7 +275,32 @@ export class PaqueteService {
 
       snapshot.forEach((doc) => {
         const paqueteData = doc.data();
-        const paquete = { id: doc.id, ...paqueteData };
+        // Convertir las fechas del Timestamp de Firestore a Date
+        let fechaPublicacion = new Date();
+        let horaRetiro = new Date();
+
+        if (paqueteData.fechaPublicacion) {
+          if (paqueteData.fechaPublicacion instanceof Date) {
+            fechaPublicacion = paqueteData.fechaPublicacion;
+          } else if ('toDate' in paqueteData.fechaPublicacion) {
+            fechaPublicacion = (paqueteData.fechaPublicacion as Timestamp).toDate();
+          }
+        }
+
+        if (paqueteData.horaRetiro) {
+          if (paqueteData.horaRetiro instanceof Date) {
+            horaRetiro = paqueteData.horaRetiro;
+          } else if ('toDate' in paqueteData.horaRetiro) {
+            horaRetiro = (paqueteData.horaRetiro as Timestamp).toDate();
+          }
+        }
+
+        const paquete = { 
+          id: doc.id, 
+          ...paqueteData,
+          fechaPublicacion,
+          horaRetiro
+        };
         
         if (paquete.agotado) {
           paquetesAgotados.push(paquete);
@@ -226,7 +309,6 @@ export class PaqueteService {
         }
       });
 
-      // Take first 2 sold-out packages and combine with available packages
       return [
         ...paquetesAgotados.slice(0, 2),
         ...paquetesDisponibles

@@ -43,35 +43,13 @@ export const publicarPaquete = async (req: Request, res: Response): Promise<void
       res.status(400).json({ success: false, error: 'Formato de hora inválido. Debe ser HH:MM (ej: 21:00)' });
       return;
     }
-    
-    // Parse the time
-    const [hours, minutes] = horaRetiro.split(':').map(Number);
-    
-    // Create a date for today with the specified time
-    const today = new Date();
-    const horaRetiroDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-      hours,
-      minutes,
-      0,
-      0
-    );
-    
-    // Check if the time is in the past
-    const now = new Date();
-    if (horaRetiroDate < now) {
-      res.status(400).json({ success: false, error: 'La hora de retiro no puede ser en el pasado' });
-      return;
-    }
 
     const resultado = await paqueteService.publicarPaquete(cedRuc, {
       descripcion,
       precio,
       precioDescuento,
       unidades,
-      horaRetiro: horaRetiroDate.toISOString(),
+      horaRetiro,
       imagenURL,
     });
 
