@@ -29,6 +29,10 @@ export class CompraService {
 
   async crearCompra(paqueteId: string, compra: Compra): Promise<Compra> {
     try {
+      // Ajustar la fecha de compra al timezone de Ecuador (UTC-5)
+      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      compra.fechaCompra = ecuadorTZ;
+
       const docRef = await this.collection.add(compra);
       const nuevaCompra = { ...compra, id: docRef.id };
       await paqueteService.restarUnidadesPaquete(paqueteId, compra.cantidadComprada);
@@ -177,6 +181,49 @@ export class CompraService {
     }
   }
 
+  async getComprasByRestauranteId(restauranteId: string, fechaCompra: Date): Promise<Array<{
+    precioApagar: number;
+    metodoElegido: string;
+    fechaCompra: Date;
+    clienteId: string;
+    nombreCliente: string;
+  }>> {
+    try {
+      // Ajustar a timezone de Guayaquil (UTC-5)
+      const ecuadorTZ = new Date(fechaCompra.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      const startOfDay = new Date(ecuadorTZ);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(ecuadorTZ);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const comprasSnapshot = await this.collection
+        .where('restauranteId', '==', restauranteId)
+        .where('fechaCompra', '>=', startOfDay)
+        .where('fechaCompra', '<=', endOfDay)
+        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId')
+        .get();
+
+      const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
+        const data = doc.data();
+        const cliente = await usuarioService.getById(data.clienteId);
+        
+        return {
+          precioApagar: data.precioApagar,
+          metodoElegido: data.metodoElegido,
+          fechaCompra: data.fechaCompra,
+          clienteId: data.clienteId,
+          nombreCliente: cliente?.nombre || 'Cliente no encontrado'
+        };
+      }));
+
+      return compras;
+    } catch (error) {
+      console.error('Error al obtener compras por restaurante:', error);
+      throw new Error('Error al obtener las compras del restaurante');
+    }
+  }
+
   async getComprasActivasByClienteId(
     clienteId: string,
     cursor: string | null = null
@@ -185,12 +232,22 @@ export class CompraService {
     nextCursor: string | null;
   }> {
     try {
+      // Ajustar a timezone de Guayaquil (UTC-5)
+      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      const startOfDay = new Date(ecuadorTZ);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(ecuadorTZ);
+      endOfDay.setHours(23, 59, 59, 999);
+
       let query = this.collection
         .where('clienteId', '==', clienteId)
         .where('confirmacionCodigo', '==', false)
         .where('pagado', '==', false)
         .where('cancelado', '==', false)
         .where('retirado', '==', false)
+        .where('fechaCompra', '>=', startOfDay)
+        .where('fechaCompra', '<=', endOfDay)
         .orderBy('fechaCompra')
         .limit(10)
         .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'id');
@@ -321,48 +378,6 @@ export class CompraService {
     } catch (error) {
       console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
       throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
-    }
-  }
-
-  async getComprasByRestauranteId(restauranteId: string, fechaCompra: Date): Promise<Array<{
-    precioApagar: number;
-    metodoElegido: string;
-    fechaCompra: Date;
-    clienteId: string;
-    nombreCliente: string;
-  }>> {
-    try {
-      const startOfDay = new Date(fechaCompra);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(fechaCompra);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const comprasSnapshot = await this.collection
-        .where('restauranteId', '==', restauranteId)
-        .where('fechaCompra', '>=', startOfDay)
-        .where('fechaCompra', '<=', endOfDay)
-        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId')
-        .get();
-
-      const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
-        const data = doc.data();
-        // Obtener información del cliente usando usuarioService
-        const cliente = await usuarioService.getById(data.clienteId);
-        
-        return {
-          precioApagar: data.precioApagar,
-          metodoElegido: data.metodoElegido,
-          fechaCompra: data.fechaCompra,
-          clienteId: data.clienteId,
-          nombreCliente: cliente?.nombre || 'Cliente no encontrado'
-        };
-      }));
-
-      return compras;
-    } catch (error) {
-      console.error('Error al obtener compras por restaurante:', error);
-      throw new Error('Error al obtener las compras del restaurante');
     }
   }
 }

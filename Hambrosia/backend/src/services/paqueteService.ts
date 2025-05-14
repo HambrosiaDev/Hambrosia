@@ -1,6 +1,6 @@
 import { db } from '../config/firebase';
+import { Paquete, Rol } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
-import { MetodoPago, Paquete, Rol, ImagenPaquete } from '../models/interfaces';
 import { hashCedula } from '../utils/HELPER';
 
 // Centralized error messages
@@ -101,15 +101,38 @@ export class PaqueteService {
 
   async getPaqueteByCiudad(ciudad: string): Promise<Paquete[]> {
     try {
-      const snapshot = await this.paquetesCollection.where('ciudad', '==', ciudad).get();
-      const paquetes: Paquete[] = [];
+      // Get current date in Ecuador timezone (UTC-5)
+      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      const startOfDay = new Date(ecuadorTZ.getFullYear(), ecuadorTZ.getMonth(), ecuadorTZ.getDate());
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+
+      // Get all packages for the city
+      const snapshot = await this.paquetesCollection
+        .where('ciudad', '==', ciudad)
+        .where('fechaPublicacion', '>=', startOfDay)
+        .where('fechaPublicacion', '<', endOfDay)
+        .get();
+
+      const paquetesAgotados: Paquete[] = [];
+      const paquetesDisponibles: Paquete[] = [];
 
       snapshot.forEach((doc) => {
         const paqueteData = doc.data();
-        paquetes.push({ id: doc.id, ...paqueteData });
+        const paquete = { id: doc.id, ...paqueteData };
+        
+        if (paquete.agotado) {
+          paquetesAgotados.push(paquete);
+        } else {
+          paquetesDisponibles.push(paquete);
+        }
       });
 
-      return paquetes;
+      // Take first 2 sold-out pachttps://ejemplo.com/imagen.jpgkages and combine with available packages
+      return [
+        ...paquetesAgotados.slice(0, 2),
+        ...paquetesDisponibles
+      ];
     } catch (error: any) {
       console.error(ERROR_MESSAGES.GET_PACKAGES_BY_CITY_ERROR, error.message || error);
       throw error;
@@ -176,13 +199,38 @@ export class PaqueteService {
 
   async getPaquetesByURL(url: string): Promise<Paquete[]> {
     try {
-      const snapshot = await this.paquetesCollection.where('imagenURL', '==', url).get();
-      const paquetes: Paquete[] = [];
+      // Get current date in Ecuador timezone (UTC-5)
+      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      const startOfDay = new Date(ecuadorTZ.getFullYear(), ecuadorTZ.getMonth(), ecuadorTZ.getDate());
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setDate(endOfDay.getDate() + 1);
+
+      // Get all packages for the URL
+      const snapshot = await this.paquetesCollection
+        .where('imagenURL', '==', url)
+        .where('fechaPublicacion', '>=', startOfDay)
+        .where('fechaPublicacion', '<', endOfDay)
+        .get();
+
+      const paquetesAgotados: Paquete[] = [];
+      const paquetesDisponibles: Paquete[] = [];
+
       snapshot.forEach((doc) => {
         const paqueteData = doc.data();
-        paquetes.push({ id: doc.id, ...paqueteData });
+        const paquete = { id: doc.id, ...paqueteData };
+        
+        if (paquete.agotado) {
+          paquetesAgotados.push(paquete);
+        } else {
+          paquetesDisponibles.push(paquete);
+        }
       });
-      return paquetes;
+
+      // Take first 2 sold-out packages and combine with available packages
+      return [
+        ...paquetesAgotados.slice(0, 2),
+        ...paquetesDisponibles
+      ];
     } catch (error: any) {
       console.error(ERROR_MESSAGES.GET_PACKAGES_BY_URL_ERROR, error.message || error);
       throw error;

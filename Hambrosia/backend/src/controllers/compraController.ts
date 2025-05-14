@@ -1,12 +1,11 @@
-import { request, Request, response, Response } from 'express';
+import { Request, Response } from 'express';
+import { db } from '../config/firebase';
+import { Compra, Paquete, Usuario } from '../models/interfaces';
 import { CompraService } from '../services/compraService';
 import { PaqueteService } from '../services/paqueteService';
-import { verificarCodigo } from '../utils/HELPER';
-import { Compra, Paquete, Usuario , MetodoPago} from '../models/interfaces';
-import { UsuarioService } from '../services/usuarioService';
 import { reporteService } from '../services/reporteService';
-import { generarCodigoAleatorioSeguro, hashCedula } from '../utils/HELPER';
-import { db } from '../config/firebase';
+import { UsuarioService } from '../services/usuarioService';
+import { generarCodigoAleatorioSeguro, hashCedula, verificarCodigo } from '../utils/HELPER';
 
 
 const compraService = new CompraService();
@@ -102,33 +101,33 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
       res.status(404).json({ success: false, error: 'El paquete no existe' });
       return;
     }
-// comparar paquete.metodoPago con metodoElegido
+
     if (!restaurante.metodoPago || !restaurante.metodoPago.includes(metodoElegido)) {
       res.status(400).json({ success: false, error: 'Método de pago no disponible para este paquete' });
       return;
     }
 
     const totalPaquete = Paquete.precioDescuento * cantidadComprada;
-    const codigo =  generarCodigoAleatorioSeguro();
+    const codigo = generarCodigoAleatorioSeguro();
 
     console.log('Código generado:', codigo);
     const compraData: Compra = {
       clienteId,
       restauranteId,
       paqueteId,
-      codigo: codigo, 
+      codigo: codigo,
       cantidadComprada,
       metodoElegido: metodoElegido,
       pagado: false,
-      fechaCompra: new Date(),
       confirmacionCodigo: false,
       retirado: false,
       precioApagar: totalPaquete,
       cancelado: false,
     };
+
     const nuevaCompra = await compraService.crearCompra(paqueteId, compraData);
     if (nuevaCompra.id !== undefined) {
-      await crearNotificacion( nuevaCompra.id , false);
+      await crearNotificacion(nuevaCompra.id, false);
     }
     res.status(201).json({
       success: true,
