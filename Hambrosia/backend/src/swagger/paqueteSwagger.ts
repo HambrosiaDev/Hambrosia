@@ -210,9 +210,9 @@ export const paqueteSwagger = {
         },
       },
     },
-    "/api/paquetes/getPaquetesBy/{url}": {
+    "/api/paquetes/getPaquetesBy/{ciudad}/{url}": {
       get: {
-        summary: "Obtiene paquetes por URL de imagen",
+        summary: "Obtiene paquetes por ciudad y URL de imagen",
         tags: ["Paquete"],
         parameters: [
           {
@@ -223,6 +223,12 @@ export const paqueteSwagger = {
               type: "string",
             },
             description: "URL de la imagen del paquete",
+          },
+          {
+            in: "path",
+            name: "ciudad",
+            required: true,
+            schema: { type: "string" },
           },
         ],
         responses: {

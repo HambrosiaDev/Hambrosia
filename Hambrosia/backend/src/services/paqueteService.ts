@@ -228,7 +228,7 @@ export class PaqueteService {
     }
   }
 
-  async getPaquetesByURL(url: string): Promise<Paquete[]> {
+  async getPaquetesByURL(url: string, ciudad: string): Promise<Paquete[]> {
     try {
       const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
       const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(0, 0, 0, 0)));
@@ -236,6 +236,7 @@ export class PaqueteService {
 
       const snapshot = await this.paquetesCollection
         .where('imagenURL', '==', url)
+        .where('ciudad', '==', ciudad)
         .where('fechaPublicacion', '>=', startOfDay)
         .where('fechaPublicacion', '<=', endOfDay)
         .get();

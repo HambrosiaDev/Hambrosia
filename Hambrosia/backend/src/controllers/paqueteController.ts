@@ -86,8 +86,8 @@ export const getPaqueteByCiudad = async (req: Request, res: Response): Promise<v
 
 export const getPaquetesByURL = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { url } = req.params;
-    const paquetes = await paqueteService.getPaquetesByURL(url);
+    const { url, ciudad } = req.params;
+    const paquetes = await paqueteService.getPaquetesByURL(url, ciudad);
 
     if (paquetes.length === 0) {
       res.status(404).json({ success: false, message: ERROR_MESSAGES.NO_PACKAGES_FOUND });
