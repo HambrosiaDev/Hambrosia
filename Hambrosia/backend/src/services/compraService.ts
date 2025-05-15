@@ -1,3 +1,4 @@
+import { Timestamp } from 'firebase-admin/firestore';
 import { db } from '../config/firebase';
 import { Compra, Notificaciones } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
@@ -29,10 +30,7 @@ export class CompraService {
 
   async crearCompra(paqueteId: string, compra: Compra): Promise<Compra> {
     try {
-      // Ajustar la fecha de compra al timezone de Ecuador (UTC-5)
-      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      compra.fechaCompra = ecuadorTZ;
-
+      compra.fechaCompra = Timestamp.now();
       const docRef = await this.collection.add(compra);
       const nuevaCompra = { ...compra, id: docRef.id };
       await paqueteService.restarUnidadesPaquete(paqueteId, compra.cantidadComprada);

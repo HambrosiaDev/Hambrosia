@@ -83,6 +83,7 @@ export class PaqueteService {
 
       // Obtener fecha actual en timezone de Ecuador
       const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      const fechaPublicacionTimestamp = Timestamp.fromDate(ecuadorTZ);
       
       // Procesar horaRetiro
       const [hours, minutes] = dataPaquete.horaRetiro.split(':').map(Number);
@@ -90,15 +91,16 @@ export class PaqueteService {
       // Crear fecha con la hora especificada
       const horaRetiroDate = new Date(ecuadorTZ);
       horaRetiroDate.setHours(hours, minutes, 0, 0);
-
-      // Si la hora ya pasó hoy, establecerla para mañana
-      if (horaRetiroDate < ecuadorTZ) {
-        horaRetiroDate.setDate(horaRetiroDate.getDate() + 1);
-      }
-
-      // Convertir a timestamp de Firestore
-      const fechaPublicacionTimestamp = Timestamp.fromDate(ecuadorTZ);
+      // Convertir a Timestamp y validar que sea posterior a fechaPublicacion
       const horaRetiroTimestamp = Timestamp.fromDate(horaRetiroDate);
+      
+      // Validar que horaRetiro sea posterior a fechaPublicacion
+      if (horaRetiroTimestamp.seconds <= fechaPublicacionTimestamp.seconds) {
+        throw { 
+          statusCode: 400, 
+          message: 'La hora de retiro debe ser posterior a la hora de publicación' 
+        };
+      }
 
       const nuevoPaquete = {
         restauranteId: hashedCedula,
@@ -120,12 +122,9 @@ export class PaqueteService {
 
       const paqueteRef = await this.paquetesCollection.add(nuevoPaquete);
       
-      // Convertir timestamps a Date para la respuesta
       return { 
         id: paqueteRef.id, 
-        ...nuevoPaquete,
-        fechaPublicacion: ecuadorTZ,
-        horaRetiro: horaRetiroDate
+        ...nuevoPaquete
       };
     } catch (error: any) {
       console.error(ERROR_MESSAGES.PUBLISH_PACKAGE_ERROR, error.message || error);
@@ -135,50 +134,24 @@ export class PaqueteService {
 
   async getPaqueteByCiudad(ciudad: string): Promise<Paquete[]> {
     try {
-      // Get current date in Ecuador timezone (UTC-5)
       const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      const startOfDay = new Date(ecuadorTZ.getFullYear(), ecuadorTZ.getMonth(), ecuadorTZ.getDate());
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setDate(endOfDay.getDate() + 1);
+      const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(0, 0, 0, 0)));
+      const endOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(23, 59, 59, 999)));
 
-      // Get all packages for the city
       const snapshot = await this.paquetesCollection
         .where('ciudad', '==', ciudad)
         .where('fechaPublicacion', '>=', startOfDay)
-        .where('fechaPublicacion', '<', endOfDay)
+        .where('fechaPublicacion', '<=', endOfDay)
         .get();
 
       const paquetesAgotados: Paquete[] = [];
       const paquetesDisponibles: Paquete[] = [];
 
       snapshot.forEach((doc) => {
-        const paqueteData = doc.data();
-        // Convertir las fechas del Timestamp de Firestore a Date
-        let fechaPublicacion = new Date();
-        let horaRetiro = new Date();
-
-        if (paqueteData.fechaPublicacion) {
-          if (paqueteData.fechaPublicacion instanceof Date) {
-            fechaPublicacion = paqueteData.fechaPublicacion;
-          } else if ('toDate' in paqueteData.fechaPublicacion) {
-            fechaPublicacion = (paqueteData.fechaPublicacion as Timestamp).toDate();
-          }
-        }
-
-        if (paqueteData.horaRetiro) {
-          if (paqueteData.horaRetiro instanceof Date) {
-            horaRetiro = paqueteData.horaRetiro;
-          } else if ('toDate' in paqueteData.horaRetiro) {
-            horaRetiro = (paqueteData.horaRetiro as Timestamp).toDate();
-          }
-        }
-
-        const paquete = { 
-          id: doc.id, 
-          ...paqueteData,
-          fechaPublicacion,
-          horaRetiro
-        };
+        const paquete = {
+          id: doc.id,
+          ...doc.data()
+        } as Paquete;
         
         if (paquete.agotado) {
           paquetesAgotados.push(paquete);
@@ -257,50 +230,24 @@ export class PaqueteService {
 
   async getPaquetesByURL(url: string): Promise<Paquete[]> {
     try {
-      // Get current date in Ecuador timezone (UTC-5)
       const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      const startOfDay = new Date(ecuadorTZ.getFullYear(), ecuadorTZ.getMonth(), ecuadorTZ.getDate());
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setDate(endOfDay.getDate() + 1);
+      const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(0, 0, 0, 0)));
+      const endOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(23, 59, 59, 999)));
 
-      // Get all packages for the URL
       const snapshot = await this.paquetesCollection
         .where('imagenURL', '==', url)
         .where('fechaPublicacion', '>=', startOfDay)
-        .where('fechaPublicacion', '<', endOfDay)
+        .where('fechaPublicacion', '<=', endOfDay)
         .get();
 
       const paquetesAgotados: Paquete[] = [];
       const paquetesDisponibles: Paquete[] = [];
 
       snapshot.forEach((doc) => {
-        const paqueteData = doc.data();
-        // Convertir las fechas del Timestamp de Firestore a Date
-        let fechaPublicacion = new Date();
-        let horaRetiro = new Date();
-
-        if (paqueteData.fechaPublicacion) {
-          if (paqueteData.fechaPublicacion instanceof Date) {
-            fechaPublicacion = paqueteData.fechaPublicacion;
-          } else if ('toDate' in paqueteData.fechaPublicacion) {
-            fechaPublicacion = (paqueteData.fechaPublicacion as Timestamp).toDate();
-          }
-        }
-
-        if (paqueteData.horaRetiro) {
-          if (paqueteData.horaRetiro instanceof Date) {
-            horaRetiro = paqueteData.horaRetiro;
-          } else if ('toDate' in paqueteData.horaRetiro) {
-            horaRetiro = (paqueteData.horaRetiro as Timestamp).toDate();
-          }
-        }
-
-        const paquete = { 
-          id: doc.id, 
-          ...paqueteData,
-          fechaPublicacion,
-          horaRetiro
-        };
+        const paquete = {
+          id: doc.id,
+          ...doc.data()
+        } as Paquete;
         
         if (paquete.agotado) {
           paquetesAgotados.push(paquete);

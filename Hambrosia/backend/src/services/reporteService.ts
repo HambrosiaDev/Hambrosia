@@ -48,7 +48,7 @@ export class ReporteService {
         precio: paquete.precio ? paquete.precio: 0,
         precioDescuento: paquete.precioDescuento ? paquete.precioDescuento: 0,
         comision: compra.valorComision ? compra.valorComision: 0,
-        fechaCompra: compra.fechaCompra ? compra.fechaCompra : new Date(),
+        fechaCompra: compra.fechaCompra ? compra.fechaCompra.toDate() : new Date(),
         correo: usuario.correo,
         cedulaRUC: usuario.cedulaRUC,
       };

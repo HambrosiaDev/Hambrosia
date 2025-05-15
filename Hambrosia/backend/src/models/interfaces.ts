@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase-admin/firestore';
+
 export enum TipoReporte {
   VENTAS = 'VENTAS',
   USUARIOS = 'USUARIOS',
@@ -97,9 +99,12 @@ export interface Paquete {
   unidades: number;
   agotado?: boolean;
   imagenURL?: string | null;
-  fechaPublicacion: Date;
-  horaRetiro?: Date;
+  fechaPublicacion: Timestamp;
+  horaRetiro: Timestamp;
   ciudad: string;
+  metodoPago?: MetodoPago[];  
+  alergenos?: Alergeno[];
+  direccion?: string | null;
 }
 
 
@@ -113,7 +118,7 @@ export interface Compra {
   pagado?: boolean; // true = compra pagada, false = compra no pagada
   retirado?: boolean; // true = compra retirada, false = compra no retirada
   calificacion?: 1|2|3|4|5; // Calificación de la compra (opcional)
-  fechaCompra?: Date; // Fecha de la compra
+  fechaCompra?: Timestamp; // Fecha de la compra
   comision?: number; // Comision del restaurante
   valorComision?: number; // Valor de la comision
   cantidadComprada: number; // Cantidad comprada del paquete
