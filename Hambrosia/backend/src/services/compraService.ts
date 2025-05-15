@@ -179,21 +179,20 @@ export class CompraService {
     }
   }
 
-  async getComprasByRestauranteId(restauranteId: string, fechaCompra: Date): Promise<Array<{
+  async getComprasByRestauranteId(restauranteId: string, fechaCompra: string): Promise<Array<{
     precioApagar: number;
     metodoElegido: string;
-    fechaCompra: Date;
+    fechaCompra: Timestamp;
     clienteId: string;
     nombreCliente: string;
   }>> {
     try {
-      // Ajustar a timezone de Guayaquil (UTC-5)
-      const ecuadorTZ = new Date(fechaCompra.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      const startOfDay = new Date(ecuadorTZ);
-      startOfDay.setHours(0, 0, 0, 0);
+      // Convertir la fecha YYYY-MM-DD a Timestamp para Ecuador (UTC-5)
+      const [year, month, day] = fechaCompra.split('-').map(Number);
+      const ecuadorTZ = new Date(Date.UTC(year, month - 1, day, 5, 0, 0)); // UTC+0 -> UTC-5
 
-      const endOfDay = new Date(ecuadorTZ);
-      endOfDay.setHours(23, 59, 59, 999);
+      const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setUTCHours(5, 0, 0, 0)));
+      const endOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setUTCHours(28, 59, 59, 999)));
 
       const comprasSnapshot = await this.collection
         .where('restauranteId', '==', restauranteId)

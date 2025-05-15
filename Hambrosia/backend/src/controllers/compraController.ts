@@ -390,7 +390,8 @@ export const getNotificacionByCompraId = async (req: Request, res: Response): Pr
             res.status(400).json({ success: false, error: "Formato de fecha inválido" });
             return;
         }
-        const compras = await compraService.getComprasByRestauranteId(restauranteId, parsedDate);
+        const formattedDate = parsedDate.toISOString().split('T')[0];
+        const compras = await compraService.getComprasByRestauranteId(restauranteId, formattedDate);
 
         if (!compras.length) {
             res.status(404).json({ success: false, error: "No hay compras para este restaurante en la fecha especificada" });
