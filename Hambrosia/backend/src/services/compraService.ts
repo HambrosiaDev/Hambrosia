@@ -198,7 +198,7 @@ export class CompraService {
         .where('restauranteId', '==', restauranteId)
         .where('fechaCompra', '>=', startOfDay)
         .where('fechaCompra', '<=', endOfDay)
-        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId','cantidadComprada')
+        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId','cantidadComprada','id')
         .get();
 
       const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
@@ -211,7 +211,8 @@ export class CompraService {
           fechaCompra: data.fechaCompra,
           clienteId: data.clienteId,
           nombreCliente: cliente?.nombre || 'Cliente no encontrado',
-          cantidadComprada: data.cantidadComprada
+          cantidadComprada: data.cantidadComprada,
+          compraId: data.id
         };
       }));
 
@@ -300,7 +301,7 @@ export class CompraService {
         .where('retirado', '==', true)
         .orderBy('fechaCompra', 'desc')
         .limit(10)
-        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'cancelado',);
+        .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'cancelado');
   
       if (cursor) {
         query = query.startAfter(cursor);
