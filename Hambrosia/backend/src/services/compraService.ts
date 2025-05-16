@@ -198,7 +198,7 @@ export class CompraService {
         .where('restauranteId', '==', restauranteId)
         .where('fechaCompra', '>=', startOfDay)
         .where('fechaCompra', '<=', endOfDay)
-        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId','cantidadComprada','id')
+        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId','cantidadComprada','pagado','id')
         .get();
 
       const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
@@ -212,7 +212,8 @@ export class CompraService {
           clienteId: data.clienteId,
           nombreCliente: cliente?.nombre || 'Cliente no encontrado',
           cantidadComprada: data.cantidadComprada,
-          compraId: data.id
+          compraId: data.id,
+          pagado: data.pagado
         };
       }));
 
