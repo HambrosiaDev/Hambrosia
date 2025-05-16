@@ -198,7 +198,7 @@ export class CompraService {
         .where('restauranteId', '==', restauranteId)
         .where('fechaCompra', '>=', startOfDay)
         .where('fechaCompra', '<=', endOfDay)
-        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId')
+        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId','cantidadComprada')
         .get();
 
       const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
@@ -210,7 +210,8 @@ export class CompraService {
           metodoElegido: data.metodoElegido,
           fechaCompra: data.fechaCompra,
           clienteId: data.clienteId,
-          nombreCliente: cliente?.nombre || 'Cliente no encontrado'
+          nombreCliente: cliente?.nombre || 'Cliente no encontrado',
+          cantidadComprada: data.cantidadComprada
         };
       }));
 
@@ -225,7 +226,7 @@ export class CompraService {
     clienteId: string,
     cursor: string | null = null
   ): Promise<{
-    compras: Array<{ codigo: string; fechaCompra: Date; precioApagar: number; paqueteId: string }>;
+    compras: Array<{ codigo: string; fechaCompra: Timestamp; precioApagar: number; paqueteId: string }>;
     nextCursor: string | null;
   }> {
     try {
@@ -237,14 +238,17 @@ export class CompraService {
       const endOfDay = new Date(ecuadorTZ);
       endOfDay.setHours(23, 59, 59, 999);
 
+      const startTimestamp = Timestamp.fromDate(startOfDay);
+      const endTimestamp = Timestamp.fromDate(endOfDay);
+
       let query = this.collection
         .where('clienteId', '==', clienteId)
         .where('confirmacionCodigo', '==', false)
         .where('pagado', '==', false)
         .where('cancelado', '==', false)
         .where('retirado', '==', false)
-        .where('fechaCompra', '>=', startOfDay)
-        .where('fechaCompra', '<=', endOfDay)
+        .where('fechaCompra', '>=', startTimestamp)
+        .where('fechaCompra', '<=', endTimestamp)
         .orderBy('fechaCompra')
         .limit(10)
         .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'id');
