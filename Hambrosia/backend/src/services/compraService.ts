@@ -233,7 +233,8 @@ export class CompraService {
   }> {
     try {
       // Ajustar a timezone de Guayaquil (UTC-5)
-      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+      const now = new Date();
+      const ecuadorTZ = new Date(now.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
       const startOfDay = new Date(ecuadorTZ);
       startOfDay.setHours(0, 0, 0, 0);
 
