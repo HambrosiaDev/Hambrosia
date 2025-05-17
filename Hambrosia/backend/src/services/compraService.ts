@@ -232,13 +232,12 @@ export class CompraService {
     nextCursor: string | null;
   }> {
     try {
-      // Ajustar a timezone de Guayaquil (UTC-5)
-      const now = new Date();
-      const ecuadorTZ = new Date(now.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      const startOfDay = new Date(ecuadorTZ);
+      // Obtener timestamp actual de Firebase
+      const now = Timestamp.now();
+      const startOfDay = new Date(now.toDate());
       startOfDay.setHours(0, 0, 0, 0);
 
-      const endOfDay = new Date(ecuadorTZ);
+      const endOfDay = new Date(now.toDate());
       endOfDay.setHours(23, 59, 59, 999);
 
       const startTimestamp = Timestamp.fromDate(startOfDay);
