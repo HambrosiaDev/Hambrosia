@@ -3,6 +3,7 @@ import { db } from '../config/firebase';
 import { Paquete, Rol } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import { hashCedula } from '../utils/HELPER';
+import { getEcuadorDayRangeFromDate } from '../utils/HELPER';
 
 // Centralized error messages
 const ERROR_MESSAGES = {
@@ -134,36 +135,31 @@ export class PaqueteService {
 
   async getPaqueteByCiudad(ciudad: string): Promise<Paquete[]> {
     try {
-      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(0, 0, 0, 0)));
-      const endOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(23, 59, 59, 999)));
-
+      const { start, end } = getEcuadorDayRangeFromDate(new Date()); // Usa el día actual en Ecuador
+  
       const snapshot = await this.paquetesCollection
         .where('ciudad', '==', ciudad)
-        .where('fechaPublicacion', '>=', startOfDay)
-        .where('fechaPublicacion', '<=', endOfDay)
+        .where('fechaPublicacion', '>=', start)
+        .where('fechaPublicacion', '<=', end)
         .get();
-
+  
       const paquetesAgotados: Paquete[] = [];
       const paquetesDisponibles: Paquete[] = [];
-
+  
       snapshot.forEach((doc) => {
         const paquete = {
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         } as Paquete;
-        
+  
         if (paquete.agotado) {
           paquetesAgotados.push(paquete);
         } else {
           paquetesDisponibles.push(paquete);
         }
       });
-
-      return [
-        ...paquetesAgotados.slice(0, 2),
-        ...paquetesDisponibles
-      ];
+  
+      return [...paquetesAgotados.slice(0, 2), ...paquetesDisponibles];
     } catch (error: any) {
       console.error(ERROR_MESSAGES.GET_PACKAGES_BY_CITY_ERROR, error.message || error);
       throw error;
@@ -230,37 +226,32 @@ export class PaqueteService {
 
   async getPaquetesByURL(url: string, ciudad: string): Promise<Paquete[]> {
     try {
-      const ecuadorTZ = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
-      const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(0, 0, 0, 0)));
-      const endOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setHours(23, 59, 59, 999)));
-
+      const { start, end } = getEcuadorDayRangeFromDate(new Date()); // Usa el día actual en Ecuador
+  
       const snapshot = await this.paquetesCollection
         .where('imagenURL', '==', url)
         .where('ciudad', '==', ciudad)
-        .where('fechaPublicacion', '>=', startOfDay)
-        .where('fechaPublicacion', '<=', endOfDay)
+        .where('fechaPublicacion', '>=', start)
+        .where('fechaPublicacion', '<=', end)
         .get();
-
+  
       const paquetesAgotados: Paquete[] = [];
       const paquetesDisponibles: Paquete[] = [];
-
+  
       snapshot.forEach((doc) => {
         const paquete = {
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         } as Paquete;
-        
+  
         if (paquete.agotado) {
           paquetesAgotados.push(paquete);
         } else {
           paquetesDisponibles.push(paquete);
         }
       });
-
-      return [
-        ...paquetesAgotados.slice(0, 2),
-        ...paquetesDisponibles
-      ];
+  
+      return [...paquetesAgotados.slice(0, 2), ...paquetesDisponibles];
     } catch (error: any) {
       console.error(ERROR_MESSAGES.GET_PACKAGES_BY_URL_ERROR, error.message || error);
       throw error;

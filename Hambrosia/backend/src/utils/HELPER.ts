@@ -1,6 +1,8 @@
 
 import * as CryptoJS from 'crypto-js';
 import * as dotenv from "dotenv";
+import { Timestamp } from 'firebase-admin/firestore';
+
 
 dotenv.config();
 
@@ -20,7 +22,19 @@ export function hashCedula(cedula: string): string {
   ).toString(CryptoJS.enc.Hex);
 }
 
+export function getEcuadorDayRangeFromDate(date: Date): { start: Timestamp; end: Timestamp } {
+  const ecuadorTime = new Date(date.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+  const startOfDay = new Date(ecuadorTime);
+  startOfDay.setHours(0, 0, 0, 0);
 
+  const endOfDay = new Date(ecuadorTime);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  return {
+    start: Timestamp.fromDate(startOfDay),
+    end: Timestamp.fromDate(endOfDay),
+  };
+}
 /**
  * Helper para validar cédulas y RUCs en Ecuador.
  */

@@ -4,7 +4,7 @@ import { Compra, Notificaciones } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import { paqueteService } from './paqueteService';
 import { usuarioService } from './usuarioService';
-
+import { getEcuadorDayRangeFromDate } from '../utils/HELPER';
 
 // Centralized error messages
 const ERROR_MESSAGES = {
@@ -179,45 +179,52 @@ export class CompraService {
     }
   }
 
-  async getComprasByRestauranteId(restauranteId: string, fechaCompra: string): Promise<Array<{
-    precioApagar: number;
-    metodoElegido: string;
-    fechaCompra: Timestamp;
-    clienteId: string;
-    nombreCliente: string;
-  }>> {
+  async getComprasByRestauranteId(
+    restauranteId: string,
+    fechaCompra: string
+  ): Promise<
+    Array<{
+      precioApagar: number;
+      metodoElegido: string;
+      fechaCompra: Timestamp;
+      clienteId: string;
+      nombreCliente: string;
+    }>
+  > {
     try {
-      // Convertir la fecha YYYY-MM-DD a Timestamp para Ecuador (UTC-5)
+      // Convertir la fecha string a objeto Date
       const [year, month, day] = fechaCompra.split('-').map(Number);
-      const ecuadorTZ = new Date(Date.UTC(year, month - 1, day, 5, 0, 0)); // UTC+0 -> UTC-5
-
-      const startOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setUTCHours(5, 0, 0, 0)));
-      const endOfDay = Timestamp.fromDate(new Date(ecuadorTZ.setUTCHours(28, 59, 59, 999)));
-
+      const date = new Date(year, month - 1, day); // Mes es 0-based
+  
+      // Usar el helper con esa fecha específica
+      const { start, end } = getEcuadorDayRangeFromDate(date);
+  
       const comprasSnapshot = await this.collection
         .where('restauranteId', '==', restauranteId)
-        .where('fechaCompra', '>=', startOfDay)
-        .where('fechaCompra', '<=', endOfDay)
-        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId','cantidadComprada','pagado','id','cancelado')
+        .where('fechaCompra', '>=', start)
+        .where('fechaCompra', '<', end)
+        .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId', 'cantidadComprada', 'pagado', 'id', 'cancelado')
         .get();
-
-      const compras = await Promise.all(comprasSnapshot.docs.map(async doc => {
-        const data = doc.data();
-        const cliente = await usuarioService.getById(data.clienteId);
-        
-        return {
-          precioApagar: data.precioApagar,
-          metodoElegido: data.metodoElegido,
-          fechaCompra: data.fechaCompra,
-          clienteId: data.clienteId,
-          nombreCliente: cliente?.nombre || 'Cliente no encontrado',
-          cantidadComprada: data.cantidadComprada,
-          compraId: data.id,
-          pagado: data.pagado,
-          cancelado: data.cancelado
-        };
-      }));
-
+  
+      const compras = await Promise.all(
+        comprasSnapshot.docs.map(async (doc) => {
+          const data = doc.data();
+          const cliente = await usuarioService.getById(data.clienteId);
+  
+          return {
+            precioApagar: data.precioApagar,
+            metodoElegido: data.metodoElegido,
+            fechaCompra: data.fechaCompra,
+            clienteId: data.clienteId,
+            nombreCliente: cliente?.nombre || 'Cliente no encontrado',
+            cantidadComprada: data.cantidadComprada,
+            compraId: data.id,
+            pagado: data.pagado,
+            cancelado: data.cancelado,
+          };
+        })
+      );
+  
       return compras;
     } catch (error) {
       console.error('Error al obtener compras por restaurante:', error);
@@ -233,35 +240,26 @@ export class CompraService {
     nextCursor: string | null;
   }> {
     try {
-      // Obtener timestamp actual de Firebase
-      const now = Timestamp.now();
-      const startOfDay = new Date(now.toDate());
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(now.toDate());
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const startTimestamp = Timestamp.fromDate(startOfDay);
-      const endTimestamp = Timestamp.fromDate(endOfDay);
-
+      const { start, end } = getEcuadorDayRangeFromDate(new Date()); // Usa el día actual en Ecuador
+  
       let query = this.collection
         .where('clienteId', '==', clienteId)
         .where('confirmacionCodigo', '==', false)
         .where('pagado', '==', false)
         .where('cancelado', '==', false)
         .where('retirado', '==', false)
-        .where('fechaCompra', '>=', startTimestamp)
-        .where('fechaCompra', '<=', endTimestamp)
+        .where('fechaCompra', '>=', start)
+        .where('fechaCompra', '<', end)
         .orderBy('fechaCompra')
         .limit(10)
         .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'id');
-
+  
       if (cursor) {
         query = query.startAfter(cursor);
       }
-
+  
       const snapshot = await query.get();
-      const compras = snapshot.docs.map(doc => {
+      const compras = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
           codigo: data.codigo,
@@ -272,8 +270,9 @@ export class CompraService {
           compraId: data.id,
         };
       });
-
+  
       const nextCursor = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1].id : null;
+  
       return { compras, nextCursor };
     } catch (error) {
       console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
