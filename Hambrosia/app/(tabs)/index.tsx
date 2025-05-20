@@ -19,8 +19,7 @@ export default function HomeScreen() {
   const [loadingPage, setLoadingPage] = useState(true);
   const router = useRouter();
   const translation = useRef(new Animated.Value(0)).current;
-  const role = useUserStore((state) => state.role);
-  const ciudad = useUserStore((state) => state.ciudad);
+
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +27,7 @@ export default function HomeScreen() {
 
   const signIn = async () => {
     setLoading(true);
+    setLoadingPage(true);
     try {
       if (email === "" || password === "") {
         alert("Por favor, completa todos los campos.");
@@ -60,8 +60,6 @@ export default function HomeScreen() {
       setEmail("");
       setPassword("");
 
-      
-
     } catch (e: any) {
       alert("Ingreso fallido" + e.message);
       try {
@@ -86,6 +84,7 @@ export default function HomeScreen() {
 
     } finally {
       setLoading(false);
+      setLoadingPage(false);
     }
   };
 
@@ -228,18 +227,18 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937', // Dark text from ViewPackages
+    color: '#1F2937', 
   },
   button: {
     width: '100%',
-    backgroundColor: '#CE2C04', // Red from ViewPackages
+    backgroundColor: '#CE2C04',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
   },
   registerButton: {
-    backgroundColor: '#B91C1C', // Darker red from ViewPackages currentPrice
+    backgroundColor: '#B91C1C', 
   },
   buttonText: {
     color: 'white',

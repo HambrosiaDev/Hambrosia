@@ -1,27 +1,36 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Animated, ActivityIndicator } from 'react-native';
 import { auth } from '../firebaseConfig'
 import { useUserStore } from '../user';
 import Loading from '@/components/Loading';
 import CryptoJS from 'crypto-js';
+import { Dimensions } from 'react-native';
+
 
 
 export default function ClientReserves() {
-    const [activeTab, setActiveTab] = useState<'activos' | 'finalizados'>('activos');
+    const [activeTab, setActiveTab] = useState<'activos' | 'finalizados' | 'cancelados'>('activos');
     const underlinePosition = useState(new Animated.Value(0))[0];
     const [activeReserves, setActiveReserves] = useState<Reserve[]>([]);
     const [finishedReserves, setFinishedReserves] = useState<Reserve[]>([]);
+    const [cancelledReserves, setCancelledReserves] = useState<Reserve[]>([]);
     const [selectedReserve, setSelectedReserve] = useState<Reserve | null>(null);
+    const [loadingPage, setLoadingPage] = useState(false);
 
-    const SECRET_KEY = "ceD_haShInG$ystem!2025@Hambrosia2025";
+    const secretKey = process.env.EXPO_PUBLIC_SECRET_KEY;
     const hashCedula = (cedula: string) => {
+        console.log("Clave " + secretKey);
+        if (!secretKey) {
+            throw new Error("Secret key is not defined");
+        }
         return CryptoJS.HmacSHA256(
-            `${cedula}:${SECRET_KEY}`,
-            SECRET_KEY
+            `${cedula}:${secretKey}`,
+            secretKey
         ).toString(CryptoJS.enc.Hex);
     };
+
 
     type Reserve = {
         id?: string;
@@ -30,18 +39,17 @@ export default function ClientReserves() {
         amountPay: number;
         methodPay: string;
         restaurant: string;
+        cancelled?: boolean;
     }
 
     const cedula = useUserStore((state) => state.cedRuc);
 
-
-
-
     const fetchActiveReserves = async () => {
         try {
+            setLoadingPage(true);
             if (cedula) {
                 const cedHasheada = hashCedula(cedula);
-                console.log(cedHasheada)
+                console.log("cedHasheada " + cedHasheada)
                 const response = await fetch(`https://hambrosia.onrender.com/api/compras/activas/${cedHasheada}`);
                 const json = await response.json();
                 console.log(json.data)
@@ -53,12 +61,13 @@ export default function ClientReserves() {
                 }
 
                 const reserves = json.data.map((item: any) => ({
-                    id: item.metadata?.id,
+                    id: item.compraId,
                     code: item.codigo,
                     date: new Date(item.fechaCompra._seconds * 1000).toLocaleDateString(),
                     amountPay: item.precioApagar,
                     methodPay: item.metodoElegido || "",
                     restaurant: item.nombreRestaurante || "",
+                    cancelled: item.cancelada || false,
                 }));
                 console.log(reserves);
                 setActiveReserves(reserves);
@@ -66,18 +75,20 @@ export default function ClientReserves() {
         } catch (error) {
             console.error('Error fetching active reserves:', error);
         }
+        setLoadingPage(false);
     };
 
 
     const fetchFinishedReserves = async () => {
         try {
+            setLoadingPage(true);
             if (cedula) {
                 const cedHasheada = hashCedula(cedula);
                 const response = await fetch(`https://hambrosia.onrender.com/api/compras/completadas/${cedHasheada}`);
                 const json = await response.json();
                 console.log(json.data);
                 const reserves = json.data.map((item: any) => ({
-
+                    id: item.compraId,
                     code: item.codigo,
                     date: new Date(item.fechaCompra._seconds * 1000).toLocaleDateString(),
                     amountPay: item.precioApagar,
@@ -89,52 +100,95 @@ export default function ClientReserves() {
         } catch (error) {
             console.error('Error fetching finished reserves:', error);
         }
+        setLoadingPage(false);
     }
 
-    const handleTabPress = (tab: 'activos' | 'finalizados') => {
+    const fetchCancelledReserves = async () => {
+        setLoadingPage(true);
+        try {
+            if (cedula) {
+                const cedHasheada = hashCedula(cedula);
+                const response = await fetch(`https://hambrosia.onrender.com/api/compras/canceladas/${cedHasheada}`);
+                const json = await response.json();
+                console.log(json.data);
+                const reserves = json.data.map((item: any) => ({
+                    id: item.compraId,
+                    code: item.codigo,
+                    date: new Date(item.fechaCompra._seconds * 1000).toLocaleDateString(),
+                    amountPay: item.precioApagar,
+                    methodPay: item.metodoElegido || "",
+                    restaurant: item.nombreRestaurante || "",
+                }));
+                setCancelledReserves(reserves);
+            }
+        } catch (error) {
+            console.error('Error fetching finished reserves:', error);
+        }
+        setLoadingPage(false);
+    }
+
+    const handleTabPress = (tab: 'activos' | 'finalizados' | 'cancelados') => {
         setActiveTab(tab);
+        console.log(tab)
         if (tab === 'activos') {
             fetchActiveReserves();
-        } else {
+        } else if (tab === 'finalizados') {
             fetchFinishedReserves();
+        } else {
+            console.log("reservas canceladas");
+            fetchCancelledReserves();
         }
+        const tabToValue = {
+            activos: 0,
+            finalizados: 0.9,
+            cancelados: 1.8,
+        };
+
         Animated.timing(underlinePosition, {
-            toValue: tab === 'activos' ? 0 : 1,
+            toValue: tabToValue[tab],
             duration: 300,
             useNativeDriver: false,
         }).start();
     };
 
-    const interpolatedPosition = underlinePosition.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0%', '50%']
+    const deviceWidth = Dimensions.get('window').width;
+    const positionInterpolate = underlinePosition;
+
+    const interpolatedPosition = positionInterpolate.interpolate({
+        inputRange: [0, 1, 2],
+        outputRange: [0, deviceWidth / 3, (deviceWidth / 3) * 2]
     });
 
     const handleSignOut = () => {
         auth.signOut()
+        useUserStore.getState().setRole(null);
+        useUserStore.getState().setCedRuc("");
+        useUserStore.getState().setCiudad("");
     };
 
     const handleCancel = (reserve: Reserve) => {
         Alert.alert('Cancelar Reserva', `¿Estás seguro de cancelar la reserva? `, [
             { text: 'No' },
             {
-                text: 'Yes',
+                text: 'Sí, cancelar',
                 onPress: async () => {
                     console.log(reserve.id);
-                    /*try {
+                    try {
                         const response = await fetch(`https://hambrosia.onrender.com/api/compras/cancelar/${reserve.id}`, {
-                            method: 'DELETE'
+                            method: 'PUT'
                         });
 
                         if (response.ok) {
-                            setActiveReserves(prev => prev.filter(reserve => reserve.code !== reserve.code));
+                            setActiveReserves(prev => prev.filter(reserve => reserve.id !== reserve.id));
+                            Alert.alert('Reserva cancelada', 'La reserva ha sido cancelada con éxito');
+                            fetchActiveReserves();
                         } else {
                             Alert.alert('Error', 'Failed to cancel reservation');
                         }
                     } catch (error) {
                         console.error('Cancel error:', error);
                         Alert.alert('Error', 'An error occurred while canceling');
-                    }*/
+                    }
                 }
             },
         ]);
@@ -182,35 +236,40 @@ export default function ClientReserves() {
 
     return (
         <View style={styles.container}>
+            <View style={styles.backgroundContainer} />
+
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <TouchableOpacity
-                        style={styles.addToCartButton}
-                        onPress={() => router.replace('/(tabs)/viewPackages')}
-                    >
-                        <FontAwesome5 name='chevron-left' size={20} color="#fff" />
-                    </TouchableOpacity>
-                    <Text style={styles.title}>HAMBROSÍA</Text>
-                    <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
+                    <>
+                        <TouchableOpacity style={styles.addToCartButton} onPress={() => router.replace('/(tabs)/viewPackages')}>
+                            <FontAwesome5 name='chevron-left' size={18} color="#fff" />
+                            <Text style={styles.addToCartText}>Regresar</Text>
+
+                        </TouchableOpacity>
+
+                    </>
                 </View>
 
                 <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
                     <Text style={styles.logOutText}>Salir</Text>
                 </TouchableOpacity>
             </View>
-            <Text style={[styles.title, { alignSelf: 'center', justifyContent: 'center' }]}>Mis Paquetes</Text>
 
             <View style={styles.tabContainer}>
-                {['activos', 'finalizados'].map((tab) => (
+                {['activos', 'finalizados', 'cancelados'].map((tab) => (
                     <TouchableOpacity
                         key={tab}
                         style={styles.tabButton}
-                        onPress={() => handleTabPress(tab as 'activos' | 'finalizados')}
+                        onPress={() => handleTabPress(tab as 'activos' | 'finalizados' | 'cancelados')}
                     >
                         <FontAwesome5
-                            name={tab === 'activos' ? "box" : "check-circle"}
-                            size={16}
-                            color={activeTab === tab ? '#D97706' : '#6B7280'}
+                            name={
+                                tab === 'activos' ? "box" :
+                                    tab === 'finalizados' ? "check-circle" :
+                                        tab === 'cancelados' ? "times-circle" : "box"
+                            }
+                            size={15}
+                            color={activeTab === tab ? '#fffbeb' : 'rgba(236, 173, 148, 0.9)'}
                         />
                         <Text style={[
                             styles.tabText,
@@ -223,28 +282,55 @@ export default function ClientReserves() {
                 <Animated.View
                     style={[
                         styles.tabUnderline,
-                        { left: interpolatedPosition }
+                        {
+                            transform: [{ translateX: interpolatedPosition }],
+                            width: `${100 / 3}%`,
+                        }
                     ]}
                 />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                {activeReserves.length === 0 && activeTab === 'activos' ? (
-                    <View style={styles.emptyState}>
-                        <FontAwesome5 name="box-open" size={48} color="#303030" />
-                        <Text style={styles.emptyText}>No se encuentran reservas activas</Text>
+                {loadingPage ? (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
+                        <ActivityIndicator size="large" color="#fffbeb" />
+                        <Text style={styles.emptyText}>Cargando...</Text>
                     </View>
-                ) : null}
-                {finishedReserves.length === 0 && activeTab != 'activos' ? (
-                    <View style={styles.emptyState}>
-                        <FontAwesome5 name="box-open" size={48} color="#303030" />
-                        <Text style={styles.emptyText}>No se encuentran reservas finalizadas</Text>
-                    </View>
-                ) : null}
-                {activeTab === 'activos'
-                    ? activeReserves.map((reserve) => renderPackageCard(reserve, true))
-                    : finishedReserves.map((reserve) => renderPackageCard(reserve, false))}
+                ) : (
+                    <>
+                        {activeTab === 'activos' && activeReserves.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <FontAwesome5 name="box-open" size={48} color="#fffbeb" />
+                                <Text style={styles.emptyText}>No se encuentran reservas activas</Text>
+                            </View>
+                        )}
+
+                        {activeTab === 'finalizados' && finishedReserves.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <FontAwesome5 name="box-open" size={48} color="#fffbeb" />
+                                <Text style={styles.emptyText}>No se encuentran reservas finalizadas</Text>
+                            </View>
+                        )}
+
+                        {activeTab === 'cancelados' && cancelledReserves.length === 0 && (
+                            <View style={styles.emptyState}>
+                                <FontAwesome5 name="box-open" size={48} color="#fffbeb" />
+                                <Text style={styles.emptyText}>No se encuentran reservas canceladas</Text>
+                            </View>
+                        )}
+
+                        {activeTab === 'activos' &&
+                            activeReserves.map((reserve) => renderPackageCard(reserve, true))}
+
+                        {activeTab === 'finalizados' &&
+                            finishedReserves.map((reserve) => renderPackageCard(reserve, false))}
+
+                        {activeTab === 'cancelados' &&
+                            cancelledReserves.map((reserve) => renderPackageCard(reserve, false))}
+                    </>
+                )}
             </ScrollView>
+
         </View>
     );
 }
@@ -254,24 +340,42 @@ export default function ClientReserves() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f7ccbe',
+        backgroundColor: '#FFFBEB',
         padding: 20,
         paddingTop: 30,
+    },
+    backgroundContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '65%',
+        backgroundColor: '#C2410C',
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 500,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         bottom: 24,
-        padding: 10
+        padding: 10,
     },
     addToCartButton: {
-        backgroundColor: '#D97706',
-        paddingVertical: 5,
-        paddingHorizontal: 10,
+        top: 5,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
         borderRadius: 8,
         alignItems: 'center',
-        marginRight: 20,
+        flexDirection: 'row',
+        justifyContent: 'center',
+    },
+    addToCartText: {
+        color: 'white',
+        fontWeight: '600',
+        marginLeft: 5,
+        fontSize: 14,
     },
     icon: {
         marginRight: 12,
@@ -280,6 +384,7 @@ const styles = StyleSheet.create({
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
     },
     title: {
         fontSize: 20,
@@ -307,10 +412,11 @@ const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: 'row',
         marginBottom: 24,
-        marginTop: 16,
+        marginTop: 6,
         position: 'relative',
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
+        gap: 10,
     },
     tabButton: {
         width: '100%',
@@ -319,24 +425,24 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
+        gap: 5,
     },
     tabText: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '500',
     },
     activeTabText: {
-        color: '#D97706',
+        color: '#fffbeb',
     },
     inactiveTabText: {
-        color: '#6B7280',
+        color: 'rgba(236, 173, 148, 0.9)',
     },
     tabUnderline: {
-        position: 'absolute',
-        bottom: -1,
-        width: '50%',
         height: 2,
-        backgroundColor: '#D97706',
+        backgroundColor: '#fffbeb',
+        position: 'absolute',
+        bottom: 0,
+        width: '22%',
     },
     card: {
         backgroundColor: '#fff',
@@ -349,7 +455,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
         borderLeftWidth: 4,
-        borderLeftColor: '#D97706', // Accent border
+        borderLeftColor: '#D97706',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -419,7 +525,7 @@ const styles = StyleSheet.create({
     emptyText: {
         marginTop: 16,
         fontSize: 16,
-        color: '#6B7280',
+        color: '#fffbeb',
         textAlign: 'center',
     },
 });

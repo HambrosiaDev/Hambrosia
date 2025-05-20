@@ -73,7 +73,7 @@ export default function Register() {
   };
 
   const paymentMethodsList = [
-    'Efectivo','Tarjeta de débito', 'Tarjeta de crédito', 'Transferencia bancaria', 'DeUna'
+    'Efectivo', 'Tarjeta de débito', 'Tarjeta de crédito', 'Transferencia', 'DeUna'
   ];
 
   const allergensList = [
@@ -262,7 +262,7 @@ export default function Register() {
                 .replace(/^_|_$/g, '')
                 .toUpperCase()
             )
-            
+
           }
           : {
             cedulaRUC: formData.user.cedula.trim(),
@@ -311,23 +311,12 @@ export default function Register() {
     }
   };
 
-
-  const testConnection = async () => {
-    try {
-      const test = await fetch('https://hambrosia.onrender.com/api/usuarios');
-      console.log('Connection test:', await test.json());
-    } catch (e) {
-      console.log('Connection completely broken:', e);
-    }
-  };
-
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
+      <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={styles.scrollContainer}>
         {/* Header Image */}
         <Image
           source={{
@@ -435,6 +424,7 @@ export default function Register() {
                     value={formData.user.email}
                     onChangeText={(text) => handleChange("user", "email", text)}
                     autoCapitalize="none"
+                    keyboardType='email-address'
                   />
                 </View>
 
@@ -600,36 +590,54 @@ export default function Register() {
                   />
                 </View>
 
-                <View style={styles.containerAllergens}>
-                  <Text style={styles.titleAllergens}>Selecciona los alérgenos que podrían estar presentes en tus paquetes</Text>
-                  <View style={styles.allergenList}>
+                {/* Allergens Section */}
+                <View style={styles.selectionCard}>
+                  <Text style={styles.selectionTitle}>Alérgenos presentes</Text>
+                  <Text style={styles.selectionSubtitle}>Selecciona los que podrían estar en tus paquetes</Text>
+                  <View style={styles.checkboxGrid}>
                     {allergensList.map((allergen) => (
-                      <View key={allergen} style={styles.allergenItem}>
+                      <TouchableOpacity
+                        key={allergen}
+                        style={[
+                          styles.checkboxItem,
+                          selectedAllergens.includes(allergen) && styles.selectedCheckboxItem
+                        ]}
+                        onPress={() => toggleAllergen(allergen)}
+                        activeOpacity={0.7}
+                      >
                         <Checkbox
                           value={selectedAllergens.includes(allergen)}
                           onValueChange={() => toggleAllergen(allergen)}
-                          color={selectedAllergens.includes(allergen) ? '#E74C3C' : undefined}
+                          color={selectedAllergens.includes(allergen) ? '#E74C3C' : '#D1D5DB'}
                         />
-
-                        <Text style={styles.allergenText}>{allergen}</Text>
-                      </View>
+                        <Text style={styles.checkboxText}>{allergen}</Text>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 </View>
 
-                <View style={styles.containerAllergens}>
-                  <Text style={styles.titleAllergens}>Selecciona los métodos de pago aceptados en tu restaurante</Text>
-                  <View style={styles.allergenList}>
+                {/* Payment Methods Section */}
+                <View style={styles.selectionCard}>
+                  <Text style={styles.selectionTitle}>Métodos de pago</Text>
+                  <Text style={styles.selectionSubtitle}>Selecciona los aceptados en tu restaurante</Text>
+                  <View style={styles.checkboxGrid}>
                     {paymentMethodsList.map((payment) => (
-                      <View key={payment} style={styles.allergenItem}>
+                      <TouchableOpacity
+                        key={payment}
+                        style={[
+                          styles.checkboxItem,
+                          selectedPaymentMethod.includes(payment) && styles.selectedCheckboxItem
+                        ]}
+                        onPress={() => togglePaymentMethod(payment)}
+                        activeOpacity={0.7}
+                      >
                         <Checkbox
                           value={selectedPaymentMethod.includes(payment)}
                           onValueChange={() => togglePaymentMethod(payment)}
-                          color={selectedPaymentMethod.includes(payment) ? '#E74C3C' : undefined}
+                          color={selectedPaymentMethod.includes(payment) ? '#E74C3C' : '#D1D5DB'}
                         />
-
-                        <Text style={styles.allergenText}>{payment}</Text>
-                      </View>
+                        <Text style={styles.checkboxText}>{payment}</Text>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 </View>
@@ -743,7 +751,7 @@ const styles = StyleSheet.create({
     height: width * 0.15,
     resizeMode: "contain",
     alignSelf: "center",
-    bottom: 30,
+    bottom: 20,
     marginBottom: 20,
   },
   logoContainer: {
@@ -760,16 +768,16 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '85%',
-    marginTop: 40,
+    marginTop: 25,
     backgroundColor: '#f7ccbe',
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
     alignItems: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
     borderRadius: 8,
     width: '100%',
@@ -816,36 +824,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  containerAllergens: {
-    padding: 1,
-    alignItems: 'center',
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  titleAllergens: {
-    marginTop: 10,
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#333',
-  },
-  allergenList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  allergenItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFBEB',
-    padding: 10,
-    borderRadius: 8,
-    margin: 5,
-  },
-  allergenText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#333',
-  },
+  selectionCard: {
+  backgroundColor: '#FFF',
+  borderRadius: 12,
+  padding: 16,
+  marginBottom: 20,
+  borderWidth: 1,
+  borderColor: '#EDE9E3',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 3,
+  elevation: 2,
+},
+selectionTitle: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#C2410C',
+  marginBottom: 4,
+},
+selectionSubtitle: {
+  fontSize: 13,
+  color: '#6B7280',
+  marginBottom: 12,
+},
+checkboxGrid: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+},
+checkboxItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  width: '49%',
+  paddingVertical: 8,
+  paddingHorizontal: 6,
+  borderRadius: 6,
+  marginBottom: 8,
+},
+selectedCheckboxItem: {
+  backgroundColor: '#FFFBEB',
+},
+checkboxText: {
+  marginLeft: 8,
+  fontSize: 14,
+  color: '#374151',
+  flexShrink: 1, 
+},
 });

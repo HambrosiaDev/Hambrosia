@@ -15,6 +15,7 @@ import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { auth } from '../firebaseConfig';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../user';
+import Loading from '@/components/Loading';
 
 
 
@@ -44,7 +45,12 @@ export default function CreatePackageScreen() {
     const [isLoading, setIsLoading] = useState(false);
 
 
-    const handleSignOut = () => auth.signOut();
+    const handleSignOut = () => {
+        auth.signOut();
+        useUserStore.getState().setRole(null);
+        useUserStore.getState().setCedRuc("");
+        useUserStore.getState().setCiudad("");
+    };
 
     const setToNull = () => {
         setDescription("");
@@ -61,47 +67,48 @@ export default function CreatePackageScreen() {
             Alert.alert('Campos incompletos', 'Por favor completa todos los campos');
             return false;
         }
-    
+
         if (Number(discountedPrice) >= Number(price)) {
             Alert.alert('Precios incorrectos', 'El precio con descuento debe ser menor al PVP');
             return false;
         }
-    
+
         if (Number(price) <= 0 || Number(discountedPrice) <= 0) {
             Alert.alert('Precio inválido', 'Los precios deben ser mayores que 0');
             return false;
         }
-    
+
         if (Number(units) <= 0) {
             Alert.alert('Unidades inválidas', 'Debes ingresar al menos una unidad');
             return false;
         }
-    
+
         if (isNaN(Number(pickupTimeHour)) || isNaN(Number(pickupTimeMin)) || Number(pickupTimeHour) < 0 || Number(pickupTimeHour) > 23 || Number(pickupTimeMin) < 0 || Number(pickupTimeMin) > 59) {
             Alert.alert('Hora inválida', 'Ingresa una hora válida (0-23) y minutos válidos (0-59)');
             return false;
         }
         return true;
     };
-    
+
 
     const handleSubmit = async () => {
+        setIsLoading(true)
         validateData();
         const payload = {
             descripcion: description,
             precioDescuento: Number(discountedPrice),
             precio: Number(price),
             unidades: Number(units),
-            horaRetiro: pickupTimeHour+":"+pickupTimeMin,
+            horaRetiro: pickupTimeHour + ":" + pickupTimeMin,
             imagenURL: selectedIcon,
         };
-       try {
+        try {
             const payload = {
                 descripcion: description,
                 precioDescuento: Number(discountedPrice),
                 precio: Number(price),
                 unidades: Number(units),
-                horaRetiro: pickupTimeHour+":"+pickupTimeMin,
+                horaRetiro: pickupTimeHour + ":" + pickupTimeMin,
                 imagenURL: selectedIcon,
             };
 
@@ -112,7 +119,7 @@ export default function CreatePackageScreen() {
                 },
                 body: JSON.stringify(payload),
             });
-            
+
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -124,88 +131,102 @@ export default function CreatePackageScreen() {
             console.error("Package registration error:", e);
             Alert.alert("Error", `Registro del paquete fallido: ${e.message}`);
         }
-       console.log(payload)
+        console.log(payload)
+        setIsLoading(false);
     };
 
+    if(isLoading){
+        return(
+            <Loading />
+        )
+    }
+
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
-        >
-            <ScrollView
-                contentContainerStyle={{
-                    backgroundColor: '#f7ccbe',
-                    flexGrow: 1,
-                    paddingBottom: 30
-                }}
-                keyboardShouldPersistTaps="handled"
+        <View style={styles.container}>
+            {/* Background elements */}
+            <View style={styles.backgroundContainer} />
+
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <View style={styles.container}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                >
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.headerLeft}>
-                            <Text style={styles.title}>HAMBROSÍA</Text>
-                            <FontAwesome5 name="utensils" size={24} color="#D97706" style={styles.icon} />
-                        </View>
-                        <View style={styles.headerRight}>
                             <TouchableOpacity
                                 style={styles.goBackButton}
                                 onPress={() => router.replace('/(tabs)/viewPackages')}
                             >
                                 <FontAwesome5 name='chevron-left' size={20} color="#fff" />
                             </TouchableOpacity>
+                            <Text style={styles.headerTitle}>Nuevo Paquete</Text>
+                        </View>
+                        <View style={styles.headerRight}>
                             <TouchableOpacity style={styles.logOutButton} onPress={handleSignOut}>
                                 <Text style={styles.logOutText}>Salir</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
+                    {/* Form Card */}
                     <View style={styles.formContainer}>
+                        {/* Description */}
                         <View style={styles.inputContainer}>
-                            <FontAwesome name="comment" size={16} color="#D97706" style={styles.icon} />
-                            <TextInput
-                                placeholder="Describe el paquete, ej: algo refrescante y saludable"
-                                placeholderTextColor="#999"
-                                value={description}
-                                onChangeText={setDescription}
-                                style={styles.textInput}
-                                multiline
-                            />
+                            <View style={styles.inputWithIcon}>
+                                <FontAwesome name="comment" size={16} color="#D97706" style={styles.icon} />
+                                <TextInput
+                                    placeholder="Descripción del paquete"
+                                    placeholderTextColor="#999"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                    style={styles.textInput}
+                                    multiline
+                                />
+                            </View>
                         </View>
 
+                        {/* Prices */}
                         <View style={styles.priceRow}>
-                            <View style={styles.priceInputContainer}>
+                            <View style={[styles.inputContainer, styles.priceInputContainer]}>
                                 <View style={styles.inputWithIcon}>
-                                    <FontAwesome5 name="dollar-sign" size={16} color="#D97706" />
+                                    <FontAwesome5 name="dollar-sign" size={16} color="#D97706" style={styles.icon} />
                                     <TextInput
-                                        placeholder="Precio"
+                                        placeholder="PVP Normal"
                                         placeholderTextColor="#999"
                                         value={price}
                                         onChangeText={setPrice}
                                         keyboardType="numeric"
-                                        style={styles.priceInput}
+                                        style={styles.textInput}
+                                        multiline={true}
+
                                     />
                                 </View>
                             </View>
 
-                            <View style={styles.priceInputContainer}>
+                            <View style={[styles.inputContainer, styles.priceInputContainer]}>
                                 <View style={styles.inputWithIcon}>
-                                    <FontAwesome5 name="dollar-sign" size={16} color="#D97706" />
+                                    <FontAwesome5 name="tags" size={16} color="#D97706" style={styles.icon} />
                                     <TextInput
-                                        placeholder="Precio con descuento"
+                                        placeholder="PVP Actual"
                                         placeholderTextColor="#999"
                                         value={discountedPrice}
                                         onChangeText={setDiscountedPrice}
                                         keyboardType="numeric"
-                                        style={styles.priceInput}
+                                        style={styles.textInput}
+                                        multiline={true}
                                     />
                                 </View>
                             </View>
                         </View>
 
-                        <View style={styles.inputGroup}>
+                        {/* Units */}
+                        <View style={styles.inputContainer}>
                             <View style={styles.inputWithIcon}>
-                                <FontAwesome name="hashtag" size={16} color="#D97706" />
+                                <FontAwesome name="hashtag" size={16} color="#D97706" style={styles.icon} />
                                 <TextInput
                                     placeholder="Unidades disponibles"
                                     placeholderTextColor="#999"
@@ -214,48 +235,38 @@ export default function CreatePackageScreen() {
                                     keyboardType="numeric"
                                     style={styles.textInput}
                                 />
-                                
                             </View>
                         </View>
 
-                        <Text style={styles.sectionTitle}>Hora límite del retiro</Text>
-                        <View style={styles.priceRow}>
-                            <View style={styles.priceInputContainer}>
-                                <View style={styles.inputWithIcon}>
-                                <FontAwesome name="clock-o" size={16} color="#D97706" />
-                                <TextInput
-                                    placeholder="HH"
-                                    placeholderTextColor="#999"
-                                    value={pickupTimeHour}
-                                    onChangeText={setPickupTimeHour}
-                                    style={styles.textInput}
-                                    keyboardType="numeric"
-                                />
-                                </View>
-                            </View>
-
-                            <Text style={styles.sectionTitle}>:</Text>
-
-                            <View style={styles.priceInputContainer}>
-                                <View style={styles.inputWithIcon}>
-                                <FontAwesome name="clock-o" size={16} color="#D97706" />
-                                <TextInput
-                                    placeholder="MM"
-                                    placeholderTextColor="#999"
-                                    value={pickupTimeMin}
-                                    onChangeText={setPickupTimeMin}
-                                    style={styles.textInput}
-                                    keyboardType="numeric"
-                                />
-                                </View>
-                            </View>
+                        {/* Pickup Time */}
+                        <Text style={styles.sectionTitle}>Hora límite de retiro</Text>
+                        <View style={styles.timeInputContainer}>
+                            <TextInput
+                                placeholder="HH"
+                                placeholderTextColor="#999"
+                                value={pickupTimeHour}
+                                onChangeText={setPickupTimeHour}
+                                style={styles.timeInput}
+                                keyboardType="numeric"
+                                maxLength={2}
+                            />
+                            <Text style={styles.timeSeparator}>:</Text>
+                            <TextInput
+                                placeholder="MM"
+                                placeholderTextColor="#999"
+                                value={pickupTimeMin}
+                                onChangeText={setPickupTimeMin}
+                                style={styles.timeInput}
+                                keyboardType="numeric"
+                                maxLength={2}
+                            />
                         </View>
 
+                        {/* Icon Selection */}
                         <Text style={styles.sectionTitle}>Icono del paquete</Text>
                         <Text style={styles.sectionSubtitle}>
-                            Escoge la imagen que mejor represente el paquete
+                            Selecciona una imagen representativa
                         </Text>
-
                         <View style={styles.iconGrid}>
                             {iconOptions.map((icon) => (
                                 <TouchableOpacity
@@ -268,13 +279,14 @@ export default function CreatePackageScreen() {
                                 >
                                     <FontAwesome5
                                         name={icon as any}
-                                        size={35}
-                                        color={selectedIcon === icon ? '#fff' : '#D97706'}
+                                        size={30}
+                                        color={selectedIcon === icon ? '#fff' : '#C2410C'}
                                     />
                                 </TouchableOpacity>
                             ))}
                         </View>
 
+                        {/* Submit Button */}
                         <TouchableOpacity
                             onPress={handleSubmit}
                             style={styles.submitButton}
@@ -283,24 +295,38 @@ export default function CreatePackageScreen() {
                             <Text style={styles.submitButtonText}>Crear Paquete</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f7ccbe',
-        paddingTop: 30,
+        backgroundColor: '#FFFBEB', // Cream background
+    },
+    backgroundContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '30%', // Orange top section
+        backgroundColor: '#C2410C',
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+    },
+    scrollContent: {
+        paddingBottom: 40,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 20,
+        paddingHorizontal: 25,
+        paddingTop: 50,
+        paddingBottom: 20,
+        zIndex: 1,
     },
     headerLeft: {
         flexDirection: 'row',
@@ -309,129 +335,127 @@ const styles = StyleSheet.create({
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 15,
     },
-    title: {
-        fontSize: 24,
+    headerTitle: {
+        fontSize: 22,
         fontWeight: 'bold',
-        color: '#C2410C',
-        marginRight: 10,
+        color: '#FFF',
+        marginLeft: 15,
     },
     logOutButton: {
-        backgroundColor: '#CE2C04',
+        backgroundColor: 'rgba(255,255,255,0.2)',
         paddingVertical: 8,
         paddingHorizontal: 16,
-        borderRadius: 8,
+        borderRadius: 20,
     },
     logOutText: {
         color: 'white',
         fontWeight: '600',
     },
-    icon: {
-        marginTop: 4,
-    },
     goBackButton: {
-        backgroundColor: '#D97706',
-        padding: 8,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        padding: 10,
         borderRadius: 20,
     },
     formContainer: {
-        paddingHorizontal: 20,
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        marginHorizontal: 20,
+        padding: 25,
+        marginTop: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#C2410C',
-        marginBottom: 10,
+        marginBottom: 8,
     },
     sectionSubtitle: {
         fontSize: 14,
         color: '#666',
-        marginBottom: 15,
-    },
-    inputGroup: {
-        marginBottom: 15,
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#C2410C',
-        marginBottom: 5,
+        marginBottom: 20,
     },
     inputContainer: {
-        backgroundColor: '#FFF',
-        borderRadius: 10,
+        backgroundColor: '#FFFBEB',
+        borderRadius: 12,
         paddingHorizontal: 15,
-        paddingVertical: 10,
-        marginBottom: 15,
-        flexDirection: 'row',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        paddingVertical: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#EDE9E3',
     },
     inputWithIcon: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF',
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
     },
     textInput: {
         flex: 1,
-        paddingHorizontal: 10,
+        paddingHorizontal: 12,
         color: '#333',
         fontSize: 16,
+        minHeight: 24,
     },
     priceRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 15,
     },
     priceInputContainer: {
         width: '48%',
     },
-    priceInput: {
-        flex: 1,
-        paddingHorizontal: 10,
-        color: '#333',
-        fontSize: 16,
+    timeInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        marginBottom: 20,
+    },
+    timeInput: {
+        backgroundColor: '#FFFBEB',
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#EDE9E3',
+        width: 80,
+        textAlign: 'center',
+    },
+    timeSeparator: {
+        fontSize: 18,
+        color: '#C2410C',
+        fontWeight: 'bold',
     },
     iconGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         gap: 12,
         marginBottom: 25,
+        alignContent: 'center',
+        alignItems: 'center',
     },
     iconButton: {
-        width: 70,
-        height: 70,
+        width: '30%',
+        aspectRatio: 1,
         backgroundColor: '#FFFBEB',
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        borderWidth: 2,
+        borderColor: '#EDE9E3',
     },
     selectedIconButton: {
-        backgroundColor: '#F26D21',
+        backgroundColor: '#E74C3C',
+        borderColor: '#C2410C',
     },
     submitButton: {
-        backgroundColor: '#F26D21',
-        padding: 16,
-        borderRadius: 10,
+        backgroundColor: '#E74C3C',
+        padding: 18,
+        borderRadius: 12,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -443,5 +467,9 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 16,
+    },
+    icon: {
+        color: '#D97706',
+        marginRight: 10,
     },
 });

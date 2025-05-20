@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Logo-2.png",
+        "foregroundImage": "./assets/images/logo_small.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.hambrosia.app",
