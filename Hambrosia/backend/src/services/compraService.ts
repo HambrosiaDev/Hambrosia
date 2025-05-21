@@ -192,9 +192,11 @@ export class CompraService {
     }>
   > {
     try {
+
+      const additionalDay = process.env.DEV_DAY || 1;
       // Parsear la fecha desde string 'YYYY-MM-DD'
       const [year, month, day] = fechaCompra.split('-').map(Number);
-      const date = new Date(year, month - 1, day+1); // Mes es 0-based
+      const date = new Date(year, month - 1, day + Number(additionalDay)); // Mes es 0-based
   
       // Usar el helper reusable para obtener inicio y fin del día en Ecuador
       const { start, end } = getEcuadorDayRangeFromDate(date);
