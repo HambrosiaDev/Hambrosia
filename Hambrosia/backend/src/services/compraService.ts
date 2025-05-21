@@ -195,29 +195,34 @@ export class CompraService {
       // Convertir la fecha string a objeto Date
       const [year, month, day] = fechaCompra.split('-').map(Number);
       const date = new Date(year, month - 1, day); // Mes es 0-based
-  
-      // Ajustar para UTC-5 (Ecuador)
-      const startDate = new Date(date);
-      startDate.setHours(-5, 0, 0, 0); // Inicio del día en UTC-5
-  
-      const endDate = new Date(date);
-      endDate.setHours(18, 59, 59, 999); // Fin del día en UTC-5 (23:59:59 - 5 horas)
-  
+
+      // Ajustar la fecha del servidor a Ecuador (UTC-5)
+      const ecuadorDate = new Date(date);
+      ecuadorDate.setHours(ecuadorDate.getHours() - 5);
+
+      // Establecer el rango del día en Ecuador
+      const startDate = new Date(ecuadorDate);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(ecuadorDate);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Convertir a UTC para la consulta
       const start = Timestamp.fromDate(startDate);
       const end = Timestamp.fromDate(endDate);
-  
+
       const comprasSnapshot = await this.collection
         .where('restauranteId', '==', restauranteId)
         .where('fechaCompra', '>=', start)
         .where('fechaCompra', '<', end)
         .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId', 'cantidadComprada', 'pagado', 'id', 'cancelado')
         .get();
-  
+
       const compras = await Promise.all(
         comprasSnapshot.docs.map(async (doc) => {
           const data = doc.data();
           const cliente = await usuarioService.getById(data.clienteId);
-  
+
           return {
             precioApagar: data.precioApagar,
             metodoElegido: data.metodoElegido,
@@ -231,7 +236,7 @@ export class CompraService {
           };
         })
       );
-  
+
       return compras;
     } catch (error) {
       console.error('Error al obtener compras por restaurante:', error);
