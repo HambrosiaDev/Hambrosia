@@ -2,9 +2,9 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { db } from '../config/firebase';
 import { Compra, Notificaciones } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
+import { getEcuadorDayRangeFromDate } from '../utils/HELPER';
 import { paqueteService } from './paqueteService';
 import { usuarioService } from './usuarioService';
-import { getEcuadorDayRangeFromDate } from '../utils/HELPER';
 
 // Centralized error messages
 const ERROR_MESSAGES = {
@@ -196,8 +196,15 @@ export class CompraService {
       const [year, month, day] = fechaCompra.split('-').map(Number);
       const date = new Date(year, month - 1, day); // Mes es 0-based
   
-      // Usar el helper con esa fecha específica
-      const { start, end } = getEcuadorDayRangeFromDate(date);
+      // Ajustar para UTC-5 (Ecuador)
+      const startDate = new Date(date);
+      startDate.setHours(-5, 0, 0, 0); // Inicio del día en UTC-5
+  
+      const endDate = new Date(date);
+      endDate.setHours(18, 59, 59, 999); // Fin del día en UTC-5 (23:59:59 - 5 horas)
+  
+      const start = Timestamp.fromDate(startDate);
+      const end = Timestamp.fromDate(endDate);
   
       const comprasSnapshot = await this.collection
         .where('restauranteId', '==', restauranteId)
