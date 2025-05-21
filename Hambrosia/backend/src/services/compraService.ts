@@ -192,37 +192,33 @@ export class CompraService {
     }>
   > {
     try {
-      // Convertir la fecha string a objeto Date
+      // Parsear la fecha desde string 'YYYY-MM-DD'
       const [year, month, day] = fechaCompra.split('-').map(Number);
       const date = new Date(year, month - 1, day); // Mes es 0-based
-
-      // Ajustar la fecha del servidor a Ecuador (UTC-5)
-      const ecuadorDate = new Date(date);
-      ecuadorDate.setHours(ecuadorDate.getHours() - 5);
-
-      // Establecer el rango del día en Ecuador
-      const startDate = new Date(ecuadorDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      const endDate = new Date(ecuadorDate);
-      endDate.setHours(23, 59, 59, 999);
-
-      // Convertir a UTC para la consulta
-      const start = Timestamp.fromDate(startDate);
-      const end = Timestamp.fromDate(endDate);
-
+  
+      // Usar el helper reusable para obtener inicio y fin del día en Ecuador
+      const { start, end } = getEcuadorDayRangeFromDate(date);
+  
+      console.log('Fecha de consulta:', fechaCompra);
+      console.log('Rango en UTC para Ecuador:', {
+        start: start.toDate().toISOString(),
+        end: end.toDate().toISOString(),
+      });
+  
+      // Realizar consulta Firestore
       const comprasSnapshot = await this.collection
         .where('restauranteId', '==', restauranteId)
         .where('fechaCompra', '>=', start)
         .where('fechaCompra', '<', end)
         .select('precioApagar', 'metodoElegido', 'fechaCompra', 'clienteId', 'cantidadComprada', 'pagado', 'id', 'cancelado')
         .get();
-
+  
+      // Obtener datos adicionales (nombre del cliente)
       const compras = await Promise.all(
         comprasSnapshot.docs.map(async (doc) => {
           const data = doc.data();
           const cliente = await usuarioService.getById(data.clienteId);
-
+  
           return {
             precioApagar: data.precioApagar,
             metodoElegido: data.metodoElegido,
@@ -236,7 +232,7 @@ export class CompraService {
           };
         })
       );
-
+  
       return compras;
     } catch (error) {
       console.error('Error al obtener compras por restaurante:', error);
