@@ -250,8 +250,19 @@ export class CompraService {
     nextCursor: string | null;
   }> {
     try {
-      const { start, end } = getEcuadorDayRangeFromDate(new Date()); // Usa el día actual en Ecuador
-  
+      const additionalDay = process.env.DEV_DAY || 1;
+      const now = new Date();
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + Number(additionalDay));
+
+      // Usar el helper reusable para obtener inicio y fin del día en Ecuador
+      const { start, end } = getEcuadorDayRangeFromDate(date);
+
+      console.log('Fecha de consulta:', date.toISOString());
+      console.log('Rango en UTC para Ecuador:', {
+        start: start.toDate().toISOString(),
+        end: end.toDate().toISOString(),
+      });
+
       let query = this.collection
         .where('clienteId', '==', clienteId)
         .where('confirmacionCodigo', '==', false)
@@ -263,11 +274,11 @@ export class CompraService {
         .orderBy('fechaCompra')
         .limit(10)
         .select('codigo', 'fechaCompra', 'precioApagar', 'paqueteId', 'metodoElegido', 'id');
-  
+
       if (cursor) {
         query = query.startAfter(cursor);
       }
-  
+
       const snapshot = await query.get();
       const compras = snapshot.docs.map((doc) => {
         const data = doc.data();
@@ -280,9 +291,9 @@ export class CompraService {
           compraId: data.id,
         };
       });
-  
+
       const nextCursor = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1].id : null;
-  
+
       return { compras, nextCursor };
     } catch (error) {
       console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
