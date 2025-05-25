@@ -10,6 +10,7 @@ web-build/
 expo-env.d.ts
 android
 node_modules
+hambrosia-ec04f-firebase-adminsdk-fbsvc-3d1d9fb15b.json
 
 # Native
 *.orig.*

@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Pressable, TextInput, Alert } from 'react-native';
 import { FontAwesome5, FontAwesome } from '@expo/vector-icons';
-import { auth } from '../firebaseConfig';
+import { auth, firestore } from '../firebaseConfig';
 import { useUserStore } from '../user';
 import { useRouter } from 'expo-router';
 import Loading from '@/components/Loading';
 import CryptoJS from 'crypto-js';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { notifications } from '../notifications';
 
 
 const cities = ['Floresta', 'Quito', 'Iñaquito', 'Valle de los Chillos'];
@@ -60,10 +62,10 @@ export default function ViewPackages() {
   const [loadingPage, setLoadingPage] = useState(true);
   const [amountPackage, setAmountPackage] = useState(1);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
-  const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+  const [selectedIcon, setSelectedIcon] = useState("utensils");
 
   useEffect(() => {
-    if (selectedCity === undefined || role === undefined) {
+    if (selectedCity === undefined || role === null) {
       setLoadingPage(true);
     }
     else {
@@ -103,10 +105,60 @@ export default function ViewPackages() {
 
 
   useEffect(() => {
-    setTimeout(() => {
-      setLoadingPage(false);
-    }, 3000);
+    const fetchUserData = async () => {
+      const userCredential = auth.currentUser;
+
+      if (!userCredential) {
+        console.log("No user is currently signed in.");
+        setLoadingPage(false);
+        return;
+      }
+
+      const user = userCredential;
+
+      try {
+        const token = await user.getIdToken();
+        console.log("Token:", token);
+        console.log("User signed in:", user.uid);
+
+        const usuariosQuery = query(
+          collection(firestore, "usuarios"),
+          where("firebaseUid", "==", user.uid)
+        );
+
+        const querySnapshot = await getDocs(usuariosQuery);
+
+        const pushToken = await notifications();
+
+        console.log("Push token" + pushToken);
+
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const userData = userDoc.data();
+
+          useUserStore.getState().setRole(userData.rol);
+          useUserStore.getState().setCedRuc(userData.cedulaRUC);
+          useUserStore.getState().setCiudad(userData.ciudad);
+
+          console.log("User data from Firestore:", userData);
+        } else {
+          console.log("No user data found in Firestore for UID:", user.uid);
+        }
+
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+
+      console.log(auth.currentUser, "Usuario actual desde firebase");
+
+      setTimeout(() => {
+        setLoadingPage(false);
+      }, 3000);
+    };
+
+    fetchUserData();
   }, []);
+
 
   if (loadingPage) return <Loading />
 
@@ -183,7 +235,8 @@ export default function ViewPackages() {
       'apple-alt',
       'coffee',
       'ice-cream',
-      'bread-slice'];
+      'bread-slice',
+    ];
     const safeIconName = validIcons.includes(iconName) ? iconName : 'hamburger';
     return <FontAwesome5 name={safeIconName} size={35} color="#D97706" />;
   };

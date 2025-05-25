@@ -126,6 +126,29 @@ export default function ClientReserves() {
         }
     }
 
+    const handleReportClient = async(reserve: Reserve)=>{
+        const payload = {
+            descripcion: `El cliente ${reserve.clientName}, no llegó a retirar la compra con fecha ${reserve.date}, de ${reserve.amountPay} con ${reserve.amount} unidades`
+        }
+        console.log(payload);
+
+        try {
+            const response = await fetch(`https://hambrosia.onrender.com/api/reportes/crearReporte/${reserve.id}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+            setValidationCode('');
+            setSelectedRating(0);
+
+        } catch (error) {
+            console.error('Error reporting client:', error);
+            Alert.alert('Error', 'Hubo un problema al reportar el cliente.');
+        }
+    }
+
 
 
     const renderPackageCard = (reserve: Reserve, isActive: boolean) => (
@@ -299,7 +322,9 @@ export default function ClientReserves() {
                         <TouchableOpacity
                             style={[styles.logOutButton, { marginTop: 10 }]}
                             onPress={() => {
-                                //Logic to report a client here
+                                if (selectedReserve) {
+                                    handleReportClient(selectedReserve);
+                                }
                                 setValidationModalVisible(false);
                             }} >
                             <Text style={styles.buyButtonText}>Reportar a un cliente</Text>

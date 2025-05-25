@@ -3,6 +3,7 @@
     "name": "Hambrosia",
     "assetBundlePatterns":["**/*"],
     "slug": "Hambrosia",
+    "owner": "froggotkd",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo_small.png",

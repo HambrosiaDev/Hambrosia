@@ -4,17 +4,24 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Dimensions } from "react-native";
 import Loading from '@/components/Loading';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 import { auth, firestore } from "@/app/firebaseConfig";
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useUserStore } from '../user';
+import { notifications } from '../notifications';
 
 
 const { width } = Dimensions.get("window");
 
+
+
+
+
 export default function HomeScreen() {
+  const [user, setUser] = useState<import('firebase/auth').User | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPage, setLoadingPage] = useState(true);
   const router = useRouter();
@@ -25,7 +32,7 @@ export default function HomeScreen() {
   const [password, setPassword] = useState('');
 
 
-  const signIn = async () => {
+   const signIn = async () => {
     setLoading(true);
     setLoadingPage(true);
     try {
@@ -44,6 +51,10 @@ export default function HomeScreen() {
         where("firebaseUid", "==", user.uid)
       );
       const querySnapshot = await getDocs(usuariosQuery);
+
+      const pushToken = await notifications();
+
+      console.log("Push token"+pushToken);
 
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
@@ -89,13 +100,19 @@ export default function HomeScreen() {
   };
 
 
+
   useEffect(() => {
-    Animated.timing(translation, {
-      toValue: -100,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
-  }, [])
+    const fetchStoredUser = async () => {
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        setUser(null);
+      }
+    };
+    fetchStoredUser();
+  }, []);
+
 
   useEffect(() => {
     setTimeout(() => {
@@ -190,7 +207,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     position: 'absolute',
-    top: 180,
+    top: 110,
     paddingVertical: 10,
     paddingHorizontal: 20,
     justifyContent: "center",
@@ -227,7 +244,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937', 
+    color: '#1F2937',
   },
   button: {
     width: '100%',
@@ -238,7 +255,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   registerButton: {
-    backgroundColor: '#B91C1C', 
+    backgroundColor: '#B91C1C',
   },
   buttonText: {
     color: 'white',

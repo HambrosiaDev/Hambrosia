@@ -1,7 +1,7 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Animated, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { auth } from '../firebaseConfig'
 import { useUserStore } from '../user';
 import Loading from '@/components/Loading';
@@ -9,14 +9,16 @@ import CryptoJS from 'crypto-js';
 import { Dimensions } from 'react-native';
 
 
-
 export default function ClientReserves() {
-    const [activeTab, setActiveTab] = useState<'activos' | 'finalizados' | 'cancelados'>('activos');
     const underlinePosition = useState(new Animated.Value(0))[0];
     const [activeReserves, setActiveReserves] = useState<Reserve[]>([]);
     const [finishedReserves, setFinishedReserves] = useState<Reserve[]>([]);
     const [cancelledReserves, setCancelledReserves] = useState<Reserve[]>([]);
     const [selectedReserve, setSelectedReserve] = useState<Reserve | null>(null);
+    const [activeTab, setActiveTab] = useState<'activos' | 'finalizados' | 'cancelados'>('activos');
+    const [reportModalVisible, setReportModalVisible] = useState(false);
+    const [reportDescription, setReportDescription] = useState("");
+
     const [loadingPage, setLoadingPage] = useState(false);
 
     const secretKey = process.env.EXPO_PUBLIC_SECRET_KEY;
@@ -196,43 +198,69 @@ export default function ClientReserves() {
 
     useEffect(() => {
         fetchActiveReserves();
+        setReportModalVisible(false);
     }, []);
 
 
-    const renderPackageCard = (reserve: Reserve, isActive: boolean) => (
-        <View key={reserve.code} style={styles.card}>
-            <View style={styles.cardHeader}>
-                <Text style={styles.cardTextCode}>{reserve.code}</Text>
-                <Text style={styles.cardTextValue}>{reserve.date}</Text>
+    const renderPackageCard = (reserve: Reserve, isActive: boolean) => {
+        const reportButtonStyle = {
+            backgroundColor: '#FEF3C7',
+            borderColor: '#F59E0B',
+            flex: 1,
+            marginRight: activeTab === 'activos' ? 8 : 0,
+        };
+        return (
+
+            <View key={reserve.code} style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <Text style={styles.cardTextCode}>{reserve.code}</Text>
+                    <Text style={styles.cardTextValue}>{reserve.date}</Text>
+                </View>
+
+                <View style={styles.paymentMethodContainer}>
+                    <Text style={styles.cardTextRestaurant}>{reserve.restaurant}</Text>
+                    <Text style={styles.cardTextAmount}>${reserve.amountPay.toFixed(2)}</Text>
+                </View>
+
+                <View style={styles.paymentMethodContainer}>
+                    <FontAwesome5
+                        name={reserve.methodPay === 'Efectivo' ? 'money-bill-wave' : 'credit-card'}
+                        size={16}
+                        style={styles.paymentIcon}
+                    />
+                    <Text style={styles.cardTextValue}>{reserve.methodPay}</Text>
+                </View>
+
+                <View style={styles.buttonsContainer}>
+                    <TouchableOpacity
+                        style={[styles.actionButton, reportButtonStyle]}
+                        onPress={() => {
+                            setSelectedReserve(reserve);
+                            setReportModalVisible(true);
+                        }}
+                    >
+                        <Text style={styles.reportButtonText}>Reportar</Text>
+                        <FontAwesome5 name="exclamation-triangle" size={14} color="#9C4221" />
+                    </TouchableOpacity>
+
+                    {isActive && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.cancelButton]}
+                            onPress={() => handleCancel(reserve)}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            <FontAwesome5 name="times-circle" size={16} color="#DC2626" />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
+        );
+    }
 
-            <View style={styles.paymentMethodContainer}>
-                <Text style={styles.cardTextRestaurant}>{reserve.restaurant}</Text>
-                <Text style={styles.cardTextAmount}>${reserve.amountPay.toFixed(2)}</Text>
-            </View>
+    const reportModal = (reserve: Reserve) => {
 
+    }
 
-
-            <View style={styles.paymentMethodContainer}>
-                <FontAwesome5
-                    name={reserve.methodPay === 'Efectivo' ? 'money-bill-wave' : 'credit-card'}
-                    size={16}
-                    style={styles.paymentIcon}
-                />
-                <Text style={styles.cardTextValue}>{reserve.methodPay}</Text>
-            </View>
-
-            {isActive && (
-                <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => handleCancel(reserve)}
-                >
-                    <Text style={styles.cancelButtonText}>Cancelar</Text>
-                    <FontAwesome5 name="times-circle" size={16} color="#DC2626" />
-                </TouchableOpacity>
-            )}
-        </View>
-    );
 
     return (
         <View style={styles.container}>
@@ -331,6 +359,56 @@ export default function ClientReserves() {
                 )}
             </ScrollView>
 
+            <Modal visible={reportModalVisible} transparent animationType="slide">
+                {selectedReserve && (
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContainer}>
+                            <View style={styles.packageModalHeader}>
+                                <TouchableOpacity
+                                    style={styles.closeButton}
+                                    onPress={() => setReportModalVisible(false)}
+                                >
+                                    <FontAwesome5 name="times" size={20} color="#6B7280" />
+                                </TouchableOpacity>
+                            </View>
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.scrollContainer}
+                            >
+                                <Text style={styles.reportDescription}>Cuentanos el motivo para reportar a  {selectedReserve.restaurant}</Text>
+                                <TextInput
+                                    value={reportDescription}
+                                    onChangeText={setReportDescription}
+                                    multiline
+                                    placeholder="Cuéntanos qué ocurrió"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={{
+                                        borderWidth: 1,
+                                        borderColor: '#D97706',
+                                        borderRadius: 8,
+                                        padding: 10,
+                                        marginTop: 10,
+                                        backgroundColor: '#fff',
+                                        color: '#1F2937',
+                                        fontSize: 16,
+                                        fontWeight: '500',
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 2 },
+                                    }}
+                                />
+                                <TouchableOpacity
+                                    style={styles.reportButton}
+                                    onPress={() => {
+                                        console.log("reportar restaurante")
+                                    }} >
+                                    <Text style={styles.finalReportButtonText}>Reportar</Text>
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
+                    </View>
+                )}
+            </Modal>
+
         </View>
     );
 }
@@ -408,6 +486,24 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         paddingBottom: 16,
+    },
+    reportDescription: {
+        fontSize: 16,
+        color: '#4B5563',
+        marginBottom: 20,
+        lineHeight: 24,
+    },
+    reportButton: {
+        backgroundColor: '#D97706',
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginTop:10,
+    },
+    finalReportButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     tabContainer: {
         flexDirection: 'row',
@@ -502,15 +598,9 @@ const styles = StyleSheet.create({
         color: '#6B7280',
     },
     cancelButton: {
-        marginTop: 5,
-        padding: 12,
         backgroundColor: '#FEE2E2',
-        borderRadius: 8,
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignContent: 'center',
-        alignItems: 'center',
+        borderColor: '#DC2626',
+        flex: 1,
     },
     cancelButtonText: {
         color: '#DC2626',
@@ -527,6 +617,58 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fffbeb',
         textAlign: 'center',
+    },
+    buttonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 12,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+        borderWidth: 1,
+    },
+    reportButtonText: {
+        color: '#9C4221',
+        marginRight: 6,
+        fontWeight: '500',
+    },
+    packageModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    packageModalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#1F2937',
+    },
+    closeButton: {
+        padding: 8,
+    },
+    modalBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContainer: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 24,
+        maxHeight: '90%',
+        width: '100%'
     },
 });
 
