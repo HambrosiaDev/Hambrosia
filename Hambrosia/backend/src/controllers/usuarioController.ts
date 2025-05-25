@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { UsuarioService } from '../services/usuarioService';
 import { Rol, Alergeno, MetodoPago } from '../models/interfaces';
-import { ValidacionCedulaRuc } from '../utils/HELPER';
+import { encryptExpoPushToken, ValidacionCedulaRuc } from '../utils/HELPER';
 import { hashCedula } from '../utils/HELPER';
 
 
@@ -54,10 +54,10 @@ export const getUsuarioById = async (req: Request, res: Response, next: NextFunc
 // Register new user with authentication
 export const registerUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos, direccion, metodoPago } = req.body;
+      const { correo, cedulaRUC, nombre, ciudad, fechaNacimiento, rol, alergenos, direccion, metodoPago, expoPushToken } = req.body;
 
       // Validar campos requeridos
-      if (!correo || !cedulaRUC || !nombre || !rol || !ciudad) {
+      if (!correo || !cedulaRUC || !nombre || !rol || !ciudad || !expoPushToken) {
           res.status(400).json({ success: false, error: 'Todos los campos son obligatorios' });
           return;
       }
@@ -134,7 +134,7 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
           res.status(400).json({ success: false, error: 'La Cédula/RUC ya está registrada' });
           return;
       }
-
+      
       try {
         // Registrar el usuario utilizando el servicio
         const newUsuario = await usuarioService.register(
@@ -147,7 +147,8 @@ export const registerUsuario = async (req: Request, res: Response, next: NextFun
             fechaNacimiento, // fechaNacimiento
             alergenos,       // alergenos
             direccion,       // direccion
-            metodoPago       // metodoPago (nuevo parámetro)
+            metodoPago,       // metodoPago (nuevo parámetro)
+            expoPushToken
         );
     
         res.status(201).json({ success: true, data: newUsuario });
@@ -271,9 +272,6 @@ export const registrarIntentoFallido = async (req: Request, res: Response, next:
       // Bloquear usuario
       await usuarioService.bloquearUsuario(usuario.id, duracionBloqueo, motivoBloqueo);
       
-      // Enviar notificación
-      await usuarioService.enviarNotificacion(usuario.id, motivoBloqueo);
-      
       res.status(403).json({ success: false, error: motivoBloqueo });
     } else {
       res.status(200).json({ success: true, error: 'Intento Fallido Registrado' });
@@ -318,7 +316,7 @@ export const resetearIntentosFallidos = async (req: Request, res: Response, next
 };
 
 // Verificar si el usuario está bloqueado
-export const verificarBloqueo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const verificarBloqueo = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id;
     
@@ -385,7 +383,7 @@ export const verificarBloqueo = async (req: Request, res: Response, next: NextFu
   }
 };
 
-export const resetearStrikes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const resetearStrikes = async (req: Request, res: Response): Promise<void> => {
   try {
     const { correo } = req.body;
 
@@ -427,7 +425,7 @@ export const resetearStrikes = async (req: Request, res: Response, next: NextFun
   }
 };
 
-export const desbloquearUsuario = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const desbloquearUsuario = async (req: Request, res: Response): Promise<void> => {
   try {
     const { correo } = req.body;
 
@@ -475,6 +473,24 @@ export const desbloquearUsuario = async (req: Request, res: Response, next: Next
       },
       message: 'Usuario desbloqueado exitosamente',
     });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const updateExpoPushToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { expoPushToken } = req.body;
+    const { cedulaRUC } = req.params;
+
+    if (!cedulaRUC || !expoPushToken) {
+      res.status(400).json({ success: false, error: 'CedulaRUC y expoPushToken son requeridos' });
+      return;
+    }
+
+    await usuarioService.updateExpoPushToken(cedulaRUC, expoPushToken);
+
+    res.json({ success: true, message: 'ExpoPushToken actualizado exitosamente' });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
   }

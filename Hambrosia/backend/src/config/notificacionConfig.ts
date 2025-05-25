@@ -1,4 +1,6 @@
-import admin from "./firebase";
+import { Expo } from 'expo-server-sdk';
+
+const expo = new Expo();
 
 interface NotificationPayload {
   token: string;
@@ -14,30 +16,44 @@ export const sendPushNotification = async ({
   data,
 }: NotificationPayload) => {
   try {
-    const message: admin.messaging.Message = {
-      token,
-      notification: {
-        title,
-        body,
-      },
-      data,
+    // Validar que el token sea un token de Expo
+    if (!Expo.isExpoPushToken(token)) {
+      throw new Error('Token inválido de Expo');
+    }
+
+    const message = {
+      to: token,
+      sound: 'default',
+      title,
+      body,
+      data: data || {},
+      // Configuración específica para Android
       android: {
-        priority: "high",
+        priority: 'high',
+        channelId: 'default',
       },
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-          },
-        },
+      // Configuración específica para iOS
+      ios: {
+        sound: true,
       },
     };
 
-    const response = await admin.messaging().send(message);
-    console.log("✅ Notificación enviada con éxito:", response);
-    return response;
+    const chunks = expo.chunkPushNotifications([message]);
+    const tickets = [];
+
+    for (const chunk of chunks) {
+      try {
+        const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+        tickets.push(...ticketChunk);
+      } catch (error) {
+        console.error('Error al enviar chunk de notificaciones:', error);
+      }
+    }
+
+    console.log('✅ Notificación enviada con éxito:', tickets);
+    return tickets;
   } catch (error) {
-    console.error("❌ Error al enviar notificación:", error);
+    console.error('❌ Error al enviar notificación:', error);
     throw error;
   }
 };

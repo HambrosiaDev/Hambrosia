@@ -18,7 +18,7 @@ import { compraSwagger } from './swagger/compraSwagger';
 import { paqueteSwagger } from './swagger/paqueteSwagger';
 import { reporteSwagger } from './swagger/reporteSwagger';
 import { usuarioSwagger } from './swagger/usuarioSwagger';
-
+import { notificacionesSwagger } from './swagger/notificacionesSwagger';
 
 
 
@@ -49,7 +49,8 @@ const swaggerDocument = {
     ...compraSwagger,
     ...reporteSwagger,
     ...usuarioSwagger,
-    ...paqueteSwagger
+    ...paqueteSwagger,
+    ...notificacionesSwagger
   },
 };
 

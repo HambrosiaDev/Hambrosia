@@ -2,7 +2,7 @@ import { db, auth } from '../config/firebase';
 import { Usuario, Rol, Alergeno, Ciudad, MetodoPago } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
-import { hashCedula } from '../utils/HELPER';
+import { encryptExpoPushToken, decryptExpoPushToken, hashCedula } from '../utils/HELPER';
 import { FieldValue } from 'firebase-admin/firestore';
 export class UsuarioService {
   private usuariosCollection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
@@ -60,7 +60,8 @@ export class UsuarioService {
     fechaNacimiento?: string | undefined, // Fecha de nacimiento es opcional
     alergenos?: Alergeno[],
     direccion?: string, // Dirección es opcional
-    metodoPago?: MetodoPago[] // Método de pago es opcional
+    metodoPago?: MetodoPago[], // Método de pago es opcional
+    expoPushToken?: string // Token de Expo es opcional
 ): Promise<Usuario> {
     // Convertir fechaNacimiento a Date si existe
     let parsedFechaNacimiento: Date | undefined = undefined;
@@ -89,6 +90,7 @@ export class UsuarioService {
         firebaseUid: firebaseUid,
         intentosFallidos: 0,
         activo: true,
+        expoPushToken: expoPushToken
     };
 
     if (rol === Rol.RESTAURANTE) {
@@ -107,6 +109,9 @@ export class UsuarioService {
         userData.strikes = 0;
     }
 
+    if(expoPushToken){
+      userData.expoPushToken = encryptExpoPushToken(expoPushToken);
+    }
 
     // Guardar en Firestore
     const hashedId = hashCedula(cedulaRUC);
@@ -187,31 +192,11 @@ export class UsuarioService {
       
       // Bloquear usuario
       await usuarioService.bloquearUsuario(id, duracionBloqueo, motivoBloqueo);
-      
-      // Enviar notificación
-      await usuarioService.enviarNotificacion(id, motivoBloqueo);
     }
     await this.update(id, { strikes: nuevosStrikes });
     return nuevosStrikes;
   }
   
-  // Enviar notificación al usuario
-  async enviarNotificacion(id: string, mensaje: string): Promise<void> {
-    const usuario = await this.getById(id);
-    
-    if (!usuario) {
-      throw new Error('Usuario no encontrado');
-    }
-    
-    await db.collection('notificaciones').add({
-      userId: id,
-      cedulaRUC: usuario.cedulaRUC,
-      firebaseUid: usuario.firebaseUid,
-      mensaje: mensaje,
-      leido: false,
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
-  }
 
   async resetearStrikes(correo: string): Promise<void> {
     const usuario = await this.getByEmail(correo);
@@ -235,6 +220,18 @@ export class UsuarioService {
     }
 
     await this.update(usuario.id, updateData);
+  }
+
+  async updateExpoPushToken(cedulaRUC: string, expoPushToken: string): Promise<void> {
+    const hashedId = hashCedula(cedulaRUC);
+    const usuario = await this.getById(hashedId);
+
+    if (!usuario) {
+      throw new Error('Usuario no encontrado');
+    }
+    await this.update(usuario.id, { expoPushToken: encryptExpoPushToken(expoPushToken) });
+    console.log('ExpoPushToken encriptado: ', encryptExpoPushToken(expoPushToken));
+    console.log('ExpoPushToken desencriptado: ', decryptExpoPushToken(encryptExpoPushToken(expoPushToken)));
   }
 }
 

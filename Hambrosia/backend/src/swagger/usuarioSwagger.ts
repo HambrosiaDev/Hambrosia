@@ -596,4 +596,84 @@ export const usuarioSwagger = {
         },
       },
     },
-};
+    "/api/usuarios/update-expo-push-token/{cedulaRUC}": {
+      put: {
+        tags: ["Usuario"],
+        summary: "Actualizar token de notificaciones push",
+        description: "Actualiza el token de Expo Push para un usuario específico.",
+        parameters: [
+          {
+            name: "cedulaRUC",
+            in: "path",
+            required: true,
+            description: "Cédula o RUC del usuario",
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  expoPushToken: {
+                    type: "string",
+                    description: "Token de Expo Push para notificaciones",
+                    example: "U2FsdGVkX1+3YJYa3AaMWr/VwtnmujTuSqOMJoWEgUI=",
+                  },
+                },
+                required: ["expoPushToken"],
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Token actualizado exitosamente",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "ExpoPushToken actualizado exitosamente" },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Error en la solicitud",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    error: { type: "string", example: "CedulaRUC y expoPushToken son requeridos" },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Usuario no encontrado",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: false },
+                    error: { type: "string", example: "Usuario no encontrado" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  } 

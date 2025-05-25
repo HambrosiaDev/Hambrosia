@@ -35,6 +35,20 @@ export function getEcuadorDayRangeFromDate(date: Date): { start: Timestamp; end:
     end: Timestamp.fromDate(endOfDay),
   };
 }
+
+// Función para encriptar (reversible)
+export function encryptExpoPushToken(token: string): string {
+  const encrypted = CryptoJS.AES.encrypt(token, SECRET_KEY).toString();
+  return encrypted;
+}
+
+// Función para desencriptar (reversible)
+export function decryptExpoPushToken(encryptedToken: string): string {
+  const bytes = CryptoJS.AES.decrypt(encryptedToken, SECRET_KEY);
+  const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+  return decrypted;
+}
+
 /**
  * Helper para validar cédulas y RUCs en Ecuador.
  */

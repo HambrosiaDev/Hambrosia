@@ -86,7 +86,7 @@ export interface Usuario {
   // Solo Restaurantes
   alergenos?: Alergeno[];
   metodoPago?: MetodoPago[]; 
-  
+  expoPushToken?: string;
 }
 
 export interface Paquete {

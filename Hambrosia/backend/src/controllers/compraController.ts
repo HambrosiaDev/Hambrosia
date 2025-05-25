@@ -127,7 +127,6 @@ export const crearCompra = async (req: Request, res: Response): Promise<void> =>
 
     const nuevaCompra = await compraService.crearCompra(paqueteId, compraData);
     if (nuevaCompra.id !== undefined) {
-      await crearNotificacion(nuevaCompra.id, false);
     }
     res.status(201).json({
       success: true,
@@ -154,8 +153,6 @@ export const cancelarCompra = async (req: Request, res: Response): Promise<void>
       pagado: false,
       cantidadComprada: 0,
     });
-    await compraService.actualizarNotificacionCompra( compraId, {
-      cancelado: true});
     await reporteService.crearReporte(compraId, 'Compra cancelada por el cliente');
 
     res.status(200).json({
@@ -170,74 +167,6 @@ export const cancelarCompra = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const crearNotificacion = async (compraId: string, cancelado: boolean): Promise<any> => {
-  try {
-    // Paso 1: Validar y obtener el ID de compra
-    if (!compraId) {
-      throw new Error("No hay una compra con ese ID");
-    }
-
-    // Paso 2: Verificar que la compra exista
-    const compraSnapshot = await db.collection('compras').doc(compraId).get();
-    if (!compraSnapshot.exists) {
-      throw new Error("No hay compra con ese Id");
-    }
-    const compra = compraSnapshot.data() as Compra;
-
-    // Paso 3: Obtener datos del usuario asociado a la compra
-    const usuarioSnapshot = await db.collection('usuarios').doc(compra.clienteId).get();
-    if (!usuarioSnapshot.exists) {
-      throw new Error("No hay usuario con ese Id");
-    }
-    const usuario = usuarioSnapshot.data() as Usuario;
-    const nombreCliente = usuario.nombre;
-
-    // Paso 4: Obtener datos del paquete asociado a la compra
-    const paqueteSnapshot = await db.collection('paquetes').doc(compra.paqueteId).get();
-    if (!paqueteSnapshot.exists) {
-      throw new Error("No hay paquete con ese Id");
-    }
-    const paquete = paqueteSnapshot.data() as Paquete;
-    const nombrePaquete = paquete.descripcion;
-
-    // Paso 5: Crear la notificación en el servicio
-    const isCancelado = cancelado;
-    const notificacion = await compraService.crearNotificacionCompra(compraId, {
-      nombreCliente,
-      nombrePaquete,
-      cancelado,
-    });
-
-    return notificacion; // Devuelve los datos de la notificación
-  } catch (error: any) {
-    console.error("Error al crear la notificación:", error.message || error);
-    throw error; // Propaga el error al controlador principal
-  }
-};
-
-export const getNotificacionByCompraId = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { compraId } = req.params;
-    if (!compraId) {
-      res.status(400).json({ success: false, error: "No hay una compra con ese ID" });
-      return;
-    }
-
-    const notificacion = await compraService.getNotificacionCompra(compraId);
-    if (!notificacion) {
-      res.status(404).json({ success: false, error: "No hay notificación con ese ID" });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      data: notificacion,
-    });
-  } catch (error: any) {
-    console.error(ERROR_MESSAGES.GENERIC_ERROR, error.message || error);
-    res.status(500).json({ success: false, error: ERROR_MESSAGES.GENERIC_ERROR });
-  }
-}
   export const getComisionMensualByRestauranteId = async (req: Request, res: Response): Promise<void> => {
     try {
         const { mes, restauranteId } = req.params;

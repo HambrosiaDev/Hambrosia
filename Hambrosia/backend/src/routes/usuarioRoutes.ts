@@ -18,5 +18,6 @@ router.post('/:id/incrementar-strike',  usuarioController.incrementarStrike);
 router.get('/:id/Verificar-bloqueo',  usuarioController.verificarBloqueo);
 
 router.post('/desbloquear',  usuarioController.desbloquearUsuario);
+router.put('/update-expo-push-token/:cedulaRUC',  usuarioController.updateExpoPushToken);
 
 export default router;

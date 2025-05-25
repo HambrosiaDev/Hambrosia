@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { db } from '../config/firebase';
-import { Compra, Notificaciones } from '../models/interfaces';
+import { Compra } from '../models/interfaces';
 import { converterFactory } from '../utils/converterFactory';
 import { getEcuadorDayRangeFromDate } from '../utils/HELPER';
 import { paqueteService } from './paqueteService';
@@ -22,10 +22,6 @@ export class CompraService {
   // Helper method to get a compraRef
   private compraRef(compraId: string) {
     return this.collection.doc(compraId);
-  }
-
-  private notificacionRef(compraId: string) {
-    return db.collection('notificaciones').doc(compraId).withConverter(converterFactory<Compra>());
   }
 
   async crearCompra(paqueteId: string, compra: Compra): Promise<Compra> {
@@ -85,56 +81,6 @@ export class CompraService {
     }
   }
 
-  async crearNotificacionCompra(compraId: string, body: any): Promise<Notificaciones> {
-    try {
-      if (!compraId) {
-        throw new Error(ERROR_MESSAGES.INVALID_COMPRA_ID);
-      }
-
-      const notificacionRef = this.notificacionRef(compraId);
-      await notificacionRef.create(body);
-
-      const notificacionSnapshot = await notificacionRef.get();
-      if (!notificacionSnapshot.exists) {
-        throw new Error(ERROR_MESSAGES.COMPRA_NOT_FOUND);
-      }
-
-      return { id: notificacionSnapshot.id, ...notificacionSnapshot.data() } as Notificaciones;
-    } catch (error) {
-      console.error(ERROR_MESSAGES.UPDATING_COMPRA_ERROR, error);
-      throw error;
-    }
-  }
-
-  async actualizarNotificacionCompra(compraId: string, body: Partial<Notificaciones>): Promise<Notificaciones> {
-    try {
-      const notificacionRef = this.notificacionRef(compraId);
-      await notificacionRef.update(body);
-
-      const notificacionSnapshot = await notificacionRef.get();
-      if (!notificacionSnapshot.exists) {
-        throw new Error(ERROR_MESSAGES.COMPRA_NOT_FOUND);
-      }
-
-      return { id: notificacionSnapshot.id, ...notificacionSnapshot.data() } as Notificaciones;
-    } catch (error) {
-      console.error(ERROR_MESSAGES.UPDATING_COMPRA_ERROR, error);
-      throw new Error(ERROR_MESSAGES.UPDATING_COMPRA_ERROR);
-    }
-  }
-
-  async getNotificacionCompra(compraId: string): Promise<Notificaciones | null> {
-    try {
-      const notificacionSnapshot = await this.notificacionRef(compraId).get();
-      if (!notificacionSnapshot.exists) {
-        return null;
-      }
-      return { id: notificacionSnapshot.id, ...notificacionSnapshot.data() } as Notificaciones;
-    } catch (error) {
-      console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);
-      throw new Error(ERROR_MESSAGES.GETTING_COMPRA_ERROR);
-    }
-  }
 
   async getComisionMensualByRestauranteId(mes: string, restauranteId: string): Promise<number> {
     try {
