@@ -12,6 +12,7 @@ import usuarioRoutes from './routes/usuarioRoutes';
 import paqueteRoutes from './routes/paqueteRoutes';
 import compraRoutes from './routes/compraRoutes';
 import reporteRoutes from './routes/reporteRoutes';
+import notificacionesRoutes from './routes/notificacionesRoutes';
 // Import swagger configurations
 import { compraSwagger } from './swagger/compraSwagger';
 import { paqueteSwagger } from './swagger/paqueteSwagger';
@@ -57,6 +58,7 @@ app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/paquetes', paqueteRoutes);
 app.use('/api/compras', compraRoutes);
 app.use('/api/reportes', reporteRoutes);
+app.use('/api/notificaciones', notificacionesRoutes);
 
 
 // Routes for the API documentation
