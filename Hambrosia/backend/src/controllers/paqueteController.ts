@@ -14,7 +14,7 @@ const ERROR_MESSAGES = {
 };
 
 // Helper function to fetch a package or return an error
-const getPaqueteOrError = async (res: Response, paqueteId: string) => {
+export const getPaqueteOrError = async (res: Response, paqueteId: string) => {
   const paquete = await paqueteService.obtenerPaquetePorId(paqueteId);
   if (!paquete) {
     res.status(404).json({ success: false, error: ERROR_MESSAGES.PACKAGE_NOT_FOUND });

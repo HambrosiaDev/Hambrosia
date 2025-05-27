@@ -94,17 +94,17 @@ export const notificacionesSwagger = {
       },
     },
   },
-  "/api/notificaciones/enviar-notificacion-reserva-compra/{token}": {
+  "/api/notificaciones/enviar-notificacion-reserva-paquete/{paqueteId}": {
     post: {
       tags: ["Notificaciones"],
-      summary: "Enviar notificación de reserva/compra",
-      description: "Envía una notificación push específica para reservas o compras.",
+      summary: "Enviar notificación de reserva de paquete",
+      description: "Envía una notificación push al restaurante cuando se realiza una reserva de paquete.",
       parameters: [
         {
-          name: "token",
+          name: "paqueteId",
           in: "path",
           required: true,
-          description: "Token de Expo Push del dispositivo",
+          description: "ID del paquete reservado",
           schema: {
             type: "string",
           },
@@ -120,20 +120,20 @@ export const notificacionesSwagger = {
                 title: {
                   type: "string",
                   description: "Título de la notificación",
-                  example: "¡Reserva confirmada!",
+                  example: "¡Nuevo pedido confirmado!",
                 },
                 body: {
                   type: "string",
                   description: "Contenido de la notificación",
-                  example: "Tu reserva ha sido confirmada",
+                  example: "Un cliente ha reservado uno de tus paquetes. ¡Prepáralo a tiempo para la entrega!",
                 },
                 data: {
                   type: "object",
                   description: "Datos adicionales para la notificación",
                   example: {
-                    tipo: "reserva",
+                    tipo: "reserva_paquete",
                     id: "123",
-                    estado: "confirmada"
+                    estado: "pendiente"
                   },
                 },
               },
@@ -158,6 +158,34 @@ export const notificacionesSwagger = {
             },
           },
         },
+        "400": {
+          description: "Error en la solicitud",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: { type: "string", example: "El ID del paquete es requerido" },
+                },
+              },
+            },
+          },
+        },
+        "404": {
+          description: "Recurso no encontrado",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: { type: "string", example: "No se encontró el restaurante o no tiene un token de notificación configurado" },
+                },
+              },
+            },
+          },
+        },
         "500": {
           description: "Error del servidor",
           content: {
@@ -176,17 +204,17 @@ export const notificacionesSwagger = {
       },
     },
   },
-  "/api/notificaciones/enviar-notificacion-compra-cancelada/{token}": {
+  "/api/notificaciones/enviar-notificacion-compra-cancelada/{compraId}": {
     post: {
       tags: ["Notificaciones"],
       summary: "Enviar notificación de compra cancelada",
-      description: "Envía una notificación push cuando una compra es cancelada.",
+      description: "Envía una notificación push al restaurante cuando una compra es cancelada.",
       parameters: [
         {
-          name: "token",
+          name: "compraId",
           in: "path",
           required: true,
-          description: "Token de Expo Push del dispositivo",
+          description: "ID de la compra cancelada",
           schema: {
             type: "string",
           },
@@ -202,12 +230,12 @@ export const notificacionesSwagger = {
                 title: {
                   type: "string",
                   description: "Título de la notificación",
-                  example: "Compra cancelada",
+                  example: "¡Pedido cancelado!",
                 },
                 body: {
                   type: "string",
                   description: "Contenido de la notificación",
-                  example: "Tu compra ha sido cancelada",
+                  example: "Un cliente canceló su reserva. Entra a la app para conocer más información.",
                 },
                 data: {
                   type: "object",
@@ -235,6 +263,34 @@ export const notificacionesSwagger = {
                   success: { type: "boolean", example: true },
                   message: { type: "string", example: "Notificación enviada exitosamente" },
                   data: { type: "object", description: "Datos de la respuesta" },
+                },
+              },
+            },
+          },
+        },
+        "400": {
+          description: "Error en la solicitud",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: { type: "string", example: "El ID de la compra es requerido" },
+                },
+              },
+            },
+          },
+        },
+        "404": {
+          description: "Recurso no encontrado",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: false },
+                  message: { type: "string", example: "No se encontró el restaurante o no tiene un token de notificación configurado" },
                 },
               },
             },

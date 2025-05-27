@@ -27,7 +27,7 @@ export class NotificacionService {
     }
   }
 
-  async enviarNotificacionReservaCompra(
+  async enviarNotificacionReservaPaquete(
     token: string,
     title: string,
     body: string,

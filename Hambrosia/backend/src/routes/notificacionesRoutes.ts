@@ -5,7 +5,7 @@ const router = Router();
 
 
 router.post('/enviar-notificacion/:token', notificacionesController.enviarNotificacion );
-router.post('/enviar-notificacion-reserva-compra/:token', notificacionesController.enviarNotificacionReservaCompra);
-router.post('/enviar-notificacion-compra-cancelada/:token', notificacionesController.enviarNotificacionCompraCancelada);
+router.post('/enviar-notificacion-reserva-paquete/:paqueteId', notificacionesController.enviarNotificacionReservaPaquete);
+router.post('/enviar-notificacion-compra-cancelada/:compraId', notificacionesController.enviarNotificacionCompraCancelada);
 
 export default router;
