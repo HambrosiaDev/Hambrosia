@@ -153,8 +153,7 @@ export const cancelarCompra = async (req: Request, res: Response): Promise<void>
       pagado: false,
       cantidadComprada: 0,
     });
-    await reporteService.crearReporte(compraId, 'Compra cancelada por el cliente');
-
+    await reporteService.reporteRestauranteToCliente(compraId, 'Compra cancelada por el cliente');
     res.status(200).json({
       success: true,
       message: 'Compra cancelada exitosamente',

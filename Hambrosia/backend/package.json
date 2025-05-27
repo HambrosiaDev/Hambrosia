@@ -15,12 +15,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/nodemailer": "^6.4.17",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
     "expo-server-sdk": "^3.15.0",
     "firebase": "^11.6.0",
     "firebase-admin": "^13.2.0",
+    "nodemailer": "^7.0.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },

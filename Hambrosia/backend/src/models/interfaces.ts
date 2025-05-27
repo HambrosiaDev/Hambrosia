@@ -135,10 +135,11 @@ export interface Reporte {
   nombreRestaurante: string;
   precio: number;
   precioDescuento: number;
-  comision:number;
+  comision: number;
   fechaCompra: Date;
-  correo?: string;
-  cedulaRUC?: string;
+  correo: string;
+  cedulaRUC: string;
+  tipoReporte: 'cliente_to_restaurante' | 'restaurante_to_cliente';
 }
 
 export interface Notificaciones {
