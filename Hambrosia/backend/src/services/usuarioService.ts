@@ -1,9 +1,9 @@
-import { db, auth } from '../config/firebase';
-import { Usuario, Rol, Alergeno, Ciudad, MetodoPago } from '../models/interfaces';
-import { converterFactory } from '../utils/converterFactory';
 import * as admin from 'firebase-admin';
-import { encryptExpoPushToken, decryptExpoPushToken, hashCedula } from '../utils/HELPER';
 import { FieldValue } from 'firebase-admin/firestore';
+import { db } from '../config/firebase';
+import { Alergeno, MetodoPago, Rol, Usuario } from '../models/interfaces';
+import { converterFactory } from '../utils/converterFactory';
+import { encryptExpoPushToken, hashCedula } from '../utils/HELPER';
 export class UsuarioService {
   private usuariosCollection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
 
@@ -132,26 +132,31 @@ export class UsuarioService {
   }
 
   // Registrar intento fallido de login y actualizar contador
-  async registrarIntentoFallido(id: string): Promise<void> {
+  async registrarIntentoFallido(id: string): Promise<number> {
     const usuario = await this.getById(id);
-    
     if (!usuario) {
       throw new Error('Usuario no encontrado');
     }
-    
     const intentosFallidos = (usuario.intentosFallidos || 0) + 1;
     await this.update(id, { intentosFallidos });
+    return intentosFallidos;
   }
 
   // Bloquear usuario
-  async bloquearUsuario(id: string, duracionHoras: number, motivo: string): Promise<void> {
-    const bloqueadoHasta = new Date(Date.now() + duracionHoras * 60 * 60 * 1000);
+  async bloquearUsuario(id: string, duracionMs: number, motivo: string, firebaseUid?: string): Promise<void> {
+    const bloqueadoHasta = new Date(Date.now() + duracionMs);
     
     await this.update(id, { 
       activo: false,
       bloqueadoHasta,
       motivoBloqueo: motivo
     });
+
+    if (firebaseUid) {
+      await admin.auth().updateUser(firebaseUid, {
+        disabled: true
+      });
+    }
   }
 
   // Resetear intentos fallidos
@@ -177,22 +182,10 @@ export class UsuarioService {
   // Incrementar strikes para un cliente
   async incrementarStrike(id: string): Promise<number> {
     const usuario = await this.getById(id);
-    
     if (!usuario) {
       throw new Error('Usuario no encontrado');
     }
-    const strikesActuales = usuario.strikes || 0;
-    const nuevosStrikes = strikesActuales + 1;
-    
-    // Verificar si se debe bloquear al usuario
-    if (nuevosStrikes >= 5) {
-      const duracionBloqueo = 30 * 24; // 30 días en horas
-      const fechaDesbloqueo = new Date(Date.now() + duracionBloqueo * 60 * 60 * 1000).toLocaleDateString();
-      const motivoBloqueo = `Su cuenta ha sido bloqueada por acumulación de strikes (${nuevosStrikes}/5). Estará bloqueada hasta el ${fechaDesbloqueo}.`;
-      
-      // Bloquear usuario
-      await usuarioService.bloquearUsuario(id, duracionBloqueo, motivoBloqueo);
-    }
+    const nuevosStrikes = (usuario.strikes || 0) + 1;
     await this.update(id, { strikes: nuevosStrikes });
     return nuevosStrikes;
   }
@@ -230,8 +223,6 @@ export class UsuarioService {
       throw new Error('Usuario no encontrado');
     }
     await this.update(usuario.id, { expoPushToken: encryptExpoPushToken(expoPushToken) });
-    console.log('ExpoPushToken encriptado: ', encryptExpoPushToken(expoPushToken));
-    console.log('ExpoPushToken desencriptado: ', decryptExpoPushToken(encryptExpoPushToken(expoPushToken)));
   }
 }
 

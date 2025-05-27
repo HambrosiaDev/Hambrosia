@@ -1,8 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { Alergeno, MetodoPago, Rol } from '../models/interfaces';
 import { UsuarioService } from '../services/usuarioService';
-import { Rol, Alergeno, MetodoPago } from '../models/interfaces';
-import { encryptExpoPushToken, ValidacionCedulaRuc } from '../utils/HELPER';
-import { hashCedula } from '../utils/HELPER';
+import { hashCedula, ValidacionCedulaRuc } from '../utils/HELPER';
 
 
 const usuarioService = new UsuarioService();
@@ -194,6 +193,7 @@ export const incrementarStrike = async (req: Request, res: Response): Promise<vo
   try {
     const userId = req.params.id;
     const hashedId = hashCedula(userId);
+    
     if (!userId) {
       res.status(400).json({ success: false, error: 'ID de usuario es requerido' });
       return;
@@ -211,18 +211,36 @@ export const incrementarStrike = async (req: Request, res: Response): Promise<vo
       res.status(400).json({ success: false, error: 'Solo se pueden asignar strikes a usuarios con rol CLIENTE' });
       return;
     }
-    
+
+    // Verificar si ya tiene 5 strikes
+    if (usuario.strikes && usuario.strikes >= 5) {
+      const diasBloqueo = 30; // 30 días
+      const fechaBloqueo = new Date(Date.now() + (diasBloqueo * 24 * 60 * 60 * 1000));
+      const motivoBloqueo = 'Su cuenta ha sido bloqueada por alcanzar el límite de strikes, su cuenta se restablecerá el ' + fechaBloqueo.toLocaleDateString();
+
+      await usuarioService.bloquearUsuario(hashedId, diasBloqueo * 24 * 60 * 60 * 1000, motivoBloqueo, usuario.firebaseUid);
+      res.status(400).json({ 
+        success: false, 
+        error: 'El usuario ya tiene 5 strikes y se encuentra bloqueado hasta el ' + fechaBloqueo.toLocaleDateString() 
+      });
+      return;
+    }
+
     // Incrementar strike
     const nuevosStrikes = await usuarioService.incrementarStrike(hashedId);
     
-    // Obtener el usuario actualizado para verificar su estado
-    const usuarioActualizado = await usuarioService.getById(userId);
-    
-    let mensaje = `Se ha incrementado el número de strikes para el usuario. Total: ${nuevosStrikes}`;
-    
-    // Verificar si el usuario ha sido bloqueado por strikes
-    if (usuarioActualizado && !usuarioActualizado.activo) {
-      mensaje += `. El usuario ha sido bloqueado hasta ${usuarioActualizado.bloqueadoHasta?.toLocaleDateString()}.`;
+    // Si alcanzó los 5 strikes después del incremento, bloquear
+    if (nuevosStrikes >= 5) {
+      const diasBloqueo = 30; // 30 días
+      const fechaBloqueo = new Date(Date.now() + (diasBloqueo * 24 * 60 * 60 * 1000));
+      const motivoBloqueo = 'Su cuenta ha sido bloqueada por alcanzar el límite de strikes, su cuenta se restablecerá el ' + fechaBloqueo.toLocaleDateString();
+
+      await usuarioService.bloquearUsuario(hashedId, diasBloqueo * 24 * 60 * 60 * 1000, motivoBloqueo, usuario.firebaseUid);
+      res.status(400).json({ 
+        success: false, 
+        error: 'El usuario ha alcanzado 5 strikes y ha sido bloqueado hasta el ' + fechaBloqueo.toLocaleDateString() 
+      });
+      return;
     }
     
     res.json({ 
@@ -230,9 +248,9 @@ export const incrementarStrike = async (req: Request, res: Response): Promise<vo
       data: { 
         userId, 
         strikes: nuevosStrikes,
-        activo: usuarioActualizado?.activo,
-        bloqueadoHasta: usuarioActualizado?.bloqueadoHasta,
-        mensaje 
+        activo: usuario.activo,
+        bloqueadoHasta: usuario.bloqueadoHasta,
+        mensaje: `Se ha incrementado el número de strikes para el usuario. Total: ${nuevosStrikes}`
       } 
     });
   } catch (error: any) {
@@ -240,8 +258,8 @@ export const incrementarStrike = async (req: Request, res: Response): Promise<vo
   }
 };
 
-// Registrar intento fallido de login por correo
-export const registrarIntentoFallido = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+// Registrar intento fallido de login
+export const registrarIntentoFallido = async (req: Request, res: Response): Promise<void> => {
   try {
     const { correo } = req.body;
     
@@ -257,25 +275,27 @@ export const registrarIntentoFallido = async (req: Request, res: Response, next:
       res.status(401).json({ success: false, error: 'Credenciales inválidas' });
       return;
     }
-    
-    // Registrar intento fallido
-    await usuarioService.registrarIntentoFallido(usuario.id);
-    
-    // Verificar si el usuario ahora está bloqueado
-    const intentosFallidos = (usuario.intentosFallidos || 0) + 1;
+
+    const intentosFallidos = await usuarioService.registrarIntentoFallido(usuario.id);
     
     // Si excede el límite de intentos fallidos (3), bloquear la cuenta
     if (intentosFallidos >= 3) {
-      const duracionBloqueo = 24 * 10000; // 24 horas
+      const duracionBloqueo = 24; // 24 horas
+      const fechaBloqueo = new Date(Date.now() + (duracionBloqueo * 60 * 60 * 1000));
       const motivoBloqueo = 'Su cuenta ha sido bloqueada por exceder el límite de intentos fallidos de inicio de sesión. Por favor, restablezca su contraseña para desbloquear su cuenta.';
       
-      // Bloquear usuario
-      await usuarioService.bloquearUsuario(usuario.id, duracionBloqueo, motivoBloqueo);
-      
+      await usuarioService.bloquearUsuario(usuario.id, duracionBloqueo * 60 * 60 * 1000, motivoBloqueo, usuario.firebaseUid);
       res.status(403).json({ success: false, error: motivoBloqueo });
-    } else {
-      res.status(200).json({ success: true, error: 'Intento Fallido Registrado' });
+      return;
     }
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        intentosFallidos,
+        mensaje: 'Intento Fallido Registrado'
+      }
+    });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
   }
