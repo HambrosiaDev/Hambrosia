@@ -4,6 +4,7 @@ import { CompraService } from '../services/compraService';
 import { NotificacionService } from '../services/notificacionesService';
 import { PaqueteService } from '../services/paqueteService';
 import { UsuarioService } from '../services/usuarioService';
+import { decryptExpoPushToken } from '../utils/HELPER';
 
 const notificacionService = new NotificacionService();
 const usuarioService = new UsuarioService();
@@ -82,7 +83,7 @@ export const enviarNotificacionReservaPaquete = async (req: Request, res: Respon
     }
 
     const response = await notificacionService.enviarNotificacionReservaPaquete(
-      restaurante.expoPushToken,
+      decryptExpoPushToken(restaurante.expoPushToken),
       "¡Nuevo pedido confirmado!",
       "Un cliente ha reservado uno de tus paquetes. ¡Prepáralo a tiempo para la entrega!",
       data
@@ -132,7 +133,7 @@ export const enviarNotificacionCompraCancelada = async (req: Request, res: Respo
     }
 
     const response = await notificacionService.enviarNotificacionCompraCancelada(
-      restaurante.expoPushToken,
+      decryptExpoPushToken(restaurante.expoPushToken),
       "¡Pedido cancelado!",
       "Un cliente canceló su reserva. Entra a la app para conocer más información.",
       data
