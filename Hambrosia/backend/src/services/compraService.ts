@@ -148,8 +148,20 @@ export class CompraService {
         fechaCompraTemp.getDate() + additionalDay
       );
 
-      // Obtener el rango de fechas para Ecuador usando el helper
-      const { start, end } = getEcuadorDayRangeFromDate(fechaCompra);
+      // Crear fechas de inicio y fin del día en UTC
+      const start = Timestamp.fromDate(new Date(
+        fechaCompra.getFullYear(),
+        fechaCompra.getMonth(),
+        fechaCompra.getDate(),
+        5, 0, 0, 0  // 00:00:00 UTC-5 = 05:00:00 UTC
+      ));
+
+      const end = Timestamp.fromDate(new Date(
+        fechaCompra.getFullYear(),
+        fechaCompra.getMonth(),
+        fechaCompra.getDate(),
+        4, 59, 59, 999  // 23:59:59 UTC-5 = 04:59:59 UTC (siguiente día)
+      ));
 
       console.log('Fecha de consulta:', fechaCompra.toISOString());
       console.log('Rango en UTC para Ecuador:', {
