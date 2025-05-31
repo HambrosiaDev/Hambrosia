@@ -312,14 +312,9 @@ export const cancelarCompra = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        // Validar que la fecha sea válida
-        const parsedDate = new Date(fechaCompra);
-        if (isNaN(parsedDate.getTime())) {
-            res.status(400).json({ success: false, error: "Formato de fecha inválido" });
-            return;
-        }
-        const formattedDate = parsedDate.toISOString().split('T')[0];
-        const compras = await compraService.getComprasByRestauranteId(restauranteId, formattedDate);
+        const fechaCompraDate = new Date(fechaCompra);
+        console.log(fechaCompraDate);
+        const compras = await compraService.getComprasByRestauranteId(restauranteId, fechaCompraDate);
 
         if (!compras.length) {
             res.status(404).json({ success: false, error: "No hay compras para este restaurante en la fecha especificada" });

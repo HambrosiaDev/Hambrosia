@@ -127,7 +127,7 @@ export class CompraService {
 
   async getComprasByRestauranteId(
     restauranteId: string,
-    fechaCompra: string,
+    fechaCompra: Date,
   ): Promise<
     Array<{
       precioApagar: number;
@@ -138,26 +138,24 @@ export class CompraService {
     }>
   > {
     try {
-      // Convertir la fecha de string a Date
-      let fechaConsulta = new Date(fechaCompra);
-      
       // Aplicar DEV_DAY si está configurado
-      const additionalDay = process.env.DEV_DAY || 0;
-      fechaConsulta = new Date(
-        fechaConsulta.getFullYear(),
-        fechaConsulta.getMonth(),
-        fechaConsulta.getDate() + Number(additionalDay)
+      const additionalDay = Number(process.env.DEV_DAY) || 0;
+      const fechaConDevDay = new Date(
+        fechaCompra.getFullYear(),
+        fechaCompra.getMonth(),
+        fechaCompra.getDate() + additionalDay
       );
       
       // Obtener el rango de fechas para Ecuador
-      const { start, end } = getEcuadorDayRangeFromDate(fechaConsulta);
+      const { start, end } = getEcuadorDayRangeFromDate(fechaConDevDay);
 
-      console.log('Fecha de consulta:', fechaConsulta.toISOString());
+      console.log('Fecha de consulta:', fechaConDevDay.toISOString());
       console.log('Rango en UTC para Ecuador:', {
         start: start.toDate().toISOString(),
         end: end.toDate().toISOString(),
       });
 
+      
       // Realizar consulta Firestore
       const comprasSnapshot = await this.collection
         .where('restauranteId', '==', restauranteId)
