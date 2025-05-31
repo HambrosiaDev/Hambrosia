@@ -9,6 +9,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from "@/app/firebaseConfig";
 import { validarIdentificacionEcuatoriana, TipoIdentificacionEnum } from "@/components/testId";
 import { useUserStore } from '../user';
+import { notifications } from '../notifications';
 
 
 const roles = ["Cliente", "Restaurante"];
@@ -235,10 +236,15 @@ export default function Register() {
       const user = userCredential.user;
       const token = await user.getIdToken();
 
+      const pushToken = await notifications();
+
+      console.log("Push token" + pushToken);
+
       const payload = {
         rol: selectedRole.toUpperCase(),
         firebaseUid: user.uid,
         correo: userData.email,
+        expoPushToken: pushToken,
         ...(isRestaurant
           ? {
             cedulaRUC: formData.restaurant.ruc.trim(),
@@ -825,50 +831,50 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   selectionCard: {
-  backgroundColor: '#FFF',
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 20,
-  borderWidth: 1,
-  borderColor: '#EDE9E3',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.05,
-  shadowRadius: 3,
-  elevation: 2,
-},
-selectionTitle: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#C2410C',
-  marginBottom: 4,
-},
-selectionSubtitle: {
-  fontSize: 13,
-  color: '#6B7280',
-  marginBottom: 12,
-},
-checkboxGrid: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  justifyContent: 'space-between',
-},
-checkboxItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  width: '49%',
-  paddingVertical: 8,
-  paddingHorizontal: 6,
-  borderRadius: 6,
-  marginBottom: 8,
-},
-selectedCheckboxItem: {
-  backgroundColor: '#FFFBEB',
-},
-checkboxText: {
-  marginLeft: 8,
-  fontSize: 14,
-  color: '#374151',
-  flexShrink: 1, 
-},
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#EDE9E3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  selectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#C2410C',
+    marginBottom: 4,
+  },
+  selectionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 12,
+  },
+  checkboxGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  checkboxItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '49%',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  selectedCheckboxItem: {
+    backgroundColor: '#FFFBEB',
+  },
+  checkboxText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#374151',
+    flexShrink: 1,
+  },
 });

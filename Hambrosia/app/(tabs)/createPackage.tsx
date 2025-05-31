@@ -16,6 +16,7 @@ import { auth } from '../firebaseConfig';
 import { useRouter } from 'expo-router';
 import { useUserStore } from '../user';
 import Loading from '@/components/Loading';
+import { deleteExpoToken } from '../notifications';
 
 
 
@@ -47,6 +48,7 @@ export default function CreatePackageScreen() {
 
     const handleSignOut = () => {
         auth.signOut();
+        deleteExpoToken(useUserStore.getState().cedRuc || '');
         useUserStore.getState().setRole(null);
         useUserStore.getState().setCedRuc("");
         useUserStore.getState().setCiudad("");
@@ -135,8 +137,8 @@ export default function CreatePackageScreen() {
         setIsLoading(false);
     };
 
-    if(isLoading){
-        return(
+    if (isLoading) {
+        return (
             <Loading />
         )
     }

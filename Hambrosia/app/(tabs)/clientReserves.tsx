@@ -7,6 +7,7 @@ import { useUserStore } from '../user';
 import Loading from '@/components/Loading';
 import CryptoJS from 'crypto-js';
 import { Dimensions } from 'react-native';
+import { deleteExpoToken } from '../notifications';
 
 
 export default function ClientReserves() {
@@ -23,7 +24,6 @@ export default function ClientReserves() {
 
     const secretKey = process.env.EXPO_PUBLIC_SECRET_KEY;
     const hashCedula = (cedula: string) => {
-        console.log("Clave " + secretKey);
         if (!secretKey) {
             throw new Error("Secret key is not defined");
         }
@@ -51,7 +51,6 @@ export default function ClientReserves() {
             setLoadingPage(true);
             if (cedula) {
                 const cedHasheada = hashCedula(cedula);
-                console.log("cedHasheada " + cedHasheada)
                 const response = await fetch(`https://hambrosia.onrender.com/api/compras/activas/${cedHasheada}`);
                 const json = await response.json();
                 console.log(json.data)
@@ -163,6 +162,7 @@ export default function ClientReserves() {
 
     const handleSignOut = () => {
         auth.signOut()
+        deleteExpoToken(useUserStore.getState().cedRuc || '');  
         useUserStore.getState().setRole(null);
         useUserStore.getState().setCedRuc("");
         useUserStore.getState().setCiudad("");
@@ -184,9 +184,7 @@ export default function ClientReserves() {
                             setActiveReserves(prev => prev.filter(reserve => reserve.id !== reserve.id));
                             Alert.alert('Reserva cancelada', 'La reserva ha sido cancelada con éxito');
                             fetchActiveReserves();
-                        } else {
-                            Alert.alert('Error', 'Failed to cancel reservation');
-                        }
+                        } 
                     } catch (error) {
                         console.error('Cancel error:', error);
                         Alert.alert('Error', 'An error occurred while canceling');
@@ -257,7 +255,34 @@ export default function ClientReserves() {
         );
     }
 
-    const reportModal = (reserve: Reserve) => {
+    const handleReportToRestaurant = (reserveId: string, description: string) => {
+        if (!description.trim()) {
+            Alert.alert('Error', 'Por favor, ingresa una descripción para el reporte.');
+            return;
+        }
+
+        const payload = {
+            "descripcion": description,
+        }
+        fetch(`https://hambrosia.onrender.com/api/reportes/cliente-to-restaurante/${reserveId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        })
+            .then(response => {
+                if (response.ok) {
+                    Alert.alert('Reporte enviado', 'Tu reporte ha sido enviado exitosamente.');
+                }else {
+                    Alert.alert('Error', 'Ocurrió un error al enviar el reporte. Por favor, inténtalo de nuevo más tarde.', );
+                    console.log( response.status, response.statusText);
+                }
+            })
+            .catch(error => {
+                console.error('Error al enviar el reporte:', error);
+                Alert.alert('Error', 'Ocurrió un error al enviar el reporte.');
+            });
 
     }
 
@@ -359,7 +384,7 @@ export default function ClientReserves() {
                 )}
             </ScrollView>
 
-            <Modal visible={reportModalVisible} transparent animationType="slide">
+            <Modal visible={reportModalVisible} transparent animationType="slide" onRequestClose={() => setReportModalVisible(false)}>
                 {selectedReserve && (
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
@@ -399,7 +424,9 @@ export default function ClientReserves() {
                                 <TouchableOpacity
                                     style={styles.reportButton}
                                     onPress={() => {
-                                        console.log("reportar restaurante")
+                                        handleReportToRestaurant(selectedReserve.id ?? '', reportDescription);
+                                        setReportModalVisible(false);
+                                        setReportDescription("");
                                     }} >
                                     <Text style={styles.finalReportButtonText}>Reportar</Text>
                                 </TouchableOpacity>

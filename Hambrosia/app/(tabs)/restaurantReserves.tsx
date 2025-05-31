@@ -4,22 +4,21 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Animated, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { auth } from '../firebaseConfig'
 import { useUserStore } from '../user';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import CryptoJS from 'crypto-js';
+import { deleteExpoToken } from '../notifications';
 
 
 export default function ClientReserves() {
     const [activeReserves, setActiveReserves] = useState<Reserve[]>([]);
-    const [finishedReserves, setFinishedReserves] = useState<Reserve[]>([]);
     const [validationModalVisible, setValidationModalVisible] = useState(false);
     const [validationCode, setValidationCode] = useState('');
     const [selectedRating, setSelectedRating] = useState(0);
     const [selectedReserve, setSelectedReserve] = useState<Reserve | null>(null);
     const [loadingPage, setLoadingPage] = useState(false);
+    const [validatedModalVisible, setValidatedModalVisible] = useState(false);
 
     const secretKey = process.env.EXPO_PUBLIC_SECRET_KEY;
     const hashCedula = (cedula: string) => {
-        console.log("Clave " + secretKey);
         if (!secretKey) {
             throw new Error("Secret key is not defined");
         }
@@ -48,7 +47,6 @@ export default function ClientReserves() {
             setLoadingPage(true);
             if (ruc) {
                 const cedHasheada = hashCedula(ruc);
-                console.log(cedHasheada)
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = today.getMonth() + 1;
@@ -92,6 +90,7 @@ export default function ClientReserves() {
 
     const handleSignOut = () => {
         auth.signOut();
+        deleteExpoToken(useUserStore.getState().cedRuc || '');
         useUserStore.getState().setRole(null);
         useUserStore.getState().setCedRuc("");
         useUserStore.getState().setCiudad("");
@@ -100,7 +99,7 @@ export default function ClientReserves() {
     useEffect(() => {
         console.log("reservas restaurante")
         fetchTodayReserves();
-    }, [ruc]);
+    }, []);
 
     const validateCode = async (reserve: Reserve) => {
         const payload = {
@@ -117,6 +116,15 @@ export default function ClientReserves() {
                 },
                 body: JSON.stringify(payload),
             });
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Error validating code:', errorData);
+                Alert.alert('Error', 'Código inválido o ya utilizado.');
+                return;
+            } else {
+                setValidatedModalVisible(true);
+                console.log('Código validado correctamente');
+            }
             setValidationCode('');
             setSelectedRating(0);
 
@@ -126,14 +134,14 @@ export default function ClientReserves() {
         }
     }
 
-    const handleReportClient = async(reserve: Reserve)=>{
+    const handleReportClient = async (reserve: Reserve) => {
         const payload = {
             descripcion: `El cliente ${reserve.clientName}, no llegó a retirar la compra con fecha ${reserve.date}, de ${reserve.amountPay} con ${reserve.amount} unidades`
         }
         console.log(payload);
 
         try {
-            const response = await fetch(`https://hambrosia.onrender.com/api/reportes/crearReporte/${reserve.id}`, {
+            const response = await fetch(`https://hambrosia.onrender.com/api/reportes/restaurante-to-cliente/${reserve.id}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -142,6 +150,13 @@ export default function ClientReserves() {
             });
             setValidationCode('');
             setSelectedRating(0);
+
+            if (response.ok) {
+                Alert.alert('Éxito', 'Cliente reportado correctamente.');
+            } else {
+                Alert.alert('Error', 'No se pudo reportar al cliente. Inténtalo de nuevo más tarde.');
+                console.log(response.status, response.statusText);
+            }
 
         } catch (error) {
             console.error('Error reporting client:', error);
@@ -332,6 +347,46 @@ export default function ClientReserves() {
                     </View>
                 </View>
             </Modal>
+
+            <Modal visible={validatedModalVisible} transparent animationType="slide">
+                <View style={styles.packageModalOverlay}>
+                    <View style={styles.packageModalContainer}>
+                        <View style={styles.packageModalHeader}>
+                            <FontAwesome5 name="check-circle" size={24} color="#2A7C04" style={styles.icon} />
+                            <Text style={styles.packageModalTitle}>Validación Exitosa</Text>
+                            <TouchableOpacity
+                                onPress={() => setValidatedModalVisible(false)}
+                                style={styles.closeButton}
+                            >
+                                <FontAwesome5 name="times" size={20} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.packageModalContent}>
+                            <View style={styles.successContainer}>
+                                <FontAwesome5
+                                    name="check-circle"
+                                    size={60}
+                                    color="#2A7C04"
+                                    style={styles.successIcon}
+                                />
+                                <Text style={styles.successTitle}>¡Código Validado Correctamente!</Text>
+                                <Text style={styles.successMessage}>
+                                    Por favor entrega el paquete al cliente.
+                                </Text>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.buyButton, { backgroundColor: '#2A7C04' }]}
+                            onPress={() => setValidatedModalVisible(false)}
+                        >
+                            <Text style={styles.buyButtonText}>Aceptar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
         </View>
     );
 }
@@ -457,7 +512,7 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 3,
         borderLeftWidth: 4,
-        borderLeftColor: '#D97706', // Accent border
+        borderLeftColor: '#D97706', 
     },
     cardHeader: {
         flexDirection: 'row',
@@ -599,6 +654,28 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    successContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 20,
+    },
+    successIcon: {
+        marginBottom: 20,
+    },
+    successTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    successMessage: {
+        fontSize: 16,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 24,
+        marginBottom: 10,
     },
 });
 

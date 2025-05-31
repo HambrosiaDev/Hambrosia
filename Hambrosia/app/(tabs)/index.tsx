@@ -32,7 +32,7 @@ export default function HomeScreen() {
   const [password, setPassword] = useState('');
 
 
-   const signIn = async () => {
+  const signIn = async () => {
     setLoading(true);
     setLoadingPage(true);
     try {
@@ -54,7 +54,7 @@ export default function HomeScreen() {
 
       const pushToken = await notifications();
 
-      console.log("Push token"+pushToken);
+      console.log("Push token" + pushToken);
 
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0];
@@ -63,6 +63,28 @@ export default function HomeScreen() {
         useUserStore.getState().setCedRuc(userData.cedulaRUC);
         useUserStore.getState().setCiudad(userData.ciudad);
         console.log("User data from Firestore:", userData);
+
+        try {
+          const payload = {
+            expoPushToken: pushToken
+          };
+          console.log("cedula registrada: " + userData.cedulaRUC);
+          const response = await fetch(`https://hambrosia.onrender.com/api/usuarios/update-expo-push-token/${userData.cedulaRUC}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Token registration failed: ${response.status} - ${errorText}`);
+          }
+        } catch (e: any) {
+          console.log("Error al actualizar el token: " + e.message);
+        }
+
 
       } else {
         console.log("No user data found in Firestore for UID:", user.uid);

@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import Loading from '@/components/Loading';
 import CryptoJS from 'crypto-js';
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { notifications } from '../notifications';
+import { deleteExpoToken, notifications } from '../notifications';
 
 
 const cities = ['Floresta', 'Quito', 'Iñaquito', 'Valle de los Chillos'];
@@ -164,6 +164,7 @@ export default function ViewPackages() {
 
   const handleSignOut = () => {
     auth.signOut();
+    deleteExpoToken(useUserStore.getState().cedRuc || '');
     useUserStore.getState().setRole(null);
     useUserStore.getState().setCedRuc("");
     useUserStore.getState().setCiudad("");
@@ -211,12 +212,30 @@ export default function ViewPackages() {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Backend compra failed: ${response.status} - ${errorText}`);
+      } else {
+        const responseData = await response.json();
+        console.log("Purchase successful:", responseData);
+        Alert.alert("Éxito", "Registro completado correctamente 🎉");
+
+        try{
+          console.log("Paquete ID:", pkg.id); 
+          const responseNotification = await fetch(`https://hambrosia.onrender.com/api/notificaciones/enviar-notificacion-reserva-paquete/${pkg.id}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          if(responseNotification.ok){
+            console.log("Notificacion sent successfully");
+          }
+        } catch (error) {
+          console.error("Error al enviar la notificación:", error);
+          Alert.alert("Error", "No se pudo enviar la notificación al restaurante.");
+        }
       }
 
-      const responseData = await response.json();
-      console.log("Purchase successful:", responseData);
 
-      Alert.alert("Éxito", "Registro completado correctamente 🎉");
       setPackageModalVisible(false);
       setAmountPackage(1);
     } catch (error) {
@@ -258,7 +277,6 @@ export default function ViewPackages() {
   ): string => {
     if (!timestamp) return 'Hora no disponible';
 
-    // Handle ISO string input (e.g., "2025-05-15T11:59:00.000Z")
     if (typeof timestamp === 'string' && timestamp.includes('T')) {
       try {
         const date = new Date(timestamp);
@@ -1042,6 +1060,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBEB',
     padding: 15,
     borderRadius: 8,
+    marginBottom:20,
   },
   alergenosText: {
     fontSize: 15,
