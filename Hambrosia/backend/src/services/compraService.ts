@@ -127,7 +127,7 @@ export class CompraService {
 
   async getComprasByRestauranteId(
     restauranteId: string,
-    fechaCompra: Date,
+    fechaCompraTemp: Date,
   ): Promise<
     Array<{
       precioApagar: number;
@@ -142,16 +142,16 @@ export class CompraService {
       const additionalDay = Number(process.env.DEV_DAY) || 0;
       
       // Ajustar la fecha con DEV_DAY
-      const fechaConDevDay = new Date(
-        fechaCompra.getFullYear(),
-        fechaCompra.getMonth(),
-        fechaCompra.getDate() + additionalDay
+      const fechaCompra = new Date(
+        fechaCompraTemp.getFullYear(),
+        fechaCompraTemp.getMonth(),
+        fechaCompraTemp.getDate() + additionalDay
       );
 
       // Obtener el rango de fechas para Ecuador usando el helper
-      const { start, end } = getEcuadorDayRangeFromDate(fechaConDevDay);
+      const { start, end } = getEcuadorDayRangeFromDate(fechaCompra);
 
-      console.log('Fecha de consulta:', fechaConDevDay.toISOString());
+      console.log('Fecha de consulta:', fechaCompra.toISOString());
       console.log('Rango en UTC para Ecuador:', {
         start: start.toDate().toISOString(),
         end: end.toDate().toISOString(),
