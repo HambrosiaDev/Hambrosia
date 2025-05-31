@@ -141,26 +141,20 @@ export class CompraService {
       // Aplicar DEV_DAY si está configurado
       const additionalDay = Number(process.env.DEV_DAY) || 0;
       
-      // Crear fecha con hora específica para inicio del día
-      const start = new Date(
+      // Ajustar la fecha con DEV_DAY
+      const fechaConDevDay = new Date(
         fechaCompra.getFullYear(),
         fechaCompra.getMonth(),
-        fechaCompra.getDate() + additionalDay,
-        0, 0, 0, 0
+        fechaCompra.getDate() + additionalDay
       );
 
-      // Crear fecha con hora específica para fin del día
-      const end = new Date(
-        fechaCompra.getFullYear(),
-        fechaCompra.getMonth(),
-        fechaCompra.getDate() + additionalDay,
-        23, 59, 59, 999
-      );
+      // Obtener el rango de fechas para Ecuador usando el helper
+      const { start, end } = getEcuadorDayRangeFromDate(fechaConDevDay);
 
-      console.log('Fecha de consulta:', fechaCompra.toISOString());
+      console.log('Fecha de consulta:', fechaConDevDay.toISOString());
       console.log('Rango en UTC para Ecuador:', {
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: start.toDate().toISOString(),
+        end: end.toDate().toISOString(),
       });
 
       // Realizar consulta Firestore
