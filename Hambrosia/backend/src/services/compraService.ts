@@ -159,7 +159,7 @@ export class CompraService {
       const end = Timestamp.fromDate(new Date(
         fechaCompra.getFullYear(),
         fechaCompra.getMonth(),
-        fechaCompra.getDate(),
+        fechaCompra.getDate() + 1,
         4, 59, 59, 999  // 23:59:59 UTC-5 = 04:59:59 UTC (siguiente día)
       ));
 
