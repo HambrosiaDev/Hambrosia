@@ -94,7 +94,12 @@ export default function HomeScreen() {
       setPassword("");
 
     } catch (e: any) {
-      alert("Ingreso fallido" + e.message);
+      if (e.message.includes("user-disabled")) {
+        alert("Tu cuenta ha sido deshabilitada. Por favor, contacta info@hambrosiafoods.com para conocer los siguientes pasos.");
+      } else {
+        alert("Ingreso fallido, por favor verifica tus datos." + e.message);
+
+      }
       try {
         const payload = {
           correo: email

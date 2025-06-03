@@ -13,6 +13,7 @@ import { notifications } from '../notifications';
 
 
 const roles = ["Cliente", "Restaurante"];
+const cities = ['Floresta', 'Quito', 'Iñaquito', 'Valle de los Chillos'];
 const { width } = Dimensions.get("window");
 
 
@@ -21,6 +22,7 @@ export default function Register() {
 
   const [selectedRole, setSelectedRole] = useState("Cliente");
   const [modalVisible, setModalVisible] = useState(false);
+  const [cityModalVisible, setCityModalVisible] = useState(false);
 
   const [formData, setFormData] = useState({
     user: {
@@ -460,17 +462,18 @@ export default function Register() {
 
                 <Text style={styles.title}>La contraseña debe tener al menos un número, minúscula, mayúscula y caracter especial</Text>
 
-                <View style={styles.inputContainer}>
+                <TouchableOpacity
+                  style={styles.inputContainer}
+                  onPress={() => setCityModalVisible(true)}
+                >
                   <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ciudad ej. Quito"
-                    placeholderTextColor="gray"
-                    value={formData.user.city}
-                    onChangeText={(text) => handleChange("user", "city", text)}
-                  />
-                </View>
+                  <Text style={[styles.input, !formData.user.city && { color: 'gray' }]}>
+                    {formData.user.city || "Ciudad ej. Quito"}
+                  </Text>
+                  <FontAwesome name="chevron-down" size={14} color="gray" />
+                </TouchableOpacity>
 
+                <Text style={styles.title}>Ingresa tu día de nacimiento</Text>
                 <View style={styles.dateContainer}>
                   <View style={styles.date}>
                     <FontAwesome name="calendar" size={16} color="gray" style={styles.icon} />
@@ -585,16 +588,16 @@ export default function Register() {
                   />
                 </View>
 
-                <View style={styles.inputContainer}>
+                <TouchableOpacity
+                  style={styles.inputContainer}
+                  onPress={() => setCityModalVisible(true)}
+                >
                   <FontAwesome name="map-marker" size={16} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Ciudad ej. Quito"
-                    placeholderTextColor="gray"
-                    value={formData.restaurant.city}
-                    onChangeText={(text) => handleChange("restaurant", "city", text)}
-                  />
-                </View>
+                  <Text style={[styles.input, !formData.restaurant.city && { color: 'gray' }]}>
+                    {formData.restaurant.city || "Ciudad ej. Quito"}
+                  </Text>
+                  <FontAwesome name="chevron-down" size={14} color="gray" />
+                </TouchableOpacity>
 
                 {/* Allergens Section */}
                 <View style={styles.selectionCard}>
@@ -661,6 +664,41 @@ export default function Register() {
 
         </View>
       </ScrollView>
+
+      {/* City Selection Modal */}
+      <Modal visible={cityModalVisible} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          onPress={() => setCityModalVisible(false)}
+          activeOpacity={1}
+        >
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Selecciona un sector</Text>
+            {cities.map((city) => (
+              <TouchableOpacity
+                key={city}
+                style={[
+                  styles.modalItem,
+                  (selectedRole === "Cliente" ? formData.user.city === city : formData.restaurant.city === city) && styles.selectedModalItem
+                ]}
+                onPress={() => {
+                  if (selectedRole === "Cliente") {
+                    handleChange("user", "city", city);
+                  } else {
+                    handleChange("restaurant", "city", city);
+                  }
+                  setCityModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalItemText}>{city}</Text>
+                {(selectedRole === "Cliente" ? formData.user.city === city : formData.restaurant.city === city) && (
+                  <FontAwesome name="check" size={16} color="#D97706" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
 
   );
