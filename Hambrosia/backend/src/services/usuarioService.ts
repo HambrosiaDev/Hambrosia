@@ -8,15 +8,15 @@ export class UsuarioService {
   private usuariosCollection = db.collection('usuarios').withConverter(converterFactory<Usuario>());
 
   // Método privado para buscar un usuario por cualquier campo
-  async getByField(field: string, value: string): Promise<Usuario | null> {
+  private async getByField(field: string, value: string): Promise<Usuario | null> {
     try {
       const snapshot = await this.usuariosCollection.where(field, '==', value).limit(1).get();
       
-      if (!snapshot.empty) {
-        return snapshot.docs[0].data();
+      if (snapshot.empty) {
+        return null;
       }
       
-      return null;
+      return snapshot.docs[0].data();
     } catch (error) {
       throw error;
     }
@@ -207,8 +207,8 @@ export class UsuarioService {
     if (!usuario.activo || usuario.bloqueadoHasta && usuario.strikes >= 5) {
       Object.assign(updateData, {
         activo: true,
-        bloqueadoHasta: admin.firestore.FieldValue.delete() as any,
-        motivoBloqueo: admin.firestore.FieldValue.delete() as any,
+        bloqueadoHasta: FieldValue.delete() as any,
+        motivoBloqueo: FieldValue.delete() as any,
       });
     }
 
