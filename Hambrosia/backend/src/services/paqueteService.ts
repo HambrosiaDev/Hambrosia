@@ -135,7 +135,19 @@ export class PaqueteService {
 
   async getPaqueteByCiudad(ciudad: string): Promise<Paquete[]> {
     try {
-      const { start, end } = getEcuadorDayRangeFromDate(new Date()); // Usa el día actual en Ecuador
+      const additionalDay = process.env.DEV_DAY_COMPRAS_PAQUETES || 1;
+      const now = new Date();
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + Number(additionalDay));
+
+      // Usar el helper reusable para obtener inicio y fin del día en Ecuador
+      const { start, end } = getEcuadorDayRangeFromDate(date);
+
+      console.log('Fecha de consulta:', date.toISOString());
+      console.log('Rango en UTC para Ecuador:', {
+        start: start.toDate().toISOString(),
+        end: end.toDate().toISOString(),
+      });
+
   
       const snapshot = await this.paquetesCollection
         .where('ciudad', '==', ciudad)

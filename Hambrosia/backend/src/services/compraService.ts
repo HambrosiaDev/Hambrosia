@@ -230,7 +230,7 @@ export class CompraService {
     nextCursor: string | null;
   }> {
     try {
-      const additionalDay = process.env.DEV_DAY_COMPRASACTIVAS || 1;
+      const additionalDay = process.env.DEV_DAY_COMPRAS_PAQUETES || 1;
       const now = new Date();
       const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + Number(additionalDay));
 
