@@ -84,27 +84,45 @@ export class CompraService {
 
   async getComisionMensualByRestauranteId(mes: string, restauranteId: string): Promise<number> {
     try {
+      console.log('Mes buscado:', mes);
       const comprasSnapshot = await this.collection.where('restauranteId', '==', restauranteId).get();
       const compras: Compra[] = comprasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Compra));
       let comisionAcumulada = 0;
 
-      compras.forEach(compra => {
-        const fechaCompra = compra.fechaCompra;
-        if (fechaCompra) {
-          let mesCompra: string;
-          if (typeof fechaCompra === 'object' && 'seconds' in fechaCompra && 'nanoseconds' in fechaCompra) {
-            const fechaComoDate = new Date((fechaCompra as any).seconds * 1000 + (fechaCompra as any).nanoseconds / 1_000_000);
-            mesCompra = fechaComoDate.toLocaleString('es', { month: 'long' });
-          } else {
-            const fechaComoDate = new Date(fechaCompra);
-            mesCompra = fechaComoDate.toLocaleString('es', { month: 'long' });
-          }
-          if (mesCompra === mes && compra.pagado === true) {
-            comisionAcumulada += compra.valorComision || 0;
+      compras.forEach((compra, index) => {
+        console.log(`\nProcesando compra ${index + 1}:`);
+        console.log('ID:', compra.id);
+        console.log('Pagado:', compra.pagado);
+        console.log('Valor comisión:', compra.valorComision);
+        
+        if (compra.pagado === true) {  // Primero verificamos que esté pagada
+          const fechaCompra = compra.fechaCompra;
+          if (fechaCompra) {
+            let fechaComoDate: Date;
+            if (typeof fechaCompra === 'object' && 'seconds' in fechaCompra && 'nanoseconds' in fechaCompra) {
+              fechaComoDate = new Date((fechaCompra as any).seconds * 1000 + (fechaCompra as any).nanoseconds / 1_000_000);
+            } else {
+              fechaComoDate = new Date(fechaCompra);
+            }
+            
+            // Convertir a zona horaria de Ecuador (UTC-5)
+            const fechaEcuador = new Date(fechaComoDate.getTime() + (5 * 60 * 60 * 1000));
+            const mesCompra = fechaEcuador.toLocaleString('es', { month: 'long', timeZone: 'America/Guayaquil' });
+            
+            console.log('Fecha UTC:', fechaComoDate.toISOString());
+            console.log('Fecha Ecuador:', fechaEcuador.toISOString());
+            console.log('Mes de la compra:', mesCompra);
+            console.log('¿Coincide con el mes buscado?:', mesCompra === mes);
+            
+            if (mesCompra === mes) {  // Luego verificamos el mes
+              comisionAcumulada += compra.valorComision || 0;
+              console.log('Comisión acumulada actualizada:', comisionAcumulada);
+            }
           }
         }
       });
 
+      console.log('\nComisión total final:', comisionAcumulada);
       return comisionAcumulada;
     } catch (error) {
       console.error(ERROR_MESSAGES.GETTING_COMPRA_ERROR, error);

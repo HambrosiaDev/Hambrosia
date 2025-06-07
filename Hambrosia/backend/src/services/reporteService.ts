@@ -6,9 +6,6 @@ import { CompraService } from './compraService';
 import { PaqueteService } from './paqueteService';
 import { UsuarioService } from './usuarioService';
 
-const compraService = new CompraService();
-const usuarioService = new UsuarioService();
-const paqueteService = new PaqueteService();
 // Centralized error messages for ReporteService
 const ERROR_MESSAGES = {
   REPORTE_NOT_FOUND: 'Reporte no encontrado',
@@ -22,6 +19,12 @@ const ERROR_MESSAGES = {
 
 export class ReporteService {
   private collection = db.collection('reportes').withConverter(converterFactory<Reporte>());
+
+  constructor(
+    private compraService: CompraService = new CompraService(),
+    private usuarioService: UsuarioService = new UsuarioService(),
+    private paqueteService: PaqueteService = new PaqueteService()
+  ) {}
 
   // Helper method to get a reporteRef
   private reporteRef(reporteId: string) {
@@ -51,17 +54,17 @@ export class ReporteService {
 
   async reporteClienteToRestaurante(compraId: string, descripcion: string): Promise<Reporte> {
     try {
-      const compra = await compraService.getCompraById(compraId);
+      const compra = await this.compraService.getCompraById(compraId);
       if (!compra) {
         throw new Error(ERROR_MESSAGES.COMPRA_NOT_FOUND);
       }
 
-      const restaurante = await usuarioService.getById(compra.restauranteId);
+      const restaurante = await this.usuarioService.getById(compra.restauranteId);
       if (!restaurante) {
         throw new Error(ERROR_MESSAGES.RESTAURANTE_NOT_FOUND);
       }
 
-      const paquete = await paqueteService.obtenerPaquetePorId(compra.paqueteId);
+      const paquete = await this.paqueteService.obtenerPaquetePorId(compra.paqueteId);
       if (!paquete) {
         throw new Error(ERROR_MESSAGES.PAQUETE_NOT_FOUND);
       }
@@ -92,17 +95,17 @@ export class ReporteService {
 
   async reporteRestauranteToCliente(compraId: string, descripcion: string): Promise<Reporte> {
     try {
-      const compra = await compraService.getCompraById(compraId);
+      const compra = await this.compraService.getCompraById(compraId);
       if (!compra) {
         throw new Error(ERROR_MESSAGES.COMPRA_NOT_FOUND);
       }
 
-      const restaurante = await usuarioService.getById(compra.restauranteId);
+      const restaurante = await this.usuarioService.getById(compra.restauranteId);
       if (!restaurante) {
         throw new Error(ERROR_MESSAGES.RESTAURANTE_NOT_FOUND);
       }
 
-      const paquete = await paqueteService.obtenerPaquetePorId(compra.paqueteId);
+      const paquete = await this.paqueteService.obtenerPaquetePorId(compra.paqueteId);
       if (!paquete) {
         throw new Error(ERROR_MESSAGES.PAQUETE_NOT_FOUND);
       }
