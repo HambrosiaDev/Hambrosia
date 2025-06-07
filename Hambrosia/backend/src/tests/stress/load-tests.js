@@ -30,7 +30,7 @@ export const options = {
 };
 
 // Test data
-const BASE_URL = 'https://hambrosia.onrender.com/api';
+const BASE_URL = process.env.BASE_URL;
 
 // Common headers
 const headers = {

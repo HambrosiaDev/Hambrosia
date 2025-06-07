@@ -5,8 +5,6 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
-import swaggerJsdoc from 'swagger-jsdoc';
-
 // Import routes
 import usuarioRoutes from './routes/usuarioRoutes';
 import paqueteRoutes from './routes/paqueteRoutes';
@@ -19,14 +17,6 @@ import { paqueteSwagger } from './swagger/paqueteSwagger';
 import { reporteSwagger } from './swagger/reporteSwagger';
 import { usuarioSwagger } from './swagger/usuarioSwagger';
 import { notificacionesSwagger } from './swagger/notificacionesSwagger';
-
-
-
-
-// Load environment variables
-dotenv.config();
-
-const { db } = require('./config/firebase');
 
 dotenv.config();
 
@@ -64,20 +54,6 @@ app.use('/api/notificaciones', notificacionesRoutes);
 
 // Routes for the API documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-
-app.get('/api', (req: Request, res: Response) => {
-  res.json({
-    message: 'Hola Daniel',
-  });
-});
-
-app.get('/', async (req: Request, res: Response) => {
-  const querySnapshot = await db.collection('contacts').get();
-  console.log(querySnapshot);
-
-  res.send(querySnapshot.docs[0].data());
-});
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: any) => {
