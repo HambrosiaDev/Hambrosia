@@ -81,8 +81,28 @@ app.get('/', async (req: Request, res: Response) => {
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+  console.error('Error details:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: req.body,
+    query: req.query,
+    params: req.params
+  });
+
+  // Determinar el código de estado apropiado
+  const statusCode = err.statusCode || 500;
+  
+  // Enviar respuesta de error
+  res.status(statusCode).json({
+    error: {
+      message: err.message || 'Something went wrong',
+      code: err.code || 'INTERNAL_SERVER_ERROR',
+      path: req.path,
+      timestamp: new Date().toISOString()
+    }
+  });
 });
 
 app.listen(PORT, () => {

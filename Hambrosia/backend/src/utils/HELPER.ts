@@ -1,4 +1,3 @@
-
 import * as CryptoJS from 'crypto-js';
 import * as dotenv from "dotenv";
 import { Timestamp } from 'firebase-admin/firestore';
@@ -406,6 +405,122 @@ export class ValidacionCedulaRuc {
     } else {
       return multiplicacionValores;
     }
+  }
+
+  /**
+   * Genera una cédula ecuatoriana válida.
+   * @returns Una cédula válida de 10 dígitos.
+   */
+  static generarCedulaValida(): string {
+    // Generar los primeros 9 dígitos
+    let cedula = '';
+    // Primeros dos dígitos (provincia) entre 1 y 24
+    cedula += Math.floor(Math.random() * 24 + 1).toString().padStart(2, '0');
+    // Tercer dígito entre 0 y 5
+    cedula += Math.floor(Math.random() * 6).toString();
+    // Resto de dígitos
+    for (let i = 0; i < 6; i++) {
+      cedula += Math.floor(Math.random() * 10).toString();
+    }
+
+    // Calcular el dígito verificador
+    const coeficientes = this.obtenerCoeficientes(TipoIdentificacionEnum.CEDULA);
+    let sumatoria = 0;
+    for (let i = 0; i < 9; i++) {
+      const digito = parseInt(cedula[i]);
+      const resultado = digito * coeficientes[i];
+      sumatoria += this.sumatoriaMultiplicacion(resultado, TipoIdentificacionEnum.CEDULA);
+    }
+
+    const digitoVerificador = this.obtenerDigitoVerificador(sumatoria, TipoIdentificacionEnum.CEDULA);
+    cedula += digitoVerificador.toString();
+
+    return cedula;
+  }
+
+  /**
+   * Genera un RUC válido para persona natural.
+   * @returns Un RUC válido de 13 dígitos.
+   */
+  static generarRucPersonaNaturalValido(): string {
+    // Generar los primeros 9 dígitos (igual que la cédula)
+    let ruc = this.generarCedulaValida();
+    
+    // Agregar los últimos 3 dígitos (establecimiento)
+    const establecimiento = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
+    ruc += establecimiento;
+
+    return ruc;
+  }
+
+  /**
+   * Genera un RUC válido para sociedad privada.
+   * @returns Un RUC válido de 13 dígitos.
+   */
+  static generarRucSociedadPrivadaValido(): string {
+    // Generar los primeros 9 dígitos
+    let ruc = '';
+    // Primeros dos dígitos (provincia) entre 1 y 24
+    ruc += Math.floor(Math.random() * 24 + 1).toString().padStart(2, '0');
+    // Tercer dígito debe ser 9
+    ruc += '9';
+    // Resto de dígitos
+    for (let i = 0; i < 6; i++) {
+      ruc += Math.floor(Math.random() * 10).toString();
+    }
+
+    // Calcular el dígito verificador
+    const coeficientes = this.obtenerCoeficientes(TipoIdentificacionEnum.RUC_SOCIEDAD_PRIVADA);
+    let sumatoria = 0;
+    for (let i = 0; i < 9; i++) {
+      const digito = parseInt(ruc[i]);
+      const resultado = digito * coeficientes[i];
+      sumatoria += resultado;
+    }
+
+    const digitoVerificador = this.obtenerDigitoVerificador(sumatoria, TipoIdentificacionEnum.RUC_SOCIEDAD_PRIVADA);
+    ruc += digitoVerificador.toString();
+
+    // Agregar los últimos 3 dígitos (establecimiento)
+    const establecimiento = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
+    ruc += establecimiento;
+
+    return ruc;
+  }
+
+  /**
+   * Genera un RUC válido para sociedad pública.
+   * @returns Un RUC válido de 13 dígitos.
+   */
+  static generarRucSociedadPublicaValido(): string {
+    // Generar los primeros 8 dígitos
+    let ruc = '';
+    // Primeros dos dígitos (provincia) entre 1 y 24
+    ruc += Math.floor(Math.random() * 24 + 1).toString().padStart(2, '0');
+    // Tercer dígito debe ser 6
+    ruc += '6';
+    // Resto de dígitos
+    for (let i = 0; i < 5; i++) {
+      ruc += Math.floor(Math.random() * 10).toString();
+    }
+
+    // Calcular el dígito verificador
+    const coeficientes = this.obtenerCoeficientes(TipoIdentificacionEnum.RUC_SOCIEDAD_PUBLICA);
+    let sumatoria = 0;
+    for (let i = 0; i < 8; i++) {
+      const digito = parseInt(ruc[i]);
+      const resultado = digito * coeficientes[i];
+      sumatoria += resultado;
+    }
+
+    const digitoVerificador = this.obtenerDigitoVerificador(sumatoria, TipoIdentificacionEnum.RUC_SOCIEDAD_PUBLICA);
+    ruc += digitoVerificador.toString();
+
+    // Agregar los últimos 3 dígitos (establecimiento)
+    const establecimiento = Math.floor(Math.random() * 999 + 1).toString().padStart(3, '0');
+    ruc += establecimiento;
+
+    return ruc;
   }
 }
 
