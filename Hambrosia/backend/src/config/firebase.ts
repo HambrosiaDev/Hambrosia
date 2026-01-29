@@ -6,6 +6,10 @@ import * as path from 'path';
 try {
   // Opción 1: Variables de entorno (para Render/producción)
   if (process.env.FIREBASE_PRIVATE_KEY) {
+    console.log('🔍 Inicializando Firebase con variables de entorno...');
+    console.log('Project ID:', process.env.FIREBASE_PROJECT_ID);
+    console.log('Client Email:', process.env.FIREBASE_CLIENT_EMAIL);
+    
     const serviceAccount = {
       type: 'service_account',
       project_id: process.env.FIREBASE_PROJECT_ID,
@@ -17,6 +21,7 @@ try {
       token_uri: 'https://oauth2.googleapis.com/token',
       auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
       client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+      universe_domain: 'googleapis.com',
     };
 
     admin.initializeApp({
@@ -38,6 +43,7 @@ try {
   }
 } catch (error: any) {
   console.error('❌ Error al inicializar Firebase:', error.message);
+  console.error('Stack:', error.stack);
   throw error;
 }
 
