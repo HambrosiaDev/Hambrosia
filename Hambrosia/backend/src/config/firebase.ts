@@ -10,11 +10,17 @@ try {
     console.log('Project ID:', process.env.FIREBASE_PROJECT_ID);
     console.log('Client Email:', process.env.FIREBASE_CLIENT_EMAIL);
     
+    // Validar que la private key tenga el formato correcto
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+    console.log('Private Key comienza con:', privateKey.substring(0, 30));
+    console.log('Private Key termina con:', privateKey.substring(privateKey.length - 30));
+    console.log('Private Key tiene', (privateKey.match(/\n/g) || []).length, 'saltos de línea');
+    
     const serviceAccount = {
       type: 'service_account',
       project_id: process.env.FIREBASE_PROJECT_ID,
       private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      private_key: privateKey,
       client_email: process.env.FIREBASE_CLIENT_EMAIL,
       client_id: process.env.FIREBASE_CLIENT_ID,
       auth_uri: 'https://accounts.google.com/o/oauth2/auth',
@@ -46,6 +52,13 @@ try {
   console.error('Stack:', error.stack);
   throw error;
 }
+
+// Export Firebase services
+export const db = getFirestore();
+export const auth = admin.auth();
+export const storage = admin.storage();
+
+export default admin;
 
 // Export Firebase services
 export const db = getFirestore();
