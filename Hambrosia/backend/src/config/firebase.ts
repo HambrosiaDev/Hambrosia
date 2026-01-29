@@ -59,10 +59,3 @@ export const auth = admin.auth();
 export const storage = admin.storage();
 
 export default admin;
-
-// Export Firebase services
-export const db = getFirestore();
-export const auth = admin.auth();
-export const storage = admin.storage();
-
-export default admin;
